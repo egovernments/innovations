@@ -10,6 +10,10 @@ x-superset-env: &superset-env
   DB_PASSWORD: ${PG_PASSWORD:?set in .env}
   LENSPACK_URL: /lenspack
   TALISMAN_ENABLED: ${TALISMAN_ENABLED:-true}
+  # The beside page's origin(s), space-separated: added to CSP frame-ancestors so it may frame Superset.
+  LENSPACK_BESIDE_ORIGINS: ${LENSPACK_BESIDE_ORIGINS:-}
+  # Link to the beside page shown on Settings → Manage → AI assistant.
+  LENSPACK_BESIDE_URL: ${LENSPACK_BESIDE_URL:-}
 
 services:
   db:
@@ -58,11 +62,14 @@ services:
     build: ./lenspack
     environment:
       SUPERSET_URL: http://superset:8088
+      # Where browsers reach Superset: the beside page (another port) frames it from here.
+      SUPERSET_PUBLIC_URL: ${SUPERSET_PUBLIC_URL:-http://127.0.0.1:8088}
       LENSPACK_SUPERSET_PASSWORD: ${LENSPACK_SUPERSET_PASSWORD:?set in .env}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       LENSPACK_LLM_PROVIDERS: ${LENSPACK_LLM_PROVIDERS:-}
     volumes:
-      - ./lenspack/lenspack-superset.yaml:/config/lenspack-superset.yaml:ro
+      # Which config: lenspack-superset.yaml (sample data) or lenspack-superset.clickhouse.yaml.
+      - ./lenspack/${LENSPACK_CONFIG:-lenspack-superset.yaml}:/config/lenspack-superset.yaml:ro
       - lenspack:/data
     depends_on:
       superset: { condition: service_healthy }
@@ -75,6 +82,8 @@ services:
       - ./proxy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     ports:
       - "${BIND_ADDRESS:-127.0.0.1}:${PORT:-8088}:8088"
+      # The "beside" page (chat + Superset in an iframe) on its own port.
+      - "${BIND_ADDRESS:-127.0.0.1}:${BESIDE_PORT:-8795}:8795"
     depends_on: [superset]
     restart: unless-stopped
 
@@ -88,10 +97,40 @@ services:
       SUPERSET_URL: http://superset:8088
       SUPERSET_ADMIN_PASSWORD: ${SUPERSET_ADMIN_PASSWORD:?set in .env}
       DATA_SQLALCHEMY_URI: ${DATA_SQLALCHEMY_URI:-postgresql+psycopg2://superset:${PG_PASSWORD}@db:5432/hcm}
+      # ClickHouse part, run when CLICKHOUSE_PASSWORD is set (pass it with -e; keep it out of .env if you can).
+      CLICKHOUSE_HOST: ${CLICKHOUSE_HOST:-clickhouse-tunnel}
+      CLICKHOUSE_PORT: ${CLICKHOUSE_PORT:-8123}
+      CLICKHOUSE_DATABASE: ${CLICKHOUSE_DATABASE:-analytics}
+      CLICKHOUSE_TENANT: ${CLICKHOUSE_TENANT:-ng}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-}
     volumes:
       - ./setup:/setup:ro
     depends_on:
       superset: { condition: service_healthy }
+
+  # ClickHouse in a Kubernetes cluster, reached by port-forward (a read kubeconfig is enough).
+  # Superset's ClickHouse database points at clickhouse-tunnel:8123.
+  #   docker compose --profile clickhouse up -d clickhouse-tunnel
+  # Skip it when ClickHouse is reachable directly: set CLICKHOUSE_HOST/CLICKHOUSE_PORT instead.
+  clickhouse-tunnel:
+    image: registry.k8s.io/kubectl:v1.35.0
+    profiles: [clickhouse]
+    user: "${UID:-1000}"
+    command:
+      - port-forward
+      - --address=0.0.0.0
+      - --context=${CLICKHOUSE_KUBE_CONTEXT:-}
+      - --namespace=${CLICKHOUSE_KUBE_NAMESPACE:-clickhouse}
+      - ${CLICKHOUSE_KUBE_SERVICE:-svc/clickhouse}
+      - 8123:8123
+    environment:
+      KUBECONFIG: /kube/config
+    volumes:
+      # Defaults keep `docker compose` working when the clickhouse profile is not used.
+      - ${CLICKHOUSE_KUBECONFIG:-/dev/null}:/kube/config:ro
+    # port-forward exits when the connection drops; Docker starts it again.
+    restart: unless-stopped
 
 volumes:
   pg: {}

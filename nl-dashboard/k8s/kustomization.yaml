@@ -15,4 +15,4 @@ images:
     newTag: "5.0.0-1"
   - name: nl-dashboard-lenspack
     newName: ghcr.io/theflywheel/nl-dashboard-lenspack
-    newTag: "88cd2a1"
+    newTag: "aa94e3e"

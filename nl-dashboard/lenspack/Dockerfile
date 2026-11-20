@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends git ca-certific
  && rm -rf /var/lib/apt/lists/* && corepack enable
 
 # A commit on the lenspack "superset" branch (until packages/superset reaches main).
-ARG LENSPACK_REF=88cd2a124cd80d6f94b2fb8ae81e4b27f6dfbb7f
+ARG LENSPACK_REF=aa94e3e24ee584e139c05692133976538f21d6b5
 WORKDIR /app
 RUN git init -q . && git remote add origin https://github.com/theflywheel/lenspack.git \
  && git fetch -q --depth 1 origin "$LENSPACK_REF" && git checkout -q FETCH_HEAD \

@@ -6,6 +6,8 @@
 set -eu
 if [ -z "${LENSPACK_LLM_PROVIDERS:-}" ] && [ -n "${ANTHROPIC_API_KEY:-}" ]; then
   LENSPACK_LLM_PROVIDERS='[{"name":"claude-sonnet-5-5","kind":"anthropic","model":"claude-sonnet-5-5"},{"name":"claude-opus-5-5","kind":"anthropic","model":"claude-opus-5-5"},{"name":"claude-haiku-5-5","kind":"anthropic","model":"claude-haiku-5-5"}]'
-  export LENSPACK_LLM_PROVIDERS
+  # So the settings page can say where the key came from (the name, never the value).
+  LENSPACK_LLM_KEY_SOURCE=ANTHROPIC_API_KEY
+  export LENSPACK_LLM_PROVIDERS LENSPACK_LLM_KEY_SOURCE
 fi
 exec /app/node_modules/.bin/tsx --tsconfig /app/tsconfig.base.json /app/packages/superset/bin/serve.ts "$@"

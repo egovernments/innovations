@@ -22,6 +22,8 @@ spec:
           image: nl-dashboard-lenspack
           env:
             - { name: SUPERSET_URL, value: "http://nl-dashboard-superset:8088" }
+            # Where browsers reach Superset (the config's superset.publicUrl).
+            - { name: SUPERSET_PUBLIC_URL, value: "https://superset.hcm-lab.digit.org" }
             - { name: LENSPACK_SUPERSET_PASSWORD, valueFrom: { secretKeyRef: { name: nl-dashboard, key: LENSPACK_SUPERSET_PASSWORD } } }
             - { name: ANTHROPIC_API_KEY, valueFrom: { secretKeyRef: { name: nl-dashboard, key: ANTHROPIC_API_KEY } } }
           ports: [{ containerPort: 8795 }]
@@ -35,6 +37,6 @@ spec:
             - { name: data, mountPath: /data }
       volumes:
         - name: config
-          configMap: { name: nl-dashboard-lenspack }   # from ../lenspack/lenspack-superset.yaml (README)
+          configMap: { name: nl-dashboard-lenspack }   # key lenspack-superset.yaml: the sample or the ClickHouse config (README)
         - name: data
           emptyDir: {}                                 # charts Lenspack made; Superset keeps the dashboards

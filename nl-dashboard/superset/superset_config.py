@@ -8,8 +8,12 @@ Environment:
   LENSPACK_URL             where browsers load the Lenspack overlay from, without a trailing slash:
                            a path on Superset's own host ("/lenspack", behind an ingress) or a full URL.
   LENSPACK_PORT            used when LENSPACK_URL is unset: Lenspack on the same host as Superset, this port.
-  TALISMAN_ENABLED         Superset's security headers (CSP, X-Frame-Options). On by default; "false" only for the
-                           two-port setup (LENSPACK_PORT), where the overlay and iframe are cross-origin.
+  TALISMAN_ENABLED         Superset's security headers (CSP, X-Frame-Options). On by default.
+  LENSPACK_BESIDE_ORIGINS  space-separated origins allowed to frame Superset (the "beside" page on its own
+                           port, e.g. "http://superset-host:8795"). Added to the CSP's frame-ancestors.
+  LENSPACK_INTERNAL_URL    where Superset's server reaches Lenspack, for the Settings → AI assistant page
+                           (default http://lenspack:8795).
+  LENSPACK_BESIDE_URL      where browsers reach the beside page, for links on that page (optional).
 """
 
 import os
@@ -45,6 +49,100 @@ WTF_CSRF_ENABLED = True
 # SAMEORIGIN. On two ports they are cross-origin, and the CSP blocks them.
 TALISMAN_ENABLED = env_bool("TALISMAN_ENABLED", True)
 
+# The beside page on another origin (its own port) frames Superset: allow exactly those
+# origins in the CSP's frame-ancestors, and drop X-Frame-Options (SAMEORIGIN would win in
+# older browsers; frame-ancestors replaces it).
+LENSPACK_BESIDE_ORIGINS = os.environ.get("LENSPACK_BESIDE_ORIGINS", "").split()
+if LENSPACK_BESIDE_ORIGINS:
+    from superset.config import TALISMAN_CONFIG as _DEFAULT_TALISMAN
+
+    TALISMAN_CONFIG = {
+        **_DEFAULT_TALISMAN,
+        "content_security_policy": {
+            **_DEFAULT_TALISMAN["content_security_policy"],
+            "frame-ancestors": ["'self'", *LENSPACK_BESIDE_ORIGINS],
+        },
+        "frame_options": None,
+    }
+
 # Read by templates/tail_js_custom_extra.html.
 LENSPACK_URL = os.environ.get("LENSPACK_URL", "").rstrip("/")
 LENSPACK_PORT = os.environ.get("LENSPACK_PORT", "8795")
+
+# Settings → Manage → "AI assistant": what Lenspack runs with (datasets, models, where the LLM key
+# comes from, budget, today's usage) and Superset's data connections. Admins only. No fork: Superset
+# calls FLASK_APP_MUTATOR once Flask-AppBuilder is set up, before its own views. Never shows secrets.
+LENSPACK_INTERNAL_URL = os.environ.get("LENSPACK_INTERNAL_URL", "http://lenspack:8795").rstrip("/")
+LENSPACK_BESIDE_URL = os.environ.get("LENSPACK_BESIDE_URL", "").rstrip("/")
+
+
+def _lenspack_settings(app):
+    import json
+    import urllib.request
+
+    from flask import abort
+    from flask_appbuilder import BaseView, expose
+    from flask_appbuilder.security.decorators import has_access
+
+    from superset.extensions import appbuilder, db, security_manager
+
+    def fetch(path):
+        try:
+            with urllib.request.urlopen(LENSPACK_INTERNAL_URL + path, timeout=5) as r:
+                return json.load(r), None
+        except Exception as e:  # unreachable, 404, not JSON: say so on the page
+            return None, f"{type(e).__name__}: {str(e)[:160]}"
+
+    class LenspackSettingsView(BaseView):
+        route_base = "/ai-assistant"
+        default_view = "index"
+
+        @expose("/")
+        @has_access
+        def index(self):
+            if not security_manager.is_admin():
+                abort(403)
+            from superset.models.core import Database
+
+            settings, settings_error = fetch("/_superset/settings")
+            info = None
+            if settings is None:
+                info, _ = fetch("/_superset/info")
+            usage, usage_error = fetch("/api/_usage")
+            databases = [
+                {
+                    "name": d.database_name,
+                    "backend": d.backend,
+                    # Superset stores the URI with the password already masked (XXXXXXXXXX).
+                    "uri": d.sqlalchemy_uri,
+                    "datasets": len(d.tables),
+                }
+                for d in db.session.query(Database).order_by(Database.database_name)
+            ]
+            account = security_manager.find_user(username="lenspack")
+            return self.render_template(
+                "lenspack/settings.html",
+                settings=settings,
+                settings_error=settings_error,
+                info=info,
+                usage=usage,
+                usage_error=usage_error,
+                databases=databases,
+                account_roles=[r.name for r in account.roles] if account else None,
+                lenspack_url=LENSPACK_URL or "",
+                beside_url=LENSPACK_BESIDE_URL,
+                internal_url=LENSPACK_INTERNAL_URL,
+            )
+
+    appbuilder.add_view_no_menu(LenspackSettingsView)
+    appbuilder.add_link(
+        "AI assistant",
+        label="AI assistant",
+        href="/ai-assistant/",
+        icon="fa-comments",
+        category="Manage",
+        cond=lambda: security_manager.is_admin(),
+    )
+
+
+FLASK_APP_MUTATOR = _lenspack_settings

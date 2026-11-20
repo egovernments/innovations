@@ -1,0 +1,103 @@
+{#
+  Settings → Manage → AI assistant (superset_config.py, FLASK_APP_MUTATOR). What Lenspack runs
+  with and Superset's data connections. Rendered server-side; never shows a secret.
+#}
+{% extends "appbuilder/base.html" %}
+{% block title %}AI assistant · Settings{% endblock %}
+{% block content %}
+<style>
+  .lp-wrap{max-width:1040px;margin:24px auto;padding:0 16px;font:14px/1.5 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:#1f2328}
+  .lp-wrap h1{font-size:22px;margin:0 0 4px}
+  .lp-wrap .lede{color:#667085;margin:0 0 20px}
+  .lp-card{background:#fff;border:1px solid #e4e7ec;border-radius:8px;padding:16px 18px;margin:0 0 16px}
+  .lp-card h2{font-size:15px;margin:0 0 10px}
+  .lp-wrap table{border-collapse:collapse;width:100%}
+  .lp-wrap th,.lp-wrap td{text-align:left;padding:6px 8px;border-bottom:1px solid #f0f2f5;vertical-align:top}
+  .lp-wrap th{color:#667085;font-weight:500;width:220px}
+  .lp-wrap code{background:#f5f7fa;border-radius:4px;padding:1px 5px;font-size:12.5px}
+  .ok{color:#067647}.bad{color:#b42318}.mute{color:#667085}
+  .lp-wrap a{color:#1a85a0}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media (max-width:820px){.grid2{grid-template-columns:1fr}.lp-wrap th{width:auto}}
+</style>
+<div class="lp-wrap">
+  <h1>AI assistant</h1>
+  <p class="lede">Lenspack adds a chat to Superset dashboards: the <b>Ask Lenspack</b> button on a dashboard, and the
+    side-by-side page{% if beside_url %} at <a href="{{ beside_url }}/" target="_blank" rel="noopener">{{ beside_url }}</a>{% endif %}.
+    These settings come from Lenspack's config file and environment; this page shows them and never a secret.</p>
+
+  <div class="lp-card">
+    <h2>Lenspack</h2>
+    <table>
+      <tr><th>Status</th><td>
+        {% if settings %}<span class="ok">● running</span>
+        {% elif info %}<span class="ok">● running</span> <span class="mute">(this Lenspack version reports less; update it for the full page)</span>
+        {% else %}<span class="bad">● not reachable</span> <span class="mute">{{ settings_error }}</span>{% endif %}
+        <span class="mute">· {{ internal_url }}</span>
+      </td></tr>
+      {% set s = settings or info or {} %}
+      {% if s.pack %}<tr><th>Pack</th><td><code>{{ s.pack }}</code></td></tr>{% endif %}
+      {% if settings %}
+        <tr><th>Datasets it reads</th><td>{% for d in settings.datasets %}<code>{{ d.schema ~ '.' if d.schema }}{{ d.table }}</code> as <b>{{ d.entity }}</b>{% if not loop.last %}<br>{% endif %}{% endfor %}</td></tr>
+        <tr><th>Vocabulary</th><td>{{ settings.dimensions }} dimensions, {{ settings.measures|length }} measures
+          <details><summary class="mute">measures</summary>{% for m in settings.measures %}<code>{{ m.key }}</code> {{ m.label }} <span class="mute">({{ m.agg }})</span><br>{% endfor %}</details></td></tr>
+        <tr><th>Superset account</th><td><code>{{ settings.superset.username }}</code>{% if account_roles is not none %} · roles: {{ account_roles|join(', ') or 'none' }}{% endif %}</td></tr>
+        <tr><th>Dashboards bound</th><td>{{ settings.dashboards|join(', ') or 'none yet (a dashboard binds when the chat opens on it)' }}</td></tr>
+      {% elif account_roles is not none %}
+        <tr><th>Superset account</th><td><code>lenspack</code> · roles: {{ account_roles|join(', ') or 'none' }}</td></tr>
+      {% endif %}
+      {% if s.examples %}<tr><th>Example questions</th><td>{% for e in s.examples %}{{ e }}{% if not loop.last %}<br>{% endif %}{% endfor %}</td></tr>{% endif %}
+    </table>
+  </div>
+
+  <div class="grid2">
+    <div class="lp-card">
+      <h2>Language models</h2>
+      {% if settings %}
+        <table>
+          <tr><th>Key from</th><td>{% if settings.llmFrom %}<code>{{ settings.llmFrom }}</code>{% if settings.llmFrom == 'LENSPACK_LLM_PROVIDERS' %} <span class="mute">(this stack's Lenspack image builds it from <code>ANTHROPIC_API_KEY</code> when that is set)</span>{% endif %} <span class="mute">(environment; the value is never shown)</span>{% else %}<span class="bad">no key set: the chat is off</span>{% endif %}</td></tr>
+          {% for p in settings.providers %}
+            <tr><th>{{ p.name }}</th><td><code>{{ p.model }}</code> <span class="mute">{{ p.kind }}</span>
+              {% if p.available %}<span class="ok">● answering</span>{% elif p.available is sameas false %}<span class="bad">● {{ p.error or 'not answering' }}</span>{% else %}<span class="mute">● not checked yet</span>{% endif %}</td></tr>
+          {% endfor %}
+        </table>
+      {% else %}<p class="mute">Shown once Lenspack reports its settings.</p>{% endif %}
+    </div>
+    <div class="lp-card">
+      <h2>Spend today</h2>
+      {% if usage %}
+        <table>
+          <tr><th>Spent</th><td>${{ '%.4f'|format(usage.budget.spent if usage.budget else usage.total.usd) }}{% if usage.budget and usage.budget.usdPerDay %} of ${{ usage.budget.usdPerDay }} a day{% endif %}</td></tr>
+          {% if usage.budget and usage.budget.usdPerUserPerDay %}<tr><th>Per person</th><td>${{ usage.budget.usdPerUserPerDay }} a day</td></tr>{% endif %}
+          <tr><th>Chat turns</th><td>{{ usage.total.turns }}</td></tr>
+          <tr><th>Model calls</th><td>{{ usage.total.calls }}{% if usage.total.failed %} <span class="bad">({{ usage.total.failed }} failed)</span>{% endif %}</td></tr>
+          <tr><th>Tokens</th><td>{{ usage.total.inputTokens }} in, {{ usage.total.outputTokens }} out</td></tr>
+        </table>
+      {% else %}<p class="mute">Not available: {{ usage_error }}</p>{% endif %}
+    </div>
+  </div>
+
+  <div class="lp-card">
+    <h2>Data connections in Superset</h2>
+    <table>
+      <tr><th>Name</th><td class="mute">Backend · connection (password masked) · datasets</td></tr>
+      {% for d in databases %}
+        <tr><th>{{ d.name }}</th><td><code>{{ d.backend }}</code> · <code>{{ d.uri }}</code> · {{ d.datasets }}</td></tr>
+      {% else %}
+        <tr><td colspan="2" class="mute">None yet.</td></tr>
+      {% endfor %}
+    </table>
+    <p class="mute">Add or edit them under Settings → Database Connections. Saved passwords are encrypted with Superset's secret key.</p>
+  </div>
+
+  <div class="lp-card">
+    <h2>Where to change things</h2>
+    <table>
+      <tr><th>Models, LLM key</th><td><code>ANTHROPIC_API_KEY</code> or <code>LENSPACK_LLM_PROVIDERS</code> in the deployment's environment (<code>.env</code> / the k8s Secret)</td></tr>
+      <tr><th>Datasets, guidance, budget</th><td><code>lenspack/lenspack-superset.yaml</code></td></tr>
+      <tr><th>Who may use the chat</th><td>Anyone signed in to Superset (the proxy checks the session before every Lenspack request)</td></tr>
+      {% if lenspack_url %}<tr><th>Lenspack pages</th><td><a href="{{ lenspack_url }}/" target="_blank" rel="noopener">All dashboards, beside and inside</a></td></tr>{% endif %}
+    </table>
+  </div>
+</div>
+{% endblock %}

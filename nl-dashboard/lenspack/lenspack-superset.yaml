@@ -4,7 +4,7 @@ superset:
   url: env:SUPERSET_URL                 # how Lenspack reaches Superset's API (compose: http://superset:8088)
   username: lenspack                    # the service account superset/init.sh creates
   passwordEnv: LENSPACK_SUPERSET_PASSWORD
-  # publicUrl: https://superset.example.org   # only when browsers reach Superset elsewhere than this host
+  publicUrl: env:SUPERSET_PUBLIC_URL     # where browsers reach Superset (the beside page frames it from its own port)
 
 # Browsers reach Lenspack under Superset's own host, at this path (compose: proxy/nginx.conf, k8s: the
 # ingress). Same origin, so the overlay and the iframe need no CORS or CSP exceptions.
