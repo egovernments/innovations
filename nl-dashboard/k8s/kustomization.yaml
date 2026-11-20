@@ -1,0 +1,18 @@
+# Superset 5 + Lenspack on Kubernetes (the HCM lab VM's minikube, namespace lenspack).
+# Before applying: the Secret and ConfigMaps in README.md, and the images pushed.
+#   kubectl apply -k nl-dashboard/k8s
+namespace: lenspack
+labels:
+  - pairs: { app.kubernetes.io/part-of: nl-dashboard }
+resources:
+  - db.yaml
+  - superset.yaml
+  - lenspack.yaml
+  - ingress.yaml
+images:
+  - name: nl-dashboard-superset
+    newName: ghcr.io/theflywheel/nl-dashboard-superset
+    newTag: "5.0.0-1"
+  - name: nl-dashboard-lenspack
+    newName: ghcr.io/theflywheel/nl-dashboard-lenspack
+    newTag: "fecd10a"
