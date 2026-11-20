@@ -1,0 +1,24 @@
+# One-off: the data source in Superset, three datasets with metrics, a starter dashboard
+# (../setup/setup.mts, mounted from the nl-dashboard-setup ConfigMap; README). Not in kustomization.yaml:
+#   kubectl -n lenspack apply -f nl-dashboard/k8s/setup-job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata: { name: nl-dashboard-setup, labels: { app.kubernetes.io/part-of: nl-dashboard } }
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 86400
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: setup
+          image: ghcr.io/theflywheel/nl-dashboard-lenspack:88cd2a1
+          command: [/app/node_modules/.bin/tsx, --tsconfig, /app/tsconfig.base.json, /setup/setup.mts]
+          env:
+            - { name: SUPERSET_URL, value: "http://nl-dashboard-superset:8088" }
+            - { name: SUPERSET_ADMIN_PASSWORD, valueFrom: { secretKeyRef: { name: nl-dashboard, key: SUPERSET_ADMIN_PASSWORD } } }
+            - { name: DATA_SQLALCHEMY_URI, valueFrom: { secretKeyRef: { name: nl-dashboard, key: DATA_SQLALCHEMY_URI } } }
+          volumeMounts: [{ name: setup, mountPath: /setup, readOnly: true }]
+      volumes:
+        - name: setup
+          configMap: { name: nl-dashboard-setup }

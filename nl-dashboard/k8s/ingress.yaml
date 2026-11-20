@@ -1,0 +1,42 @@
+# One host for both, so the overlay, the iframe and Superset's session are same-origin:
+#   https://superset.hcm-lab.digit.org/            Superset
+#   https://superset.hcm-lab.digit.org/lenspack/   Lenspack (the prefix is stripped; Superset sign-in required)
+# *.hcm-lab.digit.org already resolves to the lab VM; cert-manager issues the certificate.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nl-dashboard-superset
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/proxy-body-size: 20m
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+spec:
+  ingressClassName: nginx
+  tls: [{ hosts: [superset.hcm-lab.digit.org], secretName: nl-dashboard-tls }]
+  rules:
+    - host: superset.hcm-lab.digit.org
+      http:
+        paths:
+          - { path: /, pathType: Prefix, backend: { service: { name: nl-dashboard-superset, port: { number: 8088 } } } }
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nl-dashboard-lenspack
+  annotations:
+    # Only people signed in to Superset reach Lenspack: each request is checked against Superset's
+    # /api/v1/me/ with the browser's session cookie (401 when not signed in).
+    nginx.ingress.kubernetes.io/auth-url: http://nl-dashboard-superset.lenspack.svc.cluster.local:8088/api/v1/me/
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"      # chat replies stream
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+spec:
+  ingressClassName: nginx
+  tls: [{ hosts: [superset.hcm-lab.digit.org], secretName: nl-dashboard-tls }]
+  rules:
+    - host: superset.hcm-lab.digit.org
+      http:
+        paths:
+          - { path: /lenspack(/|$)(.*), pathType: ImplementationSpecific, backend: { service: { name: nl-dashboard-lenspack, port: { number: 8795 } } } }

@@ -1,0 +1,13 @@
+{#
+  Replaces Superset's superset/templates/tail_js_custom_extra.html, which Superset
+  includes at the end of every page and documents as "may be overridden in your
+  custom deployment". One script tag: the Lenspack chat ("Ask Lenspack") on
+  dashboard pages. LENSPACK_URL / LENSPACK_PORT come from superset_config.py.
+  With Talisman on, the tag carries the page's CSP nonce (csp_nonce exists only then).
+#}
+{% set lp_nonce = csp_nonce() if csp_nonce is defined else "" %}
+{% if config.get('LENSPACK_URL') %}
+<script{% if lp_nonce %} nonce="{{ lp_nonce }}"{% endif %} src="{{ config['LENSPACK_URL'] }}/overlay.js" defer></script>
+{% elif config.get('LENSPACK_PORT') %}
+<script{% if lp_nonce %} nonce="{{ lp_nonce }}"{% endif %} src="{{ request.scheme }}://{{ request.host.split(':')[0] }}:{{ config['LENSPACK_PORT'] }}/overlay.js" defer></script>
+{% endif %}
