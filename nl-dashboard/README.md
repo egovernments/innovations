@@ -94,6 +94,7 @@ Superset's login form sends passwords as typed.
 | `TALISMAN_ENABLED` | Superset | no | `true` | Superset's security headers |
 | `LENSPACK_BESIDE_ORIGINS` | Superset | for the beside port | | Origins of the beside page (`http://host:8795`, space-separated), allowed to frame Superset (CSP `frame-ancestors`) |
 | `LENSPACK_BESIDE_URL` | Superset | no | | Beside page link on Settings → Manage → AI assistant |
+| `MAPBOX_API_KEY` | superset | Mapbox public token (`pk.…`) for the basemap under deck.gl map charts. Empty: points on a blank background. |
 | `LENSPACK_INTERNAL_URL` | Superset | no | `http://lenspack:8795` | How Superset's server reaches Lenspack, for the AI assistant page |
 | `BIND_ADDRESS`, `PORT` | proxy | no | `127.0.0.1`, `8088` | Where the single address listens |
 | `BESIDE_PORT` | proxy | no | `8795` | The beside page's port |

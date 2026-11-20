@@ -14,6 +14,8 @@ x-superset-env: &superset-env
   LENSPACK_BESIDE_ORIGINS: ${LENSPACK_BESIDE_ORIGINS:-}
   # Link to the beside page shown on Settings → Manage → AI assistant.
   LENSPACK_BESIDE_URL: ${LENSPACK_BESIDE_URL:-}
+  # Mapbox public (pk.) token for the basemap under deck.gl map charts; empty = no basemap.
+  MAPBOX_API_KEY: ${MAPBOX_API_KEY:-}
 
 services:
   db:
