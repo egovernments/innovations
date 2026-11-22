@@ -18,6 +18,15 @@ Environment:
 
 import os
 
+# Import the ClickHouse driver once, while the config loads. Otherwise Superset imports it lazily
+# from several request threads at once after a restart, and a worker can fail with "partially
+# initialized module clickhouse_connect.common" until it is restarted.
+try:
+    import clickhouse_connect  # noqa: F401
+    import clickhouse_connect.cc_sqlalchemy.dialect  # noqa: F401
+except ImportError:  # the image without clickhouse-connect
+    pass
+
 
 def env_bool(name: str, default: bool) -> bool:
     return os.environ.get(name, str(default)).strip().lower() in ("1", "true", "yes", "on")
