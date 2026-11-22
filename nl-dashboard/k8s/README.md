@@ -21,9 +21,9 @@ The pods request about 1 CPU and 2.3 Gi in total, with limits of 5 CPU and 8 Gi.
 - **Images in a registry the cluster can pull from.** Build them from `nl-dashboard/`:
   ```sh
   docker build -t ghcr.io/theflywheel/nl-dashboard-superset:5.0.0-1 superset
-  docker build -t ghcr.io/theflywheel/nl-dashboard-lenspack:fecd10a lenspack   # tag = LENSPACK_REF, short
+  docker build -t ghcr.io/theflywheel/nl-dashboard-lenspack:4202ed7 lenspack   # tag = LENSPACK_REF, short
   docker push ghcr.io/theflywheel/nl-dashboard-superset:5.0.0-1
-  docker push ghcr.io/theflywheel/nl-dashboard-lenspack:fecd10a
+  docker push ghcr.io/theflywheel/nl-dashboard-lenspack:4202ed7
   ```
   If you use another registry or tag, change `images:` in `kustomization.yaml`, and the setup Job's image.
 
