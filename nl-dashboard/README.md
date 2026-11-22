@@ -120,7 +120,7 @@ proxy trusts the `X-Forwarded-*` headers it receives.
 | `LENSPACK_CONFIG` | compose | no | `lenspack-superset.yaml` | Which Lenspack config: the sample one or `lenspack-superset.clickhouse.yaml` |
 | `CLICKHOUSE_USER`, `CLICKHOUSE_PASSWORD` | setup | for ClickHouse | | Read-only ClickHouse user. Pass the password with `-e` to the setup run; Superset stores it encrypted |
 | `CLICKHOUSE_HOST`, `CLICKHOUSE_PORT`, `CLICKHOUSE_DATABASE` | setup | no | `clickhouse-tunnel`, `8123`, `analytics` | Where Superset reaches ClickHouse |
-| `CLICKHOUSE_TENANT` | setup | no | `ng` | The tenant the ClickHouse datasets are limited to |
+| `CLICKHOUSE_TENANT` | setup | no | `ng` | Tenant for the targets and referrals marts (the `su_ni_*` views are eGov's views for the ng field test) |
 | `CLICKHOUSE_KUBECONFIG`, `CLICKHOUSE_KUBE_CONTEXT`, `CLICKHOUSE_KUBE_NAMESPACE`, `CLICKHOUSE_KUBE_SERVICE` | clickhouse-tunnel | for the tunnel | `-`, current, `clickhouse`, `svc/clickhouse` | The read kubeconfig and the ClickHouse service to port-forward to |
 | `LENSPACK_URL` | Superset | set by compose/k8s | `/lenspack` | Where the overlay script is loaded from |
 | `SUPERSET_URL` | Lenspack, setup | set by compose/k8s | | How Lenspack reaches Superset's API |
@@ -142,15 +142,33 @@ Not secrets, and in the files themselves:
 - **HCM analytics (ClickHouse):** the Superset image includes `clickhouse-connect`. Lenspack never connects to
   ClickHouse; Superset runs the SQL.
   - `setup/setup.mts` runs its ClickHouse part when `CLICKHOUSE_PASSWORD` is set. It creates the database
-    "HCM analytics (ClickHouse)" and four virtual datasets over eGov's analytics marts: `ch_smc_doses`,
-    `ch_households`, `ch_referrals` and `ch_stock`.
-    - The datasets cover one tenant (`CLICKHOUSE_TENANT`, default `ng`).
-    - Boundary codes are joined to their names: state, LGA, ward, health facility and settlement.
-    - No household or individual IDs are selected.
-  - It also creates the dashboard "SMC field test (ClickHouse)" (slug `ch-smc`).
-  - Metrics are ClickHouse SQL (`sumIf`, `count()`, `uniqExactMerge`).
-    - Distinct children is an `AggregateFunction` state in the mart, and Superset's driver cannot read that type
-      when it inspects a dataset. The dataset passes it on as a String and the metric casts it back before merging.
+    "HCM analytics (ClickHouse)" and virtual datasets over **eGov's own Superset-ready views** (`default.su_ni_*`,
+    which already carry boundary names), plus two analytics marts the views lack (targets, referrals):
+
+    | Dataset | From | One row per | Holds |
+    |---|---|---|---|
+    | `ni_coverage` | `su_ni_cov`, `dm_targets_base`, `su_ni_days` | settlement × campaign day | children vaccinated, households registered, targets, zero-dose and enumerated children, coverage and zero-dose %, cumulative actual vs planned % |
+    | `ni_status` | `su_ni_cov`, `dm_targets_base` | settlement × group × status | reached vs remaining, for coverage pies |
+    | `ni_visits` | `su_ni_task` | child visit | outcome, refusal and absence reasons, gender, age band, settlement type, access, team (no names, ids or locations) |
+    | `ni_missed` | `su_ni_missed` | settlement × campaign day | children missed, children outstanding |
+    | `ni_team_stock` | `su_ni_team_stock` | team | vials issued, returned, spoilt, used; wastage (50 doses per vial), vials per child |
+    | `ni_facilities` | `su_ni_zd_facility` | health facility | location and zero-dose band, for the map |
+    | `ni_referrals` | `dm_referral_summary` | day × boundary | referrals |
+    | `ni_freshness` | `su_ni_freshness` | — | last day in the marts and the source (Superset only) |
+
+    - Each quantity has one home: children vaccinated, households registered, targets and zero-dose children
+      are on `ni_coverage` only.
+    - Every percentage is a saved metric `sum(numerator) / sum(denominator)`, so Superset computes it right for any
+      grouping. End-of-campaign values (targets, zero-dose, enumerated) sit on the last day's row, so they add up
+      over places; coverage % is for the whole campaign, and progress by day uses the cumulative % metrics.
+    - "Children vaccinated" follows eGov's coverage view: distinct children vaccinated, including children
+      recorded on a revisit. Counting visits with outcome `VACCINATED` gives a smaller number. Switch with
+      `CHILDREN_VACCINATED` in `setup/setup.mts`.
+    - The `su_ni_*` views are eGov's views for the ng field-test campaign. `CLICKHOUSE_TENANT` scopes only the
+      targets and referrals marts.
+  - It also creates two dashboards: "nOPV2 field test overview (ClickHouse)" (slug `ni-smc`) and a national view
+    (slug `ni-national`).
+  - `lenspack/lenspack-superset.clickhouse.yaml` is the Lenspack config for these datasets (pack `hcm_clickhouse`).
   - `clickhouse-tunnel` (profile `clickhouse`) reaches ClickHouse inside a Kubernetes cluster with a read kubeconfig,
     using `kubectl port-forward`. Set `CLICKHOUSE_HOST`/`CLICKHOUSE_PORT` instead when ClickHouse is reachable directly.
   - Steps:
