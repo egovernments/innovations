@@ -30,6 +30,25 @@ except ImportError:  # the image without clickhouse-connect
     pass
 
 
+# Flask-AppBuilder 4.x (the line Superset 5 pins) keeps the filters of a list request on the API view, which is
+# one object per worker: `GET /api/v1/<thing>/?q=(filters:...)` clears and refills `self._filters` and then runs
+# the query. Superset serves with gunicorn gthread (20 threads per worker), so two list requests at the same time
+# can swap filters, and a lookup of dataset "a" answers with dataset "b" (or nothing). Build the filters per request.
+def _per_request_list_filters() -> None:
+    from flask_appbuilder.api import ModelRestApi
+    from flask_appbuilder.const import API_FILTERS_RIS_KEY
+
+    def _handle_filters_args(self, rison_args):
+        filters = self.datamodel.get_filters(search_columns=self.search_columns, search_filters=self.search_filters)
+        filters.rest_add_filters(rison_args.get(API_FILTERS_RIS_KEY, []))
+        return filters.get_joined_filters(self._base_filters)
+
+    ModelRestApi._handle_filters_args = _handle_filters_args
+
+
+_per_request_list_filters()
+
+
 def env_bool(name: str, default: bool) -> bool:
     return os.environ.get(name, str(default)).strip().lower() in ("1", "true", "yes", "on")
 
