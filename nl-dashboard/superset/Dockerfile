@@ -8,6 +8,11 @@ USER root
 RUN . /app/.venv/bin/activate \
  && uv pip install --no-cache "psycopg2-binary==2.9.10" "clickhouse-connect>=0.8,<1.0"
 
+# Superset's own French labels for the language menu (LANGUAGES in superset_config.py): the
+# stock image ships without compiled translations.
+COPY build_translations.py /tmp/build_translations.py
+RUN /app/.venv/bin/python /tmp/build_translations.py fr && rm /tmp/build_translations.py
+
 COPY superset_config.py /app/superset_config.py
 COPY templates/tail_js_custom_extra.html /app/superset/templates/tail_js_custom_extra.html
 COPY templates/lenspack /app/superset/templates/lenspack

@@ -14,6 +14,8 @@ Environment:
   LENSPACK_INTERNAL_URL    where Superset's server reaches Lenspack, for the Settings → AI assistant page
                            (default http://lenspack:8795).
   LENSPACK_BESIDE_URL      where browsers reach the beside page, for links on that page (optional).
+  LENSPACK_SETTINGS_TOKEN  shared with the Lenspack container; lets the AI assistant page change Lenspack's
+                           runtime settings (chat model, speech-to-text model). Unset: the page is read-only.
 """
 
 import os
@@ -90,14 +92,39 @@ LENSPACK_PORT = os.environ.get("LENSPACK_PORT", "8795")
 # comes from, budget, today's usage) and Superset's data connections. Admins only. No fork: Superset
 # calls FLASK_APP_MUTATOR once Flask-AppBuilder is set up, before its own views. Never shows secrets.
 LENSPACK_INTERNAL_URL = os.environ.get("LENSPACK_INTERNAL_URL", "http://lenspack:8795").rstrip("/")
+LENSPACK_SETTINGS_TOKEN = os.environ.get("LENSPACK_SETTINGS_TOKEN", "")
+
+# Superset's language menu (top right): English and French. Superset ships no Hindi; Lenspack's
+# chat has its own language choice for that.
+LANGUAGES = {
+    "en": {"flag": "us", "name": "English"},
+    "fr": {"flag": "fr", "name": "French"},
+}
+
+# Speech-to-text models measured by the lab's voice bench (OpenRouter, with a language hint):
+# word error rate on four test sets and median latency. Help text on the AI assistant page only.
+STT_BENCH = {
+    "mistralai/voxtral-mini-transcribe-3-0": ("6.4%", "9.1%", "3.5%", "8.2%", "0.67 s"),
+    "assemblyai/universal-3-6-pro": ("6.6%", "8.5%", "3.9%", "9.4%", "0.37 s"),
+    "deepgram/nova-3": ("5.1%", "8.6%", "7.5%", "14.0%", "0.65 s"),
+    "elevenlabs/scribe-v2": ("7.5%", "8.6%", "3.0%", "11.7%", "0.75 s"),
+    "google/chirp-3": ("6.4%", "9.6%", "3.9%", "7.8%", "1.91 s"),
+    "google/gemini-3.5-transcribe": ("7.7%", "8.6%", "3.4%", "7.4%", "2.31 s"),
+    "nvidia/nemotron-3.5-asr-streaming-multilingual-0.6b": ("7.5%", "11.1%", "12.1%", "13.3%", "1.33 s"),
+    "openai/gpt-4o-mini-transcribe": ("10.3%", "14.6%", "4.2%", "13.6%", "0.85 s"),
+    "openai/gpt-transcribe": ("5.5%", "8.2%", "3.7%", "10.4%", "0.84 s"),
+    "openai/whisper-large-v3-turbo": ("9.2%", "13.9%", "7.9%", "61.9%", "1.41 s"),
+    "qwen/qwen3-asr-1.7b": ("4.0%", "8.6%", "4.2%", "13.7%", "0.80 s"),
+}
 LENSPACK_BESIDE_URL = os.environ.get("LENSPACK_BESIDE_URL", "").rstrip("/")
 
 
 def _lenspack_settings(app):
     import json
+    import urllib.error
     import urllib.request
 
-    from flask import abort
+    from flask import abort, flash, redirect, request
     from flask_appbuilder import BaseView, expose
     from flask_appbuilder.security.decorators import has_access
 
@@ -110,9 +137,35 @@ def _lenspack_settings(app):
         except Exception as e:  # unreachable, 404, not JSON: say so on the page
             return None, f"{type(e).__name__}: {str(e)[:160]}"
 
+    def put(path, body):
+        """Change a Lenspack runtime setting. The token never reaches the browser."""
+        req = urllib.request.Request(
+            LENSPACK_INTERNAL_URL + path,
+            data=json.dumps(body).encode(),
+            method="PUT",
+            headers={"content-type": "application/json", "x-lenspack-settings-token": LENSPACK_SETTINGS_TOKEN},
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=10) as r:
+                return json.load(r), None
+        except urllib.error.HTTPError as e:
+            try:
+                return None, json.load(e).get("error") or f"HTTP {e.code}"
+            except Exception:
+                return None, f"HTTP {e.code}"
+        except Exception as e:
+            return None, f"{type(e).__name__}: {str(e)[:160]}"
+
+    def saved(what, result):
+        data, error = result
+        flash(f"{what} saved." if error is None else f"{what} not saved: {error}", "info" if error is None else "danger")
+        return redirect("/ai-assistant/")
+
     class LenspackSettingsView(BaseView):
         route_base = "/ai-assistant"
         default_view = "index"
+        # The forms below use the page's own permission (can_index), so no new permissions to sync.
+        method_permission_name = {"index": "index", "chat": "index", "speech": "index", "language": "index"}
 
         @expose("/")
         @has_access
@@ -122,6 +175,9 @@ def _lenspack_settings(app):
             from superset.models.core import Database
 
             settings, settings_error = fetch("/_superset/settings")
+            stt_models = None
+            if settings and settings.get("speech"):
+                stt_models, _ = fetch("/_superset/settings/speech/models")
             info = None
             if settings is None:
                 info, _ = fetch("/_superset/info")
@@ -149,7 +205,40 @@ def _lenspack_settings(app):
                 lenspack_url=LENSPACK_URL or "",
                 beside_url=LENSPACK_BESIDE_URL,
                 internal_url=LENSPACK_INTERNAL_URL,
+                stt_models=stt_models,
+                stt_bench=STT_BENCH,
+                token_set=bool(LENSPACK_SETTINGS_TOKEN),
             )
+
+        # Forms on the page. Admin only, Superset's CSRF token required (Flask-WTF checks every POST).
+        @expose("/chat", methods=["POST"])
+        @has_access
+        def chat(self):
+            if not security_manager.is_admin():
+                abort(403)
+            if request.form.get("reset"):
+                return saved("Chat model", put("/_superset/settings/chat", {"model": None}))
+            model, _, effort = request.form.get("choice", "").partition("|")
+            return saved("Chat model", put("/_superset/settings/chat", {"model": model, "effort": effort or None}))
+
+        @expose("/speech", methods=["POST"])
+        @has_access
+        def speech(self):
+            if not security_manager.is_admin():
+                abort(403)
+            model = None if request.form.get("reset") else request.form.get("model", "")
+            return saved("Speech-to-text model", put("/_superset/settings/speech", {"model": model}))
+
+        @expose("/language", methods=["POST"])
+        @has_access
+        def language(self):
+            if not security_manager.is_admin():
+                abort(403)
+            if request.form.get("reset"):
+                body = {"default": None, "titles": None, "board": None}
+            else:
+                body = {k: request.form[k] for k in ("default", "titles", "board") if request.form.get(k)}
+            return saved("Chat language", put("/_superset/settings/language", body))
 
     appbuilder.add_view_no_menu(LenspackSettingsView)
     appbuilder.add_link(

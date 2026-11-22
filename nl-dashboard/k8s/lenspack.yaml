@@ -26,6 +26,7 @@ spec:
             - { name: SUPERSET_PUBLIC_URL, value: "https://superset.hcm-lab.digit.org" }
             - { name: LENSPACK_SUPERSET_PASSWORD, valueFrom: { secretKeyRef: { name: nl-dashboard, key: LENSPACK_SUPERSET_PASSWORD } } }
             - { name: ANTHROPIC_API_KEY, valueFrom: { secretKeyRef: { name: nl-dashboard, key: ANTHROPIC_API_KEY } } }
+            - { name: LENSPACK_SETTINGS_TOKEN, valueFrom: { secretKeyRef: { name: nl-dashboard, key: LENSPACK_SETTINGS_TOKEN, optional: true } } }
           ports: [{ containerPort: 8795 }]
           # Up once Superset answers and the datasets exist (setup); it restarts until then.
           readinessProbe: { httpGet: { path: /_superset/info, port: 8795 }, periodSeconds: 10 }

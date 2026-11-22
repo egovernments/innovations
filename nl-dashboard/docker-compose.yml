@@ -16,6 +16,8 @@ x-superset-env: &superset-env
   LENSPACK_BESIDE_URL: ${LENSPACK_BESIDE_URL:-}
   # Mapbox public (pk.) token for the basemap under deck.gl map charts; empty = no basemap.
   MAPBOX_API_KEY: ${MAPBOX_API_KEY:-}
+  # Shared with lenspack: lets Settings → AI assistant change the chat and speech models. Empty = read-only.
+  LENSPACK_SETTINGS_TOKEN: ${LENSPACK_SETTINGS_TOKEN:-}
 
 services:
   db:
@@ -69,6 +71,8 @@ services:
       LENSPACK_SUPERSET_PASSWORD: ${LENSPACK_SUPERSET_PASSWORD:?set in .env}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       LENSPACK_LLM_PROVIDERS: ${LENSPACK_LLM_PROVIDERS:-}
+      # Same value as Superset's: only the AI assistant page may change runtime settings.
+      LENSPACK_SETTINGS_TOKEN: ${LENSPACK_SETTINGS_TOKEN:-}
     volumes:
       # Which config: lenspack-superset.yaml (sample data) or lenspack-superset.clickhouse.yaml.
       - ./lenspack/${LENSPACK_CONFIG:-lenspack-superset.yaml}:/config/lenspack-superset.yaml:ro

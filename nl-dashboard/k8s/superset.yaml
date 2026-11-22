@@ -53,6 +53,7 @@ spec:
             # Where Superset's server reaches Lenspack, for Settings → Manage → AI assistant.
             - { name: LENSPACK_INTERNAL_URL, value: "http://nl-dashboard-lenspack:8795" }
             - { name: LENSPACK_BESIDE_URL, value: "https://superset.hcm-lab.digit.org/lenspack/" }
+            - { name: LENSPACK_SETTINGS_TOKEN, valueFrom: { secretKeyRef: { name: nl-dashboard, key: LENSPACK_SETTINGS_TOKEN, optional: true } } }
           ports: [{ containerPort: 8088 }]
           readinessProbe: { httpGet: { path: /health, port: 8088 }, periodSeconds: 10, failureThreshold: 30 }
           livenessProbe: { httpGet: { path: /health, port: 8088 }, initialDelaySeconds: 120, periodSeconds: 30 }

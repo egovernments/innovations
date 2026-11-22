@@ -21,9 +21,9 @@ The pods request about 1 CPU and 2.3 Gi in total, with limits of 5 CPU and 8 Gi.
 - **Images in a registry the cluster can pull from.** Build them from `nl-dashboard/`:
   ```sh
   docker build -t ghcr.io/theflywheel/nl-dashboard-superset:5.0.0-1 superset
-  docker build -t ghcr.io/theflywheel/nl-dashboard-lenspack:5404be0 lenspack   # tag = LENSPACK_REF, short
+  docker build -t ghcr.io/theflywheel/nl-dashboard-lenspack:106a967 lenspack   # tag = LENSPACK_REF, short
   docker push ghcr.io/theflywheel/nl-dashboard-superset:5.0.0-1
-  docker push ghcr.io/theflywheel/nl-dashboard-lenspack:5404be0
+  docker push ghcr.io/theflywheel/nl-dashboard-lenspack:106a967
   ```
   If you use another registry or tag, change `images:` in `kustomization.yaml`, and the setup Job's image.
 
@@ -37,6 +37,8 @@ All commands run from `nl-dashboard/`.
    # in .env, also:  DATA_SQLALCHEMY_URI=postgresql+psycopg2://superset:<PG_PASSWORD>@nl-dashboard-db:5432/hcm
    kubectl -n lenspack create secret generic nl-dashboard --from-env-file=.env
    ```
+   Include `LENSPACK_SETTINGS_TOKEN` (any random value, e.g. `openssl rand -hex 24`) for an editable AI
+   assistant page; both Deployments read it from this Secret, and without it the page is read-only.
 2. **ConfigMaps** for the Lenspack config and the setup script. The key is always `lenspack-superset.yaml`; for
    ClickHouse, use `--from-file=lenspack-superset.yaml=lenspack/lenspack-superset.clickhouse.yaml`.
    ```sh
