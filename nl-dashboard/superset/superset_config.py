@@ -35,8 +35,16 @@ SQLALCHEMY_DATABASE_URI = os.environ.get("SUPERSET_DATABASE_URI") or (
     )
 )
 
-# Behind a reverse proxy or ingress: trust X-Forwarded-* for scheme and host.
+# Behind a reverse proxy or ingress: trust X-Forwarded-* for scheme and host. One hop: the
+# compose nginx (or the ingress) sets X-Forwarded-Proto/-Host to a single value, passing on a
+# TLS gateway's when there is one, so https://<public host>/ links come out on the gateway path
+# and http:// links on the direct one. X-Forwarded-For is appended per hop; trusting one entry
+# means Superset logs the nearest proxy's address, never a value a client could set.
 ENABLE_PROXY_FIX = True
+PROXY_FIX_CONFIG = {"x_for": 1, "x_proto": 1, "x_host": 1, "x_port": 1, "x_prefix": 1}
+# Session cookies are not marked Secure here, so plain-http access keeps working; a TLS gateway
+# adds the flag on its path (nginx: proxy_cookie_flags ~ secure samesite=lax;). Talisman sends
+# HSTS only on https requests and never redirects http to https (force_https stays False).
 
 SESSION_COOKIE_NAME = "superset_session"
 SESSION_COOKIE_SAMESITE = "Lax"

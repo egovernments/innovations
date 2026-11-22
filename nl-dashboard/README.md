@@ -80,6 +80,24 @@ The `lenspack` container restarts until `setup` has created its datasets, then s
 The proxy listens only on this machine (`BIND_ADDRESS=127.0.0.1`). Before opening it to a network, put TLS in front:
 Superset's login form sends passwords as typed.
 
+### Behind a TLS gateway (a second proxy)
+
+To publish the stack on an https host, put a TLS-terminating proxy in front of the compose
+proxy's port 8088 (one address: Superset, the Ask Lenspack button and `/lenspack/`). The beside
+port is not needed for this. On that gateway:
+
+- pass `Host` (the public name) and `X-Forwarded-Proto https`; the compose proxy hands them on
+  to Superset (ProxyFix), so redirects and links come out as `https://<public host>/…`, while
+  `http://<host>:8088` keeps building http links;
+- `proxy_buffering off` and a long `proxy_read_timeout` (300 s): chat replies stream;
+- `proxy_cookie_flags ~ secure samesite=lax;` so Superset's session cookie is Secure on the
+  https path only (setting `SESSION_COOKIE_SECURE` in Superset would break plain-http sign-in);
+- Talisman already sends HSTS only on https requests and never redirects http to https.
+
+An https origin is also what browsers require before they let a page use the microphone
+(voice input). Only let the gateway and your private network reach port 8088: the compose
+proxy trusts the `X-Forwarded-*` headers it receives.
+
 ## Environment variables
 
 | Variable | Used by | Required | Default | What it is |
