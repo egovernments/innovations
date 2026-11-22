@@ -141,7 +141,7 @@ ARRAY JOIN [('Children', 'Vaccinated', toInt64(cv)), ('Children', 'Remaining', t
   toUInt32(is_refused) AS is_refused, toUInt32(is_absent) AS is_absent
 FROM default.su_ni_task`,
     description:
-      "Child visits from eGov's view su_ni_task, one row per visit: outcome, refusal and absence reasons, gender, age band, settlement type, access, team. No names, ids or locations. For counts of vaccinated or zero-dose children by gender or age, count visits with vaccinated = Yes or zero_dose = Yes.",
+      "Child visits from eGov's view su_ni_task, one row per visit: outcome, refusal and absence reasons, gender, age band, settlement type, access, team, campaign day, and the place columns (state, LGA, ward, health facility, settlement), so visits can be filtered or grouped by place. No names, ids or GPS points. For counts of vaccinated or zero-dose children by gender or age, count visits with vaccinated = Yes or zero_dose = Yes.",
     columns: {
       ...PLACES,
       campaign_day: DAY.campaign_day!,
@@ -161,6 +161,25 @@ FROM default.su_ni_task`,
       { metric_name: "visits", verbose_name: "Child visits", expression: "count()", description: "Visits recorded, whatever the outcome.", d3format: ",d" },
       { metric_name: "refusals", verbose_name: "Refusals", expression: "sum(is_refused)", description: "Visits where the caregiver refused.", d3format: ",d" },
       { metric_name: "refusals_per_1000_visits", verbose_name: "Refusals per 1,000 visits", expression: `1000 * ${pct("sum(is_refused)", "count()")}`, description: "Refusals per 1,000 visits. A ratio of sums.", d3format: ",.1f" },
+    ],
+  },
+  {
+    table: "ni_members",
+    schema: "default",
+    time: "task_date",
+    sql: `SELECT toDateTime(task_date) AS task_date, campaign_day, state, lga, ward, health_facility, community AS settlement,
+  if(toString(gender) = '', 'UNKNOWN', toString(gender)) AS gender, pyramid_age_band AS member_age_band
+FROM default.su_ni_member`,
+    description:
+      "People in registered households, from eGov's view su_ni_member: one row per household member, with the household's place, the registration day, the member's gender and age band. No names, ids or GPS points.",
+    columns: {
+      ...PLACES,
+      campaign_day: DAY.campaign_day!,
+      gender: ["Gender", "Gender (UNKNOWN when not recorded)"],
+      member_age_band: ["Member age band", "Age band of the household member, all ages (population-pyramid bands)"],
+    },
+    metrics: [
+      { metric_name: "people_registered", verbose_name: "People in registered households", expression: "count()", description: "Household members registered, one per person, all ages.", d3format: ",d" },
     ],
   },
   {
@@ -198,7 +217,8 @@ FROM default.su_ni_team_stock`,
       { metric_name: "vials_used", verbose_name: "Vials used", expression: "sum(vials_issued) - sum(vials_returned_unopened)", description: "Vials issued minus vials returned unopened.", d3format: ",d" },
       { metric_name: "vial_wastage_pct", verbose_name: "Vial wastage %", expression: `1 - ${pct("sum(team_children_vaccinated)", `(sum(vials_issued) - sum(vials_returned_unopened)) * ${DOSES_PER_VIAL}`)}`, description: `Doses in used vials not given to a child, assuming ${DOSES_PER_VIAL} doses per vial.`, d3format: ".1%" },
       { metric_name: "spoilt_vials_pct", verbose_name: "Spoilt vials %", expression: pct("sum(spoilt_vials_returned)", "sum(vials_issued)"), description: "Vials returned spoilt, as a share of vials issued.", d3format: ".1%" },
-      { metric_name: "vials_per_child", verbose_name: "Vials used per child vaccinated", expression: pct("sum(vials_issued) - sum(vials_returned_unopened)", "sum(team_children_vaccinated)"), d3format: ".3f" },
+      { metric_name: "vials_per_child", verbose_name: "Vials used per child vaccinated", expression: pct("sum(vials_issued) - sum(vials_returned_unopened)", "sum(team_children_vaccinated)"), description: "Vials used for each child vaccinated (lower is better). The inverse of children per vial.", d3format: ".3f" },
+      { metric_name: "children_per_vial", verbose_name: "Children vaccinated per vial used", expression: pct("sum(team_children_vaccinated)", "sum(vials_issued) - sum(vials_returned_unopened)"), description: `Children vaccinated for each vial used (higher is better; at most ${DOSES_PER_VIAL}). The inverse of vials per child.`, d3format: ",.1f" },
       { metric_name: "stock_balance", verbose_name: "Stock balance (vials)", expression: "sum(stock_balance)", d3format: ",d" },
     ],
   },
