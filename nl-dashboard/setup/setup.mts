@@ -9,7 +9,7 @@
 //     Three datasets and "HCM campaign overview" (one heatmap on purpose: Lenspack keeps it as Superset's).
 //   - HCM analytics (ClickHouse): CLICKHOUSE_USER and CLICKHOUSE_PASSWORD (plus CLICKHOUSE_HOST, _PORT,
 //     _DATABASE). Virtual datasets over eGov's Superset-ready views (default.su_ni_*) and two analytics marts,
-//     and two dashboards: "nOPV2 field test overview (ClickHouse)" (slug ni-smc) and a national view (ni-national).
+//     and two dashboards: "nOPV2 field test overview (ClickHouse)" (slug ni-smc) and "Kebbi nOPV2 campaign: national view" (ni-national).
 // Always: SUPERSET_URL, SUPERSET_ADMIN_PASSWORD.
 
 import { supersetClient } from "/app/packages/superset/src/client.ts";
@@ -466,7 +466,7 @@ async function clickhouse() {
   });
 
   // A national-style view: two paired series (children, households) against target, wastage, places, gender, plan vs actual.
-  await makeDashboard("nOPV2 field test: national view (ClickHouse)", "ni-national", async (chart) => {
+  await makeDashboard("Kebbi nOPV2 campaign: national view", "ni-national", async (chart) => {
     const p1 = await chart("Children coverage: vaccinated vs remaining (target)", "pie", status, { ...pie, groupby: ["status"], metric: "people", adhoc_filters: [eq("grp", "Children")] }, null);
     const p2 = await chart("Household coverage: registered vs remaining (target)", "pie", status, { ...pie, groupby: ["status"], metric: "people", adhoc_filters: [eq("grp", "Households")] }, null);
     const k1 = await chart("Children vaccinated", "big_number_total", cov, { metric: "children_vaccinated", y_axis_format: ",d" }, t);
@@ -500,6 +500,16 @@ async function clickhouse() {
       show_legend: true,
       legendOrientation: "top",
     }, t);
+    // Furthest behind first: the wards to follow up.
+    const rank = await chart("Wards ranked by children coverage (furthest behind first)", "table", cov, {
+      query_mode: "aggregate",
+      groupby: ["ward"],
+      metrics: ["children_coverage_pct", "children_vaccinated", "children_target", "households_coverage_pct"],
+      timeseries_limit_metric: "children_coverage_pct",
+      order_desc: false,
+      row_limit: 50,
+      server_pagination: false,
+    }, t);
     return [
       [{ id: p1, width: 6, height: 50 }, { id: p2, width: 6, height: 50 }],
       [{ id: k1, width: 3, height: 25 }, { id: k2, width: 3, height: 25 }, { id: k3, width: 3, height: 25 }, { id: k4, width: 3, height: 25 }],
@@ -508,6 +518,7 @@ async function clickhouse() {
       [{ id: map, width: 12, height: 70 }],
       [{ id: g1, width: 6, height: 50 }, { id: g2, width: 6, height: 50 }],
       [{ id: line, width: 12, height: 50 }],
+      [{ id: rank, width: 12, height: 50 }],
     ];
   });
 }
