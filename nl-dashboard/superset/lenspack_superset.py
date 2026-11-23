@@ -300,7 +300,7 @@ def lenspack_app_mutator(app):
         route_base = "/ai-assistant"
         default_view = "index"
         # The forms below use the page's own permission (can_index), so no new permissions to sync.
-        method_permission_name = {"index": "index", "chat": "index", "speech": "index", "speech_hold": "index", "language": "index"}
+        method_permission_name = {"index": "index", "chat": "index", "speech": "index", "speech_hold": "index", "language": "index", "features": "index"}
 
         @expose("/")
         @has_access
@@ -374,6 +374,27 @@ def lenspack_app_mutator(app):
             else:
                 body = {k: request.form[k] for k in ("default", "titles", "board") if request.form.get(k)}
             return saved("Chat language", call("PUT", "/_superset/settings/language", body))
+
+        @expose("/features", methods=["POST"])
+        @has_access
+        def features(self):
+            if not security_manager.is_admin():
+                abort(403)
+            current, error = call("GET", "/_superset/settings")
+            ft = (current or {}).get("features")
+            if not ft:
+                flash(f"Off switches not saved: {error or 'this Lenspack has no off switches'}", "danger")
+                return redirect("/ai-assistant/")
+            keys = [o["key"] for o in ft["options"]]
+            if request.form.get("reset"):
+                body = {k: None for k in keys}
+            else:
+                # Only what changed: a switch left alone keeps its source (config, LENSPACK_FEATURES).
+                body = {k: request.form.get(k) == "on" for k in keys if (request.form.get(k) == "on") != ft["values"][k]}
+                if not body:
+                    flash("Off switches: nothing changed.", "info")
+                    return redirect("/ai-assistant/")
+            return saved("Off switches", call("PUT", "/_superset/settings/features", body))
 
     appbuilder.add_view_no_menu(LenspackSettingsView)
     appbuilder.add_link("AI assistant", label="AI assistant", href="/ai-assistant/", icon="fa-comments", category="Manage", cond=lambda: security_manager.is_admin())
@@ -539,6 +560,27 @@ SETTINGS_HTML = r'''{# Settings → Manage → AI assistant. What Lenspack runs 
     </form>
   </div>
   {% endif %}
+
+  {% if settings.features %}{% set ft = settings.features %}
+  {% set from = {'config': 'set in lenspack-superset.yaml', 'env': 'set by LENSPACK_FEATURES', 'settings': 'set on this page'} %}
+  <div class="lp-card">
+    <h2>Off switches</h2>
+    <p class="mute">Turn parts of the assistant off for everyone. A change applies to the next dashboard each person opens.</p>
+    <form class="lp-form" method="post" action="/ai-assistant/features">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <table>
+      {% for o in ft.options %}{% set src = ft.source[o.key] %}
+        <tr>
+          <th><label><input type="checkbox" name="{{ o.key }}" {% if ft['values'][o.key] %}checked{% endif %} {% if not ft.writable %}disabled{% endif %}> {{ o.label }}</label></th>
+          <td>{{ o.help }}{% if src != 'default' %} <span class="mute">({{ from.get(src, src) }}{% if src == 'settings' and ft.defaults[o.key] != ft['values'][o.key] %}; the deployment says {{ 'on' if ft.defaults[o.key] else 'off' }}{% endif %})</span>{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </table>
+      <button type="submit" {% if not ft.writable %}disabled{% endif %}>Save</button>
+      {% if 'settings' in ft.source.values() %}<button class="ghost" type="submit" name="reset" value="1" {% if not ft.writable %}disabled{% endif %}>Back to the deployment's values</button>{% endif %}
+    </form>
+  </div>
+  {% endif %}
   {% endif %}
 
   <div class="lp-card">
@@ -629,7 +671,8 @@ SETTINGS_HTML = r'''{# Settings → Manage → AI assistant. What Lenspack runs 
       <tr><th>LLM and speech keys</th><td><code>ANTHROPIC_API_KEY</code>, <code>LENSPACK_LLM_PROVIDERS</code>, <code>OPENROUTER_API_KEY</code> in the deployment's environment (<code>.env</code> / the k8s Secret)</td></tr>
       <tr><th>Datasets, guidance, budget</th><td><code>lenspack/lenspack-superset.yaml</code></td></tr>
       <tr><th>Who may use the chat</th><td>Anyone signed in to Superset who can view the dashboard. Superset's <code>/lenspack/</code> route checks the session and signs who is asking for every Lenspack request.</td></tr>
-      <tr><th>Who may edit through it</th><td><code>LENSPACK_EDIT_POLICY</code> on the Lenspack container: <code>superset</code> (default) or <code>signed-in</code></td></tr>
+      <tr><th>Who may edit through it</th><td><code>LENSPACK_EDIT_POLICY</code> on the Lenspack container: <code>superset</code> (default) or <code>signed-in</code>. The Dashboard edits switch above turns edits off for everyone.</td></tr>
+      <tr><th>Off switches</th><td>On this page, or <code>features:</code> in <code>lenspack/lenspack-superset.yaml</code> and <code>LENSPACK_FEATURES</code> on the Lenspack container (this page wins)</td></tr>
     </table>
   </div>
 </div>
