@@ -18,14 +18,17 @@ The pods request about 1 CPU and 2.3 Gi in total, with limits of 5 CPU and 8 Gi.
 
 - **ingress-nginx and cert-manager.** On the lab VM the ClusterIssuer is `letsencrypt-prod`, and
   `*.hcm-lab.digit.org` already resolves to the VM. Elsewhere, change the host and issuer in `ingress.yaml`.
-- **Images in a registry the cluster can pull from.** Build them from `nl-dashboard/`:
+- **Images.** `kustomization.yaml` uses the public images in `ghcr.io/theflywheel/lenspack`:
+  `superset5-<sha>` is this folder's Superset image, built at innovations commit `<sha>`, and `superset-<sha>` is
+  Lenspack's `superset` branch at that commit (the same as `LENSPACK_REF` in `lenspack/Dockerfile`). To build your own
+  from `nl-dashboard/`:
   ```sh
-  docker build -t ghcr.io/theflywheel/nl-dashboard-superset:5.0.0-1 superset
-  docker build -t ghcr.io/theflywheel/nl-dashboard-lenspack:106a967 lenspack   # tag = LENSPACK_REF, short
-  docker push ghcr.io/theflywheel/nl-dashboard-superset:5.0.0-1
-  docker push ghcr.io/theflywheel/nl-dashboard-lenspack:106a967
+  docker build -t <registry>/nl-dashboard-superset:<tag> superset
+  docker build -t <registry>/nl-dashboard-lenspack:<tag> lenspack   # LENSPACK_REF must be a full commit SHA
+  docker push <registry>/nl-dashboard-superset:<tag>
+  docker push <registry>/nl-dashboard-lenspack:<tag>
   ```
-  If you use another registry or tag, change `images:` in `kustomization.yaml`, and the setup Job's image.
+  Then change `images:` in `kustomization.yaml`, and the setup Job's image.
 
 ## Deploy
 

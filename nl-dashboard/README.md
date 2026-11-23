@@ -15,6 +15,8 @@ and get it as ordinary Superset charts on an ordinary Superset dashboard. Goal, 
 - **Admins get a settings page** in Superset: Settings → Manage → **AI assistant**.
 - **Already running Superset 5?** [Add Lenspack to an existing Superset](docs/ADD-TO-EXISTING-SUPERSET.md) on the stock
   image, with Docker Compose or the official Helm chart, without this folder's Superset image.
+- **How it's built:** [ARCHITECTURE.md](docs/ARCHITECTURE.md) (design, data flow, security, capacity). **In one page,
+  for decision makers:** [ONE-PAGER.md](docs/ONE-PAGER.md).
 
 ## How it fits together
 
@@ -195,7 +197,7 @@ Most of these are covered in [issue #1](https://github.com/egovernments/innovati
 - **Service account:** Lenspack reads and writes as one Superset account, `lenspack`, with the Admin role (it edits
   dashboards it doesn't own). Who may edit through the chat is checked per person against Superset's rights, but chart
   data runs as that account, so row-level security applies to it, not to the person asking.
-- **Chart types:** only KPI, pie, line, area, bar and table charts can be edited. Other chart types are kept as
+- **Chart types:** only KPI, pie, line, area, bar, table and heatmap charts can be edited. Other chart types are kept as
   Superset's.
 - **Lenspack version:** the image pins a commit on Lenspack's `superset` branch. The package isn't on Lenspack's `main`
   yet ([theflywheel/lenspack#16](https://github.com/theflywheel/lenspack/pull/16), draft).
