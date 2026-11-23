@@ -11,8 +11,9 @@ When you're done you will have:
 Everything is configuration: one Python module, two templates, a few environment variables, a proxy rule, and a
 Lenspack container next to Superset. To remove it, take those out and restart ([Roll back](#roll-back)).
 
-The steps were tested by following them literally on a stock `apache/superset:5.0.0` with its own Postgres, Redis and
-nginx, reading HCM analytics from ClickHouse.
+The Docker Compose steps were tested by following them literally on a stock `apache/superset:5.0.0`, with its own
+Postgres, Redis and nginx, reading HCM analytics from ClickHouse. The Helm values were checked by rendering them with
+chart 0.15.5, not by installing them.
 
 ## Contents
 
@@ -26,6 +27,7 @@ nginx, reading HCM analytics from ClickHouse.
 - [Proxy, cookies and security headers](#proxy-cookies-and-security-headers)
 - [What needs a restart](#what-needs-a-restart)
 - [Roll back](#roll-back)
+- [Plain Kubernetes manifests](#plain-kubernetes-manifests)
 - [Troubleshooting](#troubleshooting)
 
 ## Before you start
@@ -232,8 +234,8 @@ Without a proxy today, add one: [`../proxy/nginx.conf`](../proxy/nginx.conf) is 
 Either create them with `setup.mts`, or import them from another Superset.
 
 **With `setup.mts`.** This creates the ClickHouse connection in Superset, the `ni_*` datasets with their metrics and
-descriptions, and two starter dashboards. It's safe to run again: what exists is updated, not duplicated. It runs on
-the Lenspack image:
+descriptions, and two starter dashboards. It's safe to run again: the connection and datasets are updated, and
+dashboards that already exist are left as they are. It runs on the Lenspack image:
 
 ```sh
 set -a; . ./.env; set +a
@@ -379,8 +381,8 @@ such object, shared by all its threads; gunicorn's `gthread` workers run 20 thre
 with dataset B, or with nothing. Lenspack looks datasets up by name, so it hits this. So can Superset's own list pages
 under load.
 
-On a stock Superset 5.0.0, about one in fifteen of 320 concurrent name lookups came back with another dataset.
-With the fix, none did. Chart data (`/api/v1/chart/data`) isn't affected; it builds its query per request.
+On a stock Superset 5.0.0 with two workers, two runs of the check below gave 22 and 9 wrong answers out of 320 concurrent
+name lookups. With the fix, there were none. Chart data (`/api/v1/chart/data`) isn't affected; it builds its query per request.
 
 **The fix.** `lenspack_superset.py` replaces `ModelRestApi._handle_filters_args` with a version that builds the filters
 per request, the same way Flask-AppBuilder builds them at start-up. It's applied when the config loads. A
@@ -398,7 +400,7 @@ To see it in a running Superset, fire a few hundred concurrent lookups for diffe
 answers that name another dataset. The check below signs in as `lenspack`; `NAMES` are dataset names that exist.
 
 ```sh
-docker compose exec -e LP="$LENSPACK_SUPERSET_PASSWORD" -e NAMES="ni_coverage ni_visits ni_missed ni_facilities" superset python - <<'EOF'
+docker compose exec -T -e LP="$LENSPACK_SUPERSET_PASSWORD" -e NAMES="ni_coverage ni_visits ni_missed ni_facilities" superset python - <<'EOF'
 import concurrent.futures as cf, json, os, urllib.parse, urllib.request
 B = "http://localhost:8088"
 login = urllib.request.Request(B + "/api/v1/security/login", headers={"content-type": "application/json"},
@@ -456,6 +458,18 @@ EOF
    Superset won't delete a database connection that still has datasets.
 
 Charts that Lenspack saved are ordinary Superset charts; they stay unless you delete them.
+
+## Plain Kubernetes manifests
+
+[`../k8s/`](../k8s/) deploys this folder's own Superset image, which has the driver, the French labels and these
+files built in. The stock image works there too, the same way as with Helm:
+- the ConfigMap volume at `/app/lenspack`, plus `PYTHONPATH` and the `LENSPACK_*` variables on the Superset Deployment
+  and its init Job;
+- the import line in the config;
+- a start command that installs `clickhouse-connect` (and builds the French labels) before `/usr/bin/run-server.sh`,
+  running as root.
+
+The cost is a package install, and a download from GitHub, at every pod start. A built image avoids both.
 
 ## Troubleshooting
 
