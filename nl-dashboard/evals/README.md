@@ -5,7 +5,7 @@ Questions are asked in a campaign manager's words. Each reply is scored against 
 SQL: the right number, the right chart, or an honest "can't". The data is the **synthetic** field test in
 `default.su_ni_*`, and every figure here comes from it.
 
-**Headline** (77 questions, Claude 5.5 models, 3 repeats; details in [RESULTS.md](RESULTS.md)):
+**Headline** (full runs: 68 questions in T1–T8, Claude 5.5 models, 3 repeats; the 9 T9 definition questions came later and ran on Haiku, 26/27; details in [RESULTS.md](RESULTS.md)):
 
 | | Haiku | Sonnet | Opus |
 |---|---|---|---|
