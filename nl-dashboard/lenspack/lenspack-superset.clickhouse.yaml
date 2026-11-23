@@ -43,7 +43,8 @@ overlay:
     missed: children missed per day, and outstanding at the end of each day (a level: never sum over days). stock
     is per team, whole campaign, no dates; children_per_vial and vials_per_child are inverses. coverage_status is
     for coverage pies (filter grp). For zero-dose by facility use coverage by health_facility. Superset computes
-    every % from sums: never add or average percentages. A chart reads one dataset.
+    every % from sums: never add or average percentages. A chart reads one dataset. A heatmap by day is a breakdown
+    over day_label split by the rows (Superset can't sort a time axis).
     Layout: the board packs itself. Make layout changes in one batch: four tiles in a row are quarter width, three
     are third. Widgets kept as Superset's can be moved, resized or removed but not edited.
   examples:
