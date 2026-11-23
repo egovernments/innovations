@@ -5,14 +5,13 @@ and get it as ordinary Superset charts on an ordinary Superset dashboard. Goal, 
 [issue #1](https://github.com/egovernments/innovations/issues/1).
 
 - **Superset is not forked.** We use the stock `apache/superset:5.0.0` image plus two database drivers, a config file,
-  and one template that Superset documents as overridable.
+  and one Python file (`lenspack_superset.py`) that the config imports.
 - **[Lenspack](https://github.com/theflywheel/lenspack/tree/superset/packages/superset) adds the chat.**
   - It reads Superset's datasets and saved metrics as its vocabulary.
   - It gets every number from Superset (`/api/v1/chart/data`).
   - It writes changes back as Superset charts and dashboard layout.
-- **There are two ways in, and both work on any dashboard:**
-  - **Inside:** an "Ask Lenspack" button on Superset's own dashboard page.
-  - **Beside:** a Lenspack page with the chat on the left and the dashboard in an iframe, on its own port.
+- **The chat is on every dashboard:** an "Ask Lenspack" button on Superset's own dashboard page. Anyone who can view
+  the dashboard can ask; changes follow Superset's own rights on that dashboard.
 - **Admins get a settings page** in Superset: Settings → Manage → **AI assistant**.
 - **Already running Superset 5?** [Add Lenspack to an existing Superset](docs/ADD-TO-EXISTING-SUPERSET.md) on the stock
   image, with Docker Compose or the official Helm chart, without this folder's Superset image.
@@ -20,22 +19,18 @@ and get it as ordinary Superset charts on an ordinary Superset dashboard. Goal, 
 ## How it fits together
 
 ```
-browser ──► one address (compose: proxy/nginx.conf :8088, k8s: ingress)
-              ├── /            Superset 5 ───────────────► metadata Postgres, data (Postgres / ClickHouse)
-              └── /lenspack/   Lenspack server ──► Superset REST API (service account "lenspack")
-                   (only for users signed in to Superset)  └► LLM API (Anthropic or OpenAI-compatible)
-browser ──► beside port (compose :8795, k8s: optional second host)
-              └── /            Lenspack's beside page, framing Superset from the address above
+browser ──► Superset 5 (:8088) ──────────────────────────► metadata Postgres, data (Postgres / ClickHouse)
+              └── /lenspack/…  Superset forwards, signed ──► Lenspack server ──► Superset REST API (its own account)
+                   (signed-in users only)                                     └► LLM API (Anthropic or OpenAI-compatible)
 ```
 
-Serving both apps from one address makes them the same origin:
-- Superset's session cookie, the overlay script and the iframe work without CORS.
-- Superset's security headers (Talisman's CSP) stay on.
-- The proxy lets a request through to `/lenspack/` only if Superset confirms the browser is signed in (`GET /api/v1/me/`).
-
-The beside page on its own port is a different origin. It uses the same sign-in check (Superset's cookie belongs to
-the host, not the port), and Superset allows it to frame dashboards through the CSP's `frame-ancestors`
-(`LENSPACK_BESIDE_ORIGINS`). Superset no longer sends `X-Frame-Options`; the CSP is what limits framing.
+- **Browsers reach Superset only.** `lenspack_superset.py` adds a `/lenspack/` route to Superset itself, which forwards
+  to the Lenspack container for signed-in users. There is no proxy in front and Lenspack's port isn't published.
+- **Who is asking.** On every forwarded request Superset signs a header with the user, whether they're an admin, and
+  whether Superset lets them view and edit the dashboard in question. Lenspack trusts nothing else. The key is
+  derived from `SUPERSET_SECRET_KEY`, so there is no second secret.
+- **Same origin,** so the overlay needs no CORS, and Superset's security headers (Talisman's CSP) stay on.
+- **Lenspack's own account** is created on its first start from the admin password, and its password is kept in Lenspack's volume.
 
 ## What's here
 
@@ -43,16 +38,13 @@ the host, not the port), and Superset allows it to frame dashboards through the 
 |---|---|
 | [`superset/Dockerfile`](superset/Dockerfile) | `apache/superset:5.0.0` + `psycopg2-binary` + `clickhouse-connect` + French labels, with the files below baked in |
 | [`superset/superset_config.py`](superset/superset_config.py) | Superset settings, all from environment variables (documented at the top of the file) |
-| [`superset/lenspack_superset.py`](superset/lenspack_superset.py) | Lenspack's additions as one module, imported at the end of `superset_config.py`: the AI assistant page, the overlay's settings, the Flask-AppBuilder list-filter fix, and templates from a mounted folder |
-| [`superset/templates/tail_js_custom_extra.html`](superset/templates/tail_js_custom_extra.html) | Replaces Superset's [file of the same name](https://github.com/apache/superset/blob/5.0.0/superset/templates/tail_js_custom_extra.html) with a single script tag that loads the overlay |
-| [`superset/templates/lenspack/settings.html`](superset/templates/lenspack/settings.html) | The Settings → Manage → AI assistant page, registered from `superset_config.py` (`FLASK_APP_MUTATOR`) |
-| [`superset/init.sh`](superset/init.sh) | One-off: schema, `admin` user, `lenspack` service account, roles |
+| [`superset/lenspack_superset.py`](superset/lenspack_superset.py) | Lenspack's additions as one file, imported at the end of `superset_config.py`. It adds the `/lenspack/` route with the signed identity, the "Ask Lenspack" script tag (Superset's overridable `tail_js_custom_extra.html`), the AI assistant page, the endpoints Lenspack calls at start, and the Flask-AppBuilder list-filter fix. |
+| [`superset/init.sh`](superset/init.sh) | One-off: schema, `admin` user, roles |
 | [`lenspack/Dockerfile`](lenspack/Dockerfile) | The Lenspack server, built from a pinned commit of the public repo (`LENSPACK_REF`) |
 | [`lenspack/start.sh`](lenspack/start.sh) | Entrypoint; turns `ANTHROPIC_API_KEY` into the provider list |
 | [`lenspack/lenspack-superset.yaml`](lenspack/lenspack-superset.yaml) | Lenspack config for the sample data: datasets, names, hierarchy, guidance and examples for the model; `env:NAME` reads the environment |
 | [`lenspack/lenspack-superset.clickhouse.yaml`](lenspack/lenspack-superset.clickhouse.yaml) | The same for the ClickHouse datasets; pick one with `LENSPACK_CONFIG` |
-| [`proxy/nginx.conf`](proxy/nginx.conf) | Compose's single address (:8088), with the Superset sign-in check for `/lenspack/`, and the beside page's port (:8795) |
-| [`docker-compose.yml`](docker-compose.yml) | Postgres, Superset (with an init step), Lenspack, the proxy, a one-off `setup`, and `clickhouse-tunnel` (profile `clickhouse`) |
+| [`docker-compose.yml`](docker-compose.yml) | Postgres, Superset (with an init step), Lenspack, a one-off `setup`, and `clickhouse-tunnel` (profile `clickhouse`) |
 | [`.env.example`](.env.example) | Every variable, explained; copy it to `.env` |
 | [`setup/setup.mts`](setup/setup.mts) | One-off: data sources in Superset (sample Postgres and/or ClickHouse), datasets with metrics and descriptions, and a starter dashboard for each |
 | [`sample-data/`](sample-data/) | Loads three HCM indices (tasks, households, stock) from Elasticsearch into Postgres, with no IDs or coordinates |
@@ -70,36 +62,31 @@ docker compose run --rm setup
 ```
 
 Then open http://127.0.0.1:8088 and sign in as `admin` (`SUPERSET_ADMIN_PASSWORD`).
-- **Inside:** open the dashboard "HCM campaign overview" and click **Ask Lenspack**.
-- **Beside:** http://127.0.0.1:8795/superset/1 (set `LENSPACK_BESIDE_ORIGINS=http://127.0.0.1:8795` first).
-  Use the same host name for both ports, so the browser sends Superset's cookie to both.
-  The same page also works under the single address, at http://127.0.0.1:8088/lenspack/superset/1.
-- **All dashboards, both ways:** http://127.0.0.1:8795/.
+- **The chat:** open the dashboard "HCM campaign overview" and click **Ask Lenspack**.
 - **Settings:** Settings → Manage → AI assistant, http://127.0.0.1:8088/ai-assistant/. See
   [Custom pages](#custom-pages-and-where-to-find-them).
 
 The `lenspack` container restarts until `setup` has created its datasets, then stays up. `setup` is safe to run again.
 
-The proxy listens only on this machine (`BIND_ADDRESS=127.0.0.1`). Before opening it to a network, put TLS in front:
+Superset listens only on this machine (`BIND_ADDRESS=127.0.0.1`). Before opening it to a network, put TLS in front:
 Superset's login form sends passwords as typed.
 
 ### Behind a TLS gateway (a second proxy)
 
-To publish the stack on an https host, put a TLS-terminating proxy in front of the compose
-proxy's port 8088 (one address: Superset, the Ask Lenspack button and `/lenspack/`). The beside
-port is not needed for this. On that gateway:
+To publish the stack on an https host, put a TLS-terminating proxy in front of Superset's port
+8088 (everything, `/lenspack/` included, is Superset). Set `ENABLE_PROXY_FIX=true` on Superset, and on
+that gateway:
 
-- pass `Host` (the public name) and `X-Forwarded-Proto https`; the compose proxy hands them on
-  to Superset (ProxyFix), so redirects and links come out as `https://<public host>/…`, while
-  `http://<host>:8088` keeps building http links;
+- pass `Host` (the public name) and `X-Forwarded-Proto https`, so redirects and links come out
+  as `https://<public host>/…`;
 - `proxy_buffering off` and a long `proxy_read_timeout` (300 s): chat replies stream;
 - `proxy_cookie_flags ~ secure samesite=lax;` so Superset's session cookie is Secure on the
   https path only (setting `SESSION_COOKIE_SECURE` in Superset would break plain-http sign-in);
 - Talisman already sends HSTS only on https requests and never redirects http to https.
 
 An https origin is also what browsers require before they let a page use the microphone
-(voice input). Only let the gateway and your private network reach port 8088: the compose
-proxy trusts the `X-Forwarded-*` headers it receives.
+(voice input). With `ENABLE_PROXY_FIX` on, only let the gateway reach port 8088: Superset then
+trusts the `X-Forwarded-*` headers it receives.
 
 ## Environment variables
 
@@ -107,26 +94,22 @@ proxy trusts the `X-Forwarded-*` headers it receives.
 |---|---|---|---|---|
 | `SUPERSET_SECRET_KEY` | Superset | yes | | Signs sessions and encrypts the database passwords Superset saves. Keep it stable. |
 | `PG_PASSWORD` | Postgres, Superset | yes | | Postgres password (metadata db `superset`, sample db `hcm`) |
-| `SUPERSET_ADMIN_PASSWORD` | init, setup | yes | | Superset's `admin` user |
-| `LENSPACK_SUPERSET_PASSWORD` | init, Lenspack | yes | | Superset's `lenspack` service account, which Lenspack signs in as |
+| `SUPERSET_ADMIN_PASSWORD` | init, setup, Lenspack | yes | | Superset's `admin` user. Lenspack uses it once, on its first start, to create its own account `lenspack`, whose password stays in Lenspack's volume |
 | `ANTHROPIC_API_KEY` | Lenspack | for the chat | | Claude Sonnet, Opus and Haiku 5.5. Read by the Anthropic adapter, never logged. |
 | `LENSPACK_LLM_PROVIDERS` | Lenspack | for the chat | | Any other models, as Lenspack's JSON provider list (wins over `ANTHROPIC_API_KEY`) |
 | `DATA_SQLALCHEMY_URI` | setup | no | the sample `hcm` db | The data, as Superset connects to it |
 | `TALISMAN_ENABLED` | Superset | no | `true` | Superset's security headers |
-| `LENSPACK_BESIDE_ORIGINS` | Superset | for the beside port | | Origins of the beside page (`http://host:8795`, space-separated), allowed to frame Superset (CSP `frame-ancestors`) |
-| `LENSPACK_BESIDE_URL` | Superset | no | | Beside page link on Settings → Manage → AI assistant |
+| `ENABLE_PROXY_FIX` | Superset | behind a gateway | `false` | Trust the gateway's `X-Forwarded-*` headers |
+| `LENSPACK_EDIT_POLICY` | Lenspack | no | `superset` | Who may change dashboards through the chat: `superset` means whoever Superset lets edit that dashboard (owners with `can_write`, admins); `signed-in` means anyone signed in |
+| `OPENROUTER_API_KEY` | Lenspack | for the microphone | | Speech to text for the chat's microphone; empty hides it |
 | `MAPBOX_API_KEY` | superset | Mapbox public token (`pk.…`) for the basemap under deck.gl map charts. Empty: points on a blank background. |
-| `LENSPACK_SETTINGS_TOKEN` | superset, lenspack | no | | Same random value on both. Lets Settings → Manage → AI assistant change the chat and speech-to-text models while Lenspack runs; empty = the page is read-only. `openssl rand -hex 24` |
-| `LENSPACK_INTERNAL_URL` | Superset | no | `http://lenspack:8795` | How Superset's server reaches Lenspack, for the AI assistant page |
-| `BIND_ADDRESS`, `PORT` | proxy | no | `127.0.0.1`, `8088` | Where the single address listens |
-| `BESIDE_PORT` | proxy | no | `8795` | The beside page's port |
-| `SUPERSET_PUBLIC_URL` | Lenspack | for the beside port | `http://127.0.0.1:8088` | Where browsers reach Superset; the beside page frames it from here |
+| `LENSPACK_INTERNAL_URL` | Superset | no | `http://lenspack:8795` | How Superset's server reaches Lenspack (the `/lenspack/` route and the AI assistant page) |
+| `BIND_ADDRESS`, `PORT` | Superset | no | `127.0.0.1`, `8088` | Where Superset listens |
 | `LENSPACK_CONFIG` | compose | no | `lenspack-superset.yaml` | Which Lenspack config: the sample one or `lenspack-superset.clickhouse.yaml` |
 | `CLICKHOUSE_USER`, `CLICKHOUSE_PASSWORD` | setup | for ClickHouse | | Read-only ClickHouse user. Pass the password with `-e` to the setup run; Superset stores it encrypted |
 | `CLICKHOUSE_HOST`, `CLICKHOUSE_PORT`, `CLICKHOUSE_DATABASE` | setup | no | `clickhouse-tunnel`, `8123`, `analytics` | Where Superset reaches ClickHouse |
 | `CLICKHOUSE_TENANT` | setup | no | `ng` | Tenant for the targets and referrals marts (the `su_ni_*` views are eGov's views for the ng field test) |
 | `CLICKHOUSE_KUBECONFIG`, `CLICKHOUSE_KUBE_CONTEXT`, `CLICKHOUSE_KUBE_NAMESPACE`, `CLICKHOUSE_KUBE_SERVICE` | clickhouse-tunnel | for the tunnel | `-`, current, `clickhouse`, `svc/clickhouse` | The read kubeconfig and the ClickHouse service to port-forward to |
-| `LENSPACK_URL` | Superset | set by compose/k8s | `/lenspack` | Where the overlay script is loaded from |
 | `SUPERSET_URL` | Lenspack, setup | set by compose/k8s | | How Lenspack reaches Superset's API |
 
 Not secrets, and in the files themselves:
@@ -192,32 +175,28 @@ Everything below is added without forking Superset.
 
 | Page | Where | Who | What it is |
 |---|---|---|---|
-| **AI assistant settings** | Superset → **Settings** (top right) → Manage → **AI assistant**, or `/ai-assistant/` | Admins | Lenspack's status, the datasets it reads and what each becomes, its measures, the LLM models and whether they answer, which variable the LLM key comes from (never the key), the daily budget and today's spend, Superset's database connections (passwords masked), and where to change each setting. **Editable:** the chat model and effort, and (in Lenspack builds with speech and language support) the speech-to-text model and chat language; saved in Lenspack's state and applied without a restart. Needs `LENSPACK_SETTINGS_TOKEN` on both containers, otherwise read-only. Registered in `superset_config.py` (`FLASK_APP_MUTATOR`), rendered from `templates/lenspack/settings.html`. |
+| **AI assistant settings** | Superset → **Settings** (top right) → Manage → **AI assistant**, or `/ai-assistant/` | Admins | Lenspack's status, the datasets it reads and what each becomes, its measures, the LLM models and whether they answer, which variable the LLM key comes from (never the key), the daily budget and today's spend, Superset's database connections (passwords masked), and where to change each setting. **Editable:** the chat model and effort, the speech-to-text model and the chat language; saved in Lenspack's state and applied without a restart. Also shows the edit policy and the latest audit-log entries. Registered by `lenspack_superset.py` (`FLASK_APP_MUTATOR`). |
 | **Superset language** | The flag menu in Superset's top bar | Everyone | English or French for Superset's own interface (`LANGUAGES` in `superset_config.py`). Superset ships no Hindi; Lenspack's chat has its own language setting. |
-| **Ask Lenspack button** (inside) | Bottom right of any Superset dashboard page, at the single address | Anyone signed in to Superset | The chat, floating on Superset's page. Changes are saved to that dashboard. Loaded by `templates/tail_js_custom_extra.html` from `/lenspack/overlay.js`, which the proxy serves only to signed-in browsers. |
-| **Beside page** | Its own port (compose: `BESIDE_PORT`, default 8795): `/superset/<dashboard id>`; the list of dashboards at `/` | Anyone signed in to Superset (same host name as Superset) | The chat on the left, the Superset dashboard in an iframe on the right. Not signed in: redirected to Superset's login. Also at `/lenspack/superset/<id>` and `/lenspack/` on the single address. |
+| **Ask Lenspack button** | Bottom right of any Superset dashboard page | Anyone who can view the dashboard; changes only for those Superset lets edit it (`LENSPACK_EDIT_POLICY`) | The chat, floating on Superset's page. Changes are saved to that dashboard. Loaded from `/lenspack/overlay.js`, which Superset serves only to signed-in users. |
 | **Data connections** | Superset → **Settings** → Data → **Database Connections** | Admins | Superset's own page. `setup` adds "HCM (masked)" for the sample and "HCM analytics (ClickHouse)". |
 
 Known limits of these pages:
-- **Inside mode reloads the whole page** after a change, and the chat is restored from the browser's session storage.
-  The beside page reloads only the iframe. Tracked in
+- **The page reloads** after a change, and the chat is restored from the browser's session storage. Tracked in
   [theflywheel/lenspack#15](https://github.com/theflywheel/lenspack/issues/15), with where chat history should live.
 - **Use the chat with the dashboard in view mode.** In Superset's edit mode, unsaved edits are lost when Lenspack
   reloads the page, and saving them afterwards overwrites what Lenspack saved.
-- **The chat acts as the service account,** which has the Admin role: anyone signed in can change any dashboard they can
-  open through the chat. Per-user checks are the auth follow-up in
-  [issue #1](https://github.com/egovernments/innovations/issues/1).
+- **Who did what** is in Lenspack's audit log (`/data/audit.jsonl`, 90 days): every change, refusal, chat turn and
+  settings change, with the Superset user. The usage figures on the settings page reset when Lenspack restarts; the log doesn't.
 
 ## Limits
 
 Most of these are covered in [issue #1](https://github.com/egovernments/innovations/issues/1#issuecomment-6999284286).
-- **Service account:** Lenspack reads and writes as one Superset account, `lenspack`. It has the Admin role here; give
-  it a narrower role for real use.
-- **Sign-in check:** the proxy only checks that someone is signed in to Superset. Lenspack doesn't know *who*, and
-  doesn't check whether that person may edit a dashboard.
+- **Service account:** Lenspack reads and writes as one Superset account, `lenspack`, with the Admin role (it edits
+  dashboards it doesn't own). Who may edit through the chat is checked per person against Superset's rights, but chart
+  data runs as that account, so row-level security applies to it, not to the person asking.
 - **Chart types:** only KPI, pie, line, area, bar and table charts can be edited. Other chart types are kept as
   Superset's.
 - **Lenspack version:** the image pins a commit on Lenspack's `superset` branch. The package isn't on Lenspack's `main`
   yet ([theflywheel/lenspack#16](https://github.com/theflywheel/lenspack/pull/16), draft).
-- **Framing:** with `LENSPACK_BESIDE_ORIGINS` set, Superset stops sending `X-Frame-Options` and relies on the CSP's
-  `frame-ancestors`, which every current browser supports.
+- **No beside page:** the earlier page with the chat beside a framed dashboard, on a port of its own, is no longer part
+  of this setup; the chat is on Superset's own dashboard page.

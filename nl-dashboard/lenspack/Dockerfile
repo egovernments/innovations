@@ -1,6 +1,6 @@
 # The Lenspack server for Superset (packages/superset in theflywheel/lenspack),
-# built from a pinned commit of the public repo. It serves the chat API, the
-# "beside" page (/superset/<dashboard id>) and the overlay script (/overlay.js).
+# built from a pinned commit of the public repo. It serves the chat API and the overlay
+# script (/overlay.js), reached only through Superset's /lenspack/ route.
 FROM node:24-bookworm-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates \

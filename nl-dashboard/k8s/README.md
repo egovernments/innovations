@@ -8,7 +8,7 @@ minikube on AWS, in namespace `lenspack`, and should fit any cluster that has in
 | [`db.yaml`](db.yaml) | Postgres StatefulSet (5 Gi) for Superset's metadata and the optional sample `hcm` database |
 | [`superset.yaml`](superset.yaml) | A one-off Job (`superset/init.sh`) and the Superset Deployment and Service |
 | [`lenspack.yaml`](lenspack.yaml) | The Lenspack Deployment and Service (one replica) |
-| [`ingress.yaml`](ingress.yaml) | `https://superset.hcm-lab.digit.org/` → Superset, and `/lenspack/` → Lenspack, which is gated by the Superset sign-in check |
+| [`ingress.yaml`](ingress.yaml) | `https://superset.hcm-lab.digit.org/` → Superset (which serves `/lenspack/` itself) |
 | [`kustomization.yaml`](kustomization.yaml) | Namespace, labels, and the image names (change these if you push elsewhere) |
 | [`setup-job.yaml`](setup-job.yaml) | A one-off Job that creates the data sources, datasets and starter dashboards (`setup/setup.mts`) |
 
@@ -37,8 +37,8 @@ All commands run from `nl-dashboard/`.
    # in .env, also:  DATA_SQLALCHEMY_URI=postgresql+psycopg2://superset:<PG_PASSWORD>@nl-dashboard-db:5432/hcm
    kubectl -n lenspack create secret generic nl-dashboard --from-env-file=.env
    ```
-   Include `LENSPACK_SETTINGS_TOKEN` (any random value, e.g. `openssl rand -hex 24`) for an editable AI
-   assistant page; both Deployments read it from this Secret, and without it the page is read-only.
+   Lenspack reads `SUPERSET_ADMIN_PASSWORD` from it to create its own Superset account. Its `/data` is an `emptyDir`,
+   so it does this on every start; keep the key in the Secret, or give `/data` a PersistentVolume.
 2. **ConfigMaps** for the Lenspack config and the setup script. The key is always `lenspack-superset.yaml`; for
    ClickHouse, use `--from-file=lenspack-superset.yaml=lenspack/lenspack-superset.clickhouse.yaml`.
    ```sh
@@ -74,10 +74,8 @@ All commands run from `nl-dashboard/`.
    ```
 
 Open https://superset.hcm-lab.digit.org and sign in as `admin`.
-- **Inside:** the "Ask Lenspack" button on a dashboard page.
-- **Beside:** https://superset.hcm-lab.digit.org/lenspack/superset/1. On Kubernetes the beside page stays under the
-  single host, so it's same-origin and needs no `LENSPACK_BESIDE_ORIGINS`. Serving it from a host of its own would also
-  need Superset's session cookie set for the parent domain, which this stack doesn't do.
+- **The chat:** the "Ask Lenspack" button on a dashboard page. Superset serves `/lenspack/` itself, so there is one
+  Ingress (Superset's) and none for Lenspack.
 - **Settings:** Settings → Manage → AI assistant (https://superset.hcm-lab.digit.org/ai-assistant/).
 
 ## Changes later
