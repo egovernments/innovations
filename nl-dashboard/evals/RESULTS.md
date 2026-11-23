@@ -35,12 +35,19 @@ changes. Each run page now also lists tool calls and latency per edit question.
 | [2026-11-23T03-06-03](results/2026-11-23T03-06-03.md) | definitions tier T9 | post-rebase-v2 | Haiku × 3 | 27 | $0.03 | 96% | 1 (0) | 0 | 0 (1 on hand check, see FAILURES §10) |
 | [2026-11-23T05-40-14](results/2026-11-23T05-40-14.md) | move questions T7.13 and T7.14, with the move fix | post-rebase-v2 | Haiku × 3 | 6 | $0.03 | 0% (6/6 before the scorer change) | 5 (0) | 0 | 0 |
 | [2026-11-23T06-00-19](results/2026-11-23T06-00-19.md) | heatmap tier T10 (create, read, edit) on the heatmap branch (lenspack#24, draft), judge Haiku | post-rebase-v2 | Haiku × 3 | 15 | $0.02 | 100% | 0 | 0 | 0 |
+| [2026-11-23T06-07-20](results/2026-11-23T06-07-20.md) | move questions, fix round 1 (lenspack superset 701a644) | post-rebase-v2 | Haiku × 3 | 6 | $0.03 | 50% | 1 (0) | 0 | 0 |
+| [2026-11-23T06-31-41](results/2026-11-23T06-31-41.md) | move questions, fix round 2 (lenspack superset d33dc24) | post-rebase-v2 | Haiku × 3 | 6 | $0.01 | **100%** | 0 | 0 | 0 |
+| [2026-11-23T06-32-24](results/2026-11-23T06-32-24.md) | heatmap tier T10 on d33dc24 (prompt v14), regression check | post-rebase-v2 | Haiku × 1 | 3 | $0.01 | 67% | 1 (0) | 0 | 0 |
 
-Total model spend: about **$25.95**.
+Total model spend: about **$26.00**.
 
 T10 note: each run first tried a daily series heatmap, which Superset's heatmap cannot keep in order, so Lenspack
 refuses it before the change (the 9 tool errors in the run); the model then built a breakdown over `day_label` split
 by ward. T10.1 takes 3 tool calls, T10.3 6 over its two turns.
+
+The T10 check on d33dc24 (one repeat) passed T10.1 and T10.2. T10.3 is partial: in the first turn Haiku built the
+heatmap over `campaign_day` (the day number) rather than `day_label`, which the question's check requires. Days
+1–7 as numbers stay in order, so the chart is defensible; one repeat isn't enough to call it a regression.
 
 ## Model × tier, the two full runs
 
@@ -130,6 +137,10 @@ Per turn: mean tool calls (min–max) · median latency. Most edits take 1–4 c
 | T7.11 | 3.0 (3–3) · 3.4 s | 3.0 (3–3) · 4.3 s | 2.0 (1–3) · 4.4 s |
 | T7.13 (move run) | 14.3 (9–22) · 15.1 s | — | — |
 | T7.14 (move run, Hindi) | 11.0 (10–13) · 13.7 s | — | — |
+| T7.13, fix round 1 (701a644) | 12.3 (8–15) · 15.5 s | — | — |
+| T7.14, fix round 1 (701a644) | 12.3 (9–16) · 15.8 s | — | — |
+| T7.13, fix round 2 (d33dc24) | **1.7 (1–2) · 3.6 s** | — | — |
+| T7.14, fix round 2 (d33dc24) | **3.0 (1–6) · 4.3 s** | — | — |
 
 ## What the stored runs hold
 

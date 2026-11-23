@@ -329,6 +329,26 @@ retitles or filters.
   move. It will also name any widgets that packing widened as a side effect.
 - A turn that reaches the step limit will still end with a short summary.
 
-Once those land, the same two questions rerun (Haiku × 3, about $0.03) against this run as the baseline: the target is
-a pass on the first move, and far fewer tool calls.
+**Fix round 1** (lenspack superset 701a644; run `2026-11-23T06-07-20`, 3/6). A move `after:<id>` into a full row now
+makes room beside the anchor, and packing no longer widens untouched widgets. The first call landed right in every
+turn: LGA bar 3 | ward bar 6 | pie 3, with a note naming what was resized. Haiku then resized the LGA bar back to half,
+and that pushed the ward bar off the row; the note said only "also resized: c50 6→12", not that it had left the row.
+Haiku looped between move and resize (8–16 tool calls). Three of six replies said the board readings were inconsistent
+and the layout couldn't be confirmed, two of them on a right board. One turn reached the step limit and ended on a
+refusal message with the board scrambled.
+
+**Fix round 2** (lenspack superset d33dc24, PR #25; run `2026-11-23T06-31-41`, **6/6**):
+- a resize in a full row narrows its row-mates, or refuses, and never pushes one off the row;
+- notes name row changes, and say when a row is full and no resize is needed;
+- a turn that reaches the step limit ends with a description of the board;
+- a race in reading the board back was fixed (prompt v14).
+
+Five of six turns made the move in one call; the sixth also widened the LGA bar back to half and sent the pie to its
+own row, and said so. Mean tool calls fell from 12.3 to 1.7 (English) and 3.0 (Hindi), median latency from about 15 s to
+about 4 s. No other row changed in any turn. The replies name what was narrowed and offer to widen it back:
+
+> The ward coverage chart now sits in row 3, beside the LGA coverage chart. To make room, the LGA chart was narrowed to 3/12 and the "Vaccinated children: gender" pie to 3/12, so I can widen either back if you want. *(T7.13, repeat 2)*
+
+Small slips remain in the wording: one reply calls 3/12 "a third", one Hindi reply says "first row" for row 3, and one
+Hindi reply opens by addressing the user by a name it made up ("ललित"), with no name anywhere in the turn.
 
