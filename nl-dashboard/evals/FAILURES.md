@@ -214,3 +214,63 @@ The truth is 45. Haiku read the `limit: 50` of its list_values call as the count
 called this partial, because the query was right. By the meaning of the metric it's a wrong figure stated as fact. A
 follow-up for the runner: on a scalar question, a stated wrong number should be confidently wrong even when the query
 was right.
+
+## 11. A move reported success but left the chart where it was (engine bug, found in the lab demo)
+
+**What happened.** On the lab demo, asked in Hindi to "put this one up top with the other bar graphs too", the model
+called `move_widget` three times on "Children vaccinated by ward". It was alone at full width in the last row (row 7),
+and the other bar charts were in rows 2 and 3. Each call answered `applied: true` with a new version (v3 to v5), and the
+dashboard saved and refreshed each time. The chart's position and size afterwards were the same as before. The model
+then said honestly that the move hadn't worked.
+
+The same thing without a model, on a copy of the dashboard, with the tool's ops (resize the chart to half, then move it
+`after:` the first chart in row 2):
+
+```
+before:  row 2 = 4+8 wide, row 3 = 6+6, ... row 7 = ward chart, 12 wide
+after:   the same: ward chart at the bottom, 12 wide, reported as moved
+```
+
+**Root cause.** In `packages/core/src/ops.ts`, `place()` handled `place: "after:<id>"` by scanning down from the anchor's
+row for the first free slot wide enough. Before the fix this was the line `if (anchor) startY = anchor.y;`, followed by
+the first-fit loop. Two board shapes defeat that scan:
+
+- **Packed boards** (`grid.fill`, which every Superset dashboard is): packing widens the last widget on each row to the
+  edge, so no row has a gap. The first free slot below the anchor is the one the moved widget has just left.
+- **Unpacked boards**: narrowing widgets leaves gaps where they were. A row can have enough room in total but split into
+  gaps (two thirds wide, with two 2-column gaps), and no single gap is wide enough.
+
+On both, the widget went back where it was, and nothing checked that the move had changed anything. The tool's
+follow-up resize (to half) was then undone by packing, which widened the lone chart back to the edge.
+
+**When it was introduced.** With the move op itself, in Lenspack 0.1.0 (58f0e77, 2026-09-22). Packing (5235d2c,
+2026-09-23) made the full-row case the normal state of a packed board. It is not from lenspack#18: the core repro gives
+the same unchanged position at 3d38280 (before #18), at 1d52ad8 (#18), and at the superset head before the fix. The
+commerce eval's C16 (a plain, unpacked board) also fails at all three.
+
+**Why tests and evals missed it.**
+- Core had no `move_widget` test at all.
+- The MCP tool test moved a widget to the top and checked only that the call reported `applied`, not where the widget
+  ended up.
+- T7 had no move question. Its edit questions add, change, rename and remove widgets, and T7.2's fix was about adds.
+- Every check trusted the op's own report of success.
+
+**The fix** (lenspack#22 into main; on the superset branch as 062bcb1 and 158da81):
+- `after:<id>` goes beside the anchor when the anchor's row has room.
+- When the row's room is split into gaps, the row slides left to join them first.
+- A really full row gets a new row straight after the anchor's row, and everything below moves down.
+- The move tool resizes before it moves, so it looks for room at the width asked for.
+
+**Prevention.**
+- A move that ends where it started is now an error, not a success: "Moving "<id>" there changes nothing: it is
+  already in that position", with a hint naming what to say instead. The model can no longer be told "done" for a
+  board that didn't change.
+- Core tests for each shape: a packed board with every row full, room beside the anchor, room split into gaps (C16's
+  exact scenario), and a move with no effect.
+- C16 in the stub suite now passes, so it leaves the suite's known bugs. A "move X up beside Y" question is being added to
+  T7, and its check reads the board, not the tool's reply.
+
+**Other deployments.** The bug predates the main branch's current code, so every Lenspack build with `move_widget` has
+it, including builds that never had #18. On unpacked boards it shows when the anchor's row has no single wide-enough
+gap; on packed boards, whenever the rows are full. The fix reaches other deployments once lenspack#22 is merged and they
+rebuild.
