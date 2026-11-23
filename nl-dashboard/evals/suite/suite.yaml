@@ -858,3 +858,28 @@ questions:
     expect: edit
     widget: { kind: [chart], chart: [heatmap], query: { kind: [breakdown], dimension: [day_label], measure: [households_registered, households] } }
     absent: { query: { dimension: [day_label], measure: [children_vaccinated] }, new_only: true }
+
+  # ── T11: maps (lenspack points query + map chart; Superset deck_scatter) ──
+  # Dashboard 7 already has a facilities map (chart 51, a deck_scatter), which Lenspack reads as a points query.
+  # Facility truth is su_ni_zd_facility, the table behind the ni_facilities dataset (100 facilities, all located).
+  # Post-rebase pack with the facility metrics only: run the pre-rebase suite without T11.
+  - id: T11.1
+    tier: T11
+    prompt: Add a map of health facilities coloured by zero-dose band.
+    expect: edit
+    widget: { kind: [chart], chart: [map], query: { kind: [points], dimension: [zero_dose_band] } }
+
+  - id: T11.2
+    tier: T11
+    prompt: On the health facilities map, which facility has the most zero-dose children?
+    expect: answer
+    accept: { measures: [facility_zero_dose_children] }
+    truth: { shape: list, unit: count, k: 1, sql: "SELECT health_facility, sum(zero_dose_children) v FROM su_ni_zd_facility GROUP BY health_facility ORDER BY v DESC LIMIT 1" }
+
+  - id: T11.3
+    tier: T11
+    turns:
+      - Add a map of health facilities coloured by zero-dose band.
+      - Size the points on that map by zero-dose children.
+    expect: edit
+    widget: { kind: [chart], chart: [map], query: { kind: [points], dimension: [zero_dose_band], measure: [facility_zero_dose_children] } }

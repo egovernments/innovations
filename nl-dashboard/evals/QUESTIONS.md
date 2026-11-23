@@ -138,3 +138,15 @@ ward. Post-rebase pack only.
 | T10.1 | Add a heatmap of children vaccinated by ward and day. | edit | | heatmap, breakdown over day_label, children_vaccinated |
 | T10.2 | (after T10.1's turn) Which ward was lowest on day 3 in that heatmap? | answer | multi-turn | Kambaza (14) |
 | T10.3 | (after T10.1's turn) Show households registered in that heatmap instead. | edit | multi-turn | the heatmap now shows households_registered; no children_vaccinated heatmap left |
+
+## T11. Maps (3)
+
+A map is a points query on an entity with a location (the facilities dataset's latitude and longitude); in Superset
+it is a `deck_scatter`. Dashboard 7 already has one (Health facilities). Post-rebase pack with the facility metrics,
+and a Lenspack with maps (lenspack superset 271df6e).
+
+| # | Question | Expect | Tags | Truth |
+|---|---|---|---|---|
+| T11.1 | Add a map of health facilities coloured by zero-dose band. | edit | | map, points query on facility, coloured by zero_dose_band |
+| T11.2 | On the health facilities map, which facility has the most zero-dose children? | answer | | Adarawa Primary Health Centre (255) |
+| T11.3 | (after T11.1's turn) Size the points on that map by zero-dose children. | edit | multi-turn | the map keeps zero_dose_band colour and is sized by facility_zero_dose_children |

@@ -41,8 +41,9 @@ changes. Each run page now also lists tool calls and latency per edit question.
 | [2026-11-23T06-31-41](results/2026-11-23T06-31-41.md) | move questions, fix round 2 (lenspack superset d33dc24) | post-rebase-v2 | Haiku × 3 | 6 | $0.01 | **83%** | 1 (0) | 0 | 0 |
 | [2026-11-23T06-32-24](results/2026-11-23T06-32-24.md) | heatmap tier T10 on d33dc24 (prompt v14), regression check | post-rebase-v2 | Haiku × 1 | 3 | $0.01 | 67% | 1 (0) | 0 | 0 |
 | [2026-11-23T07-37-21](results/2026-11-23T07-37-21.md) | move questions on prompt v15 (lenspack superset 2829038): row and width words from the tool notes, no names | post-rebase-v2 | Haiku × 3 | 6 | $0.01 | **83%** | 1 (0) | 0 | 0 |
+| [2026-11-23T07-55-36](results/2026-11-23T07-55-36.md) | map tier T11 (create, read, edit) on lenspack superset 271df6e (prompt v16), dashboard 7 read live, judge Haiku | post-rebase-v2 | Haiku × 3 | 9 | $0.01 | 100% | 0 | 0 | 0 |
 
-Total model spend: about **$26.01**.
+Total model spend: about **$26.02**.
 
 T10 note: each run first tried a daily series heatmap, which Superset's heatmap cannot keep in order, so Lenspack
 refuses it before the change (the 9 tool errors in the run); the model then built a breakdown over `day_label` split
@@ -51,6 +52,10 @@ by ward. T10.1 takes 3 tool calls, T10.3 6 over its two turns.
 The T10 check on d33dc24 (one repeat) passed T10.1 and T10.2. T10.3 is partial: in the first turn Haiku built the
 heatmap over `campaign_day` (the day number) rather than `day_label`, which the question's check requires. Days
 1–7 as numbers stay in order, so the chart is defensible; one repeat isn't enough to call it a regression.
+
+T11 note: the board was read live from dashboard 7 rather than the v2 board seed, which predates maps and holds the
+facilities map as a Superset-only widget. T11.1 takes 2 tool calls; T11.3's resize is one `update_widget` that keeps
+the colour. On T11.2 every repeat answered from a ranking query and said so rather than reading the map's points.
 
 ## Model × tier, the two full runs
 
