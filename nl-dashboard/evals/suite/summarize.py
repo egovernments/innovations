@@ -53,6 +53,23 @@ for m in models:
     some = sum(any(v) and not all(v) for v in by.values())
     print(f"- {short[m]}: {allp}/{len(by)} every repeat, {some} flaky")
 
+# Edits: how much work each took (a right board reached by trial and error costs the user time).
+edits = [r for r in rs if r["expect"] == "edit"]
+if edits:
+    print("\nEdits, per turn: mean tool calls (min–max) · median latency:\n")
+    print("| q | " + " | ".join(short[m] for m in models) + " |")
+    print("|---|" + "---|" * len(models))
+    for q in dict.fromkeys(r["id"] for r in edits):
+        cells = []
+        for m in models:
+            x = [r for r in edits if r["model"] == m and r["id"] == q]
+            if not x:
+                cells.append("—"); continue
+            calls = [r["toolCalls"] for r in x]
+            lat = sorted(r["latencyMs"] for r in x)[len(x) // 2] / 1000
+            cells.append(f"{sum(calls) / len(x):.1f} ({min(calls)}–{max(calls)}) · {lat:.1f} s")
+        print(f"| {q} | " + " | ".join(cells) + " |")
+
 print("\nConfidently wrong:\n")
 cw = collections.defaultdict(list)
 for r in rs:

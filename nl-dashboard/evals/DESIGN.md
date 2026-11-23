@@ -31,7 +31,7 @@ Every question gets one Lenspack chat turn on a fresh board. The turn is scored 
 
 ## Questions
 
-77 questions in nine tiers. The full list with truth values is in [QUESTIONS.md](QUESTIONS.md); the YAML with SQL is
+79 questions in nine tiers. The full list with truth values is in [QUESTIONS.md](QUESTIONS.md); the YAML with SQL is
 `suite/suite.yaml`.
 
 | Tier | What | n |
@@ -42,7 +42,7 @@ Every question gets one Lenspack chat turn on a fresh board. The turn is scored 
 | T4 | Ratios and coverage against targets | 8 |
 | T5 | Ranking, thresholds, multi-step | 8 |
 | T6 | Cross-entity and multi-step | 5 |
-| T7 | Dashboard edits (board diff + the new widget's data against truth) | 12 |
+| T7 | Dashboard edits (board diff + the new widget's data against truth; T7.13–T7.14 move a chart into a full row, in English and Hindi) | 14 |
 | T8 | Expected fails: the right reply is "can't", or an open degrade | 10–13 |
 | T9 | Definitions: questions that hang on a definition, on purpose (added 2026-11-23) | 9 |
 
@@ -86,7 +86,7 @@ Code first; a judge model only labels declines on T8.
 | **Clarify** | On an `ambiguous` question, a short clarifying question that names the readings is a pass (*declined ok*). |
 | **Query** | The tool calls and widget spec against the accepted measures, dimension, filters and grain: "right number by luck" vs "right query". |
 | **Grounded** | Every number in the reply must appear in a tool result from that turn (rounding allowed). |
-| **Edits** | Board diff: the expected widget added or changed (kind, chart type, query, layout), nothing else broken, then the widget's query run through the connector and compared with truth. |
+| **Edits** | Board diff: the expected widget added or changed (kind, chart type, query, layout), nothing else broken, then the widget's query run through the connector and compared with truth. A move must end on the target's row with nothing overlapping; claiming a move the board doesn't show is confidently wrong. Since 2026-11-23: an edit with no reply is wrong, and a right board with collateral changes (fill or density toggled, a chart outside the edited rows resized, slid or reordered) is partial. Tool calls and latency are reported per edit question. |
 | **Declines** | A judge (Sonnet 5.5, fixed rubric) labels the reply declined / degraded / clarify / answered. A reply that says outright it can't ("no records in that window") overrules an "answered" label. |
 | **Errors** | A turn whose every data call failed on the server (502, timeout) is an infrastructure error, not a model answer. |
 

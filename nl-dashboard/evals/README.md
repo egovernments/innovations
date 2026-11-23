@@ -23,6 +23,10 @@ SQL: the right number, the right chart, or an honest "can't". The data is the **
     to 9/9).
   - Superset sometimes returned the wrong dataset for a name lookup, a Flask-AppBuilder race fixed in this PR
     (1dea630).
+- **A third bug came from the lab demo:** a chart move that reported success and left the chart where it was
+  (theflywheel/lenspack#22). The eval now has move questions (T7.13–T7.14, English and Hindi). With the fix the moves
+  land, but by trial and error and with other charts resized, so since 2026-11-23 the scorer marks a right board with
+  collateral changes as partial and a silent edit as wrong ([FAILURES.md §11–12](FAILURES.md#11-a-move-reported-success-but-left-the-chart-where-it-was-engine-bug-found-in-the-lab-demo)).
 - **This data is clean and synthetic**, so treat the scores as a ceiling.
 
 ## Files

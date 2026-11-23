@@ -80,7 +80,7 @@ Tags: `ambiguous` = more than one defensible answer (see [DEFINITIONS.md](DEFINI
 | T6.4 | In Kalgo, list households registered and zero-dose children for each health facility. | answer |  | Biri Health Post …; Galaru Health Clinic …; Ubandawaki Clinic …; Mandinka Health Post … … |
 | T6.5 | Which wards had fewer than 100 vaccinations on any single day? | answer | multi-step | Ambursa, Kambaza, Kukah, Muntubari, Nassarawa I, Zauro, Zuguru |
 
-## T7. Dashboard edits (12)
+## T7. Dashboard edits (14)
 
 | # | Question | Expect | Tags | Truth |
 |---|---|---|---|---|
@@ -96,6 +96,8 @@ Tags: `ambiguous` = more than one defensible answer (see [DEFINITIONS.md](DEFINI
 | T7.10 | Add a bar chart of children vaccinated by LGA. / Make that by ward instead. | edit |  | board diff |
 | T7.11 | Add a line chart of households registered per day. | edit |  | board diff |
 | T7.12 | On the health facility map, colour the points by zero-dose share. | decline | why: engine | The map is a Superset deck.gl chart Lenspack keeps as Superset's; it can't edit it (and has no map kind). |
+| T7.13 | Move the ward coverage bar chart up next to the LGA coverage bar chart. | edit |  | board diff |
+| T7.14 | वार्ड वाला बार ग्राफ भी ऊपर LGA वाले बार ग्राफ के साथ रख दो ना | edit | hindi | board diff |
 
 ## T8. Expected fails: the right reply says it can't, or degrades openly (10)
 

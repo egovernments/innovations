@@ -7,8 +7,11 @@ model actually said (synthetic data), the cause, and what changed. Run timestamp
 - After the hand check, no run had a confidently wrong answer that was the model's fault.
 - What separates the models is multi-step arithmetic (T5/T6).
 - What separates *configs* is whether the instructions name the definitions.
-- Two failures were in Lenspack itself (KPI-row placement; fixed in lenspack#18), and one was in Superset (a
-  dataset-lookup race; fixed in this PR).
+- Three failures were in Lenspack itself (KPI-row placement, fixed in lenspack#18; a move that reported success
+  without moving, §11, fixed in lenspack#22; a move into a full row that lands elsewhere, §12, being fixed), and one
+  was in Superset (a dataset-lookup race; fixed in this PR).
+- A right board isn't the whole answer: since 2026-11-23 an edit with no reply is wrong, and a right board with changes
+  nobody asked for is partial (§12).
 
 ## 1. Three KPI tiles wouldn't sit in one row (engine bug, T7.2)
 
@@ -215,6 +218,10 @@ called this partial, because the query was right. By the meaning of the metric i
 follow-up for the runner: on a scalar question, a stated wrong number should be confidently wrong even when the query
 was right.
 
+**Edit rules added 2026-11-23** (§12), applied to every stored run by rescoring: five T7.2 turns from before the KPI-row
+fix moved from partial to wrong, because they ran out of steps and sent no reply (pre-rebase Opus ×1; post-rebase Opus
+×2, Haiku ×1; v2 Haiku ×1). None of them was a pass before, so no pass rate changed. The move run went from 6/6 to 0/6.
+
 ## 11. A move reported success but left the chart where it was (engine bug, found in the lab demo)
 
 **What happened.** On the lab demo, asked in Hindi to "put this one up top with the other bar graphs too", the model
@@ -274,3 +281,54 @@ commerce eval's C16 (a plain, unpacked board) also fails at all three.
 it, including builds that never had #18. On unpacked boards it shows when the anchor's row has no single wide-enough
 gap; on packed boards, whenever the rows are full. The fix reaches other deployments once lenspack#22 is merged and they
 rebuild.
+
+## 12. The move questions: a right board, reached the hard way
+
+**What was run.** After the fix in §11, two questions reproduce the lab-demo request on a copy of the seed dashboard:
+the ward coverage bar starts alone at full width at the bottom, and the LGA coverage bar shares its row with a pie, half
+and half, so that row is full. T7.13 asks in English ("Move the ward coverage bar chart up next to the LGA coverage bar
+chart"), T7.14 in Hindi ("वार्ड वाला बार ग्राफ भी ऊपर LGA वाले बार ग्राफ के साथ रख दो ना"). The check reads the board: the ward
+bar must end on the LGA bar's row with nothing overlapping. A reply saying there's no room, with the board untouched,
+also passes; a reply claiming a move the board doesn't show is confidently wrong. Haiku × 3 on Lenspack's superset
+branch at 29ead1f (run `2026-11-23T05-40-14`, $0.03).
+
+**Result.** In all six turns the ward bar ended beside the LGA bar at half width, and Hindi questions got Hindi
+replies saying what moved:
+
+> वार्ड वाला बार ग्राफ (c50) अब LGA वाले बार ग्राफ (c49) के बगल में, आधी चौड़ाई पर, ऊपर की पंक्ति में है। इसके लिए "Vaccinated children: gender" वाला पाई चार्ट (c52) नीचे सबसे आखिर में पूरी चौड़ाई पर चला गया है। *(T7.14, repeat 1: the ward bar is now beside the LGA bar, at half width; to make room the gender pie went to the bottom.)*
+
+At run time, scored on the board alone, that was 6/6. Reading every turn showed three things the board check missed.
+
+**1. The first move landed on the wrong row, every time.** `move_widget` with `place: "after:c49"` into the full row
+answered `applied: true` and put the ward bar on the next row down, still at full width. That isn't a no-op, so §11's new
+error doesn't fire. Haiku then worked it out by trial and error, sending the pie in the LGA row to the bottom: 9 to 22
+tool calls per turn, 15 seconds median, against 1 to 4 calls for most edits ([RESULTS.md](RESULTS.md#edits-tool-calls-and-latency-post-rebase-full-run)).
+
+**2. Other charts changed.** Once the pie left the LGA row, the board's packing widened the zero-dose pie and the
+planned-vs-actual line from half to full width and swapped their order, in five of six turns. In two turns Haiku
+switched the board's fill setting off to get the layout it wanted. One reply said so plainly:
+
+> Moving it pushed the other charts down and widened them … I tried to restore their half widths but the board kept them full, so they remain full width. *(T7.13, repeat 2)*
+
+**3. One turn ended in silence.** T7.13 repeat 1 used all 12 steps the chat allows a turn and sent no text. The person
+asking would see a changed dashboard and no reply.
+
+**Scorer change.** Both gaps are now in the scorer (lenspack `evals/suite` 686718d), for every edit question:
+- an edit that changes the board but sends no reply is **wrong**;
+- a right board with **collateral changes** is **partial**. That means the board's fill or density toggled, or a chart
+  outside the edited rows resized, slid or reordered. Charts sharing a row with the edited ones are exempt, because the
+  board's own packing legitimately resizes them (remove one KPI tile and its neighbour widens).
+- Each run page lists tool calls and latency per edit question, so a right board reached by trial and error shows up.
+
+Rescored, the move run is 0/6: five partial (other charts resized; fill off once) and one wrong (no reply). Across all
+runs, about 300 other right edits had no collateral changes, so the rule doesn't fire on ordinary adds, removes,
+retitles or filters.
+
+**Fixes in Lenspack** (in progress, by PR to main and to the superset branch):
+- A move into a full row will say so in the tool result: the row was full, where the widget went, and what to shrink or
+  move. It will also name any widgets that packing widened as a side effect.
+- A turn that reaches the step limit will still end with a short summary.
+
+Once those land, the same two questions rerun (Haiku × 3, about $0.03) against this run as the baseline: the target is
+a pass on the first move, and far fewer tool calls.
+

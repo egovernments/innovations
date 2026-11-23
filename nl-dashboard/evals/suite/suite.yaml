@@ -562,6 +562,37 @@ questions:
     why: engine
     note: The map is a Superset deck.gl chart Lenspack keeps as Superset's; it can't edit it (and has no map kind).
 
+  # T7.13–T7.14: a move into a full row (added 2026-11-23, from a bug found on the lab demo: three move
+  # calls each reported success and the chart stayed put). The ward bar starts alone at full width at the
+  # bottom; the LGA bar's row is full (half + half). Right: the ward bar ends on the LGA bar's row with
+  # nothing overlapping (widths shrink to fit, or something swaps out), or the reply says there's no room
+  # and leaves the board alone. Saying it moved when the board is unchanged is confidently wrong.
+  - id: T7.13
+    tier: T7
+    prompt: Move the ward coverage bar chart up next to the LGA coverage bar chart.
+    expect: edit
+    start_layout:
+      - { title: "(?i)coverage by lga", x: 0, y: 11, w: 6, h: 7 }
+      - { title: "(?i)vaccinated children.*gender", x: 6, y: 11, w: 6, h: 7 }
+      - { title: "(?i)zero-dose children.*gender", x: 0, y: 18, w: 6, h: 7 }
+      - { title: "(?i)planned vs actual", x: 6, y: 18, w: 6, h: 7 }
+      - { title: "(?i)coverage by ward", x: 0, y: 35, w: 12, h: 7 }
+    moved: { title: "(?i)coverage by ward", beside: "(?i)coverage by lga" }
+
+  - id: T7.14
+    tier: T7
+    prompt: "वार्ड वाला बार ग्राफ भी ऊपर LGA वाले बार ग्राफ के साथ रख दो ना"
+    expect: edit
+    tags: [hindi]
+    start_layout:
+      - { title: "(?i)coverage by lga", x: 0, y: 11, w: 6, h: 7 }
+      - { title: "(?i)vaccinated children.*gender", x: 6, y: 11, w: 6, h: 7 }
+      - { title: "(?i)zero-dose children.*gender", x: 0, y: 18, w: 6, h: 7 }
+      - { title: "(?i)planned vs actual", x: 6, y: 18, w: 6, h: 7 }
+      - { title: "(?i)coverage by ward", x: 0, y: 35, w: 12, h: 7 }
+    moved: { title: "(?i)coverage by ward", beside: "(?i)coverage by lga" }
+    note: The request on the lab demo was "इसको भी बाकी बार ग्राफ के साथ ऊपर रख दो ना" with the chart in view; a single turn has no "this", so the chart is named.
+
   # ── T8: expected fails: the right answer is "can't", or a disclosed degrade ─
   - id: E1
     tier: T8

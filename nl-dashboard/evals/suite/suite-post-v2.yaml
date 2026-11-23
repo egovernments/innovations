@@ -1004,6 +1004,75 @@ questions:
   expect: decline
   why: engine
   note: The map is a Superset deck.gl chart Lenspack keeps as Superset's; it can't edit it (and has no map kind).
+- id: T7.13
+  tier: T7
+  prompt: Move the ward coverage bar chart up next to the LGA coverage bar chart.
+  expect: edit
+  start_layout:
+  - title: (?i)coverage by lga
+    x: 0
+    y: 11
+    w: 6
+    h: 7
+  - title: (?i)vaccinated children.*gender
+    x: 6
+    y: 11
+    w: 6
+    h: 7
+  - title: (?i)zero-dose children.*gender
+    x: 0
+    y: 18
+    w: 6
+    h: 7
+  - title: (?i)planned vs actual
+    x: 6
+    y: 18
+    w: 6
+    h: 7
+  - title: (?i)coverage by ward
+    x: 0
+    y: 35
+    w: 12
+    h: 7
+  moved:
+    title: (?i)coverage by ward
+    beside: (?i)coverage by lga
+- id: T7.14
+  tier: T7
+  prompt: वार्ड वाला बार ग्राफ भी ऊपर LGA वाले बार ग्राफ के साथ रख दो ना
+  expect: edit
+  tags:
+  - hindi
+  start_layout:
+  - title: (?i)coverage by lga
+    x: 0
+    y: 11
+    w: 6
+    h: 7
+  - title: (?i)vaccinated children.*gender
+    x: 6
+    y: 11
+    w: 6
+    h: 7
+  - title: (?i)zero-dose children.*gender
+    x: 0
+    y: 18
+    w: 6
+    h: 7
+  - title: (?i)planned vs actual
+    x: 6
+    y: 18
+    w: 6
+    h: 7
+  - title: (?i)coverage by ward
+    x: 0
+    y: 35
+    w: 12
+    h: 7
+  moved:
+    title: (?i)coverage by ward
+    beside: (?i)coverage by lga
+  note: The request on the lab demo was "इसको भी बाकी बार ग्राफ के साथ ऊपर रख दो ना" with the chart in view; a single turn has no "this", so the chart is named.
 - id: E1
   tier: T8
   prompt: What is coverage for children 3–11 months versus 12–59 months?

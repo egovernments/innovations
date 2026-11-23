@@ -10,20 +10,32 @@ answers.
 definition they used. **Confidently wrong** is counted after the hand check
 ([FAILURES.md](FAILURES.md#10-results-reclassified-after-the-hand-check)).
 
+**Scorer change, 2026-11-23.** Two rules were added for dashboard edits after the move run
+([FAILURES.md §12](FAILURES.md#12-the-move-questions-a-right-board-reached-the-hard-way)):
+- an edit that changes the board but sends **no reply** is wrong (it was scored on the board alone);
+- a right board that also **changed things nobody asked for** (the board's fill or density setting, or a chart
+  outside the edited rows resized, slid or reordered) is partial, not right.
+
+Every stored run was rescored offline with them, and the tables below use the new scores. No pass rate changed
+except the move run's: five old T7.2 turns that ran out of steps without replying moved from partial to wrong (pre-rebase
+Opus ×1, post-rebase Opus ×2 and Haiku ×1, v2 Haiku ×1), and no other right edit, out of about 300, had collateral
+changes. Each run page now also lists tool calls and latency per edit question.
+
 ## Every run
 
 | Run (UTC) | What | Config | Models × repeats | Turns | Cost | Pass | Partial (def. unsaid) | Declined ok | Confidently wrong |
 |---|---|---|---|---|---|---|---|---|---|
 | [2026-11-22T16-16-05](results/2026-11-22T16-16-05.md) | dry run, 5 questions | pre-rebase | Haiku × 1 | 5 | $0.007 | 60% | 2 (1) | 1 | 0 |
 | [2026-11-22T16-44-31](results/2026-11-22T16-44-31.md) | Haiku pass over all 68, to find suite and scorer errors | pre-rebase | Haiku × 1 | 68 | $0.09 | 81% | 10 (6) | 14 | 2 raw → 0 (both reclassified) |
-| [2026-11-22T17-26-23](results/2026-11-22T17-26-23.md) | **full run** | pre-rebase | 3 models × 3 | 612 | $12.39 | Haiku 84% · Sonnet 87% · Opus 86% | 31 (21) · 22 (17) · 26 (18) | 45 each | 0 |
+| [2026-11-22T17-26-23](results/2026-11-22T17-26-23.md) | **full run** | pre-rebase | 3 models × 3 | 612 | $12.39 | Haiku 84% · Sonnet 87% · Opus 86% | 31 (21) · 22 (17) · 25 (18) | 45 each | 0 |
 | [2026-11-22T17-58-30](results/2026-11-22T17-58-30-pr18.md) | dashboard edits on lenspack#18 | pre-rebase | 3 models × 3 | 108 | $2.08 | 100% · 100% · 97% | 0 | 3 each | 0 |
-| [2026-11-22T18-07-48](results/2026-11-22T18-07-48.md) | **full run** | post-rebase | 3 models × 3 | 612 | $11.01 | Haiku 89% · Sonnet 91% · Opus 92% | 19 (15) · 11 (8) · 16 (11) | 39 · 38 · 39 | 0 |
-| [2026-11-22T18-53-20](results/2026-11-22T18-53-20.md) | v2 config | post-rebase-v2 | Haiku × 3 | 204 | $0.28 | 92% (95% with the next row) | 12 (7) | 36 | 0 |
+| [2026-11-22T18-07-48](results/2026-11-22T18-07-48.md) | **full run** | post-rebase | 3 models × 3 | 612 | $11.01 | Haiku 89% · Sonnet 91% · Opus 92% | 18 (15) · 11 (8) · 14 (11) | 39 · 38 · 39 | 0 |
+| [2026-11-22T18-53-20](results/2026-11-22T18-53-20.md) | v2 config | post-rebase-v2 | Haiku × 3 | 204 | $0.28 | 92% (95% with the next row) | 11 (7) | 36 | 0 |
 | [2026-11-22T18-57-26](results/2026-11-22T18-57-26.md) | v2: T1.7 and T7.7 rerun after a pack build lost an entity | post-rebase-v2 | Haiku × 3 | 6 | $0.01 | 100% | 0 | 0 | 0 |
 | [2026-11-23T03-06-03](results/2026-11-23T03-06-03.md) | definitions tier T9 | post-rebase-v2 | Haiku × 3 | 27 | $0.03 | 96% | 1 (0) | 0 | 0 (1 on hand check, see FAILURES §10) |
+| [2026-11-23T05-40-14](results/2026-11-23T05-40-14.md) | move questions T7.13 and T7.14, with the move fix | post-rebase-v2 | Haiku × 3 | 6 | $0.03 | 0% (6/6 before the scorer change) | 5 (0) | 0 | 0 |
 
-Total model spend: about **$25.90**.
+Total model spend: about **$25.93**.
 
 ## Model × tier, the two full runs
 
@@ -88,6 +100,31 @@ whole suite.
 
 No reply asked a clarifying question. Where the config states a definition, Haiku states it. Where it doesn't
 (T9.6, T9.8), Haiku picks a reading, names it, and doesn't mention the others.
+
+## Edits: tool calls and latency (post-rebase full run)
+
+Per turn: mean tool calls (min–max) · median latency. Most edits take 1–4 calls. T7.2 (three KPI tiles in a row) took
+13–20 calls on this run, which predates the KPI-row fix (lenspack#18). The move questions, from the move run, took
+9–22 calls with Haiku: the first move landed on the wrong row and Haiku found its way by trial and error
+([FAILURES.md §12](FAILURES.md#12-the-move-questions-a-right-board-reached-the-hard-way)).
+
+| q | Haiku 5.5 | Sonnet 5.5 | Opus 5.5 |
+|---|---|---|---|
+| T3.1 | 3.0 (3–3) · 2.9 s | 3.0 (3–3) · 4.3 s | 1.7 (1–2) · 4.7 s |
+| T3.4 | 2.7 (2–3) · 4.6 s | 1.7 (1–3) · 4.6 s | 1.3 (1–2) · 4.7 s |
+| T7.1 | 3.0 (3–3) · 4.3 s | 3.0 (3–3) · 4.8 s | 3.7 (3–5) · 8.6 s |
+| T7.2 | 18.3 (17–19) · 24.6 s | 17.0 (16–19) · 26.9 s | 16.3 (13–20) · 44.9 s |
+| T7.3 | 3.7 (3–4) · 7.9 s | 2.3 (1–3) · 5.4 s | 2.3 (2–3) · 8.2 s |
+| T7.4 | 2.0 (2–2) · 2.6 s | 2.0 (2–2) · 3.3 s | 2.0 (2–2) · 4.9 s |
+| T7.5 | 1.0 (1–1) · 1.2 s | 2.3 (1–3) · 4.0 s | 3.0 (3–3) · 4.6 s |
+| T7.6 | 1.0 (1–1) · 1.9 s | 1.0 (1–1) · 2.8 s | 4.0 (3–6) · 4.3 s |
+| T7.7 | 6.3 (6–7) · 12.5 s | 3.3 (3–4) · 8.5 s | 3.0 (2–4) · 16.5 s |
+| T7.8 | 3.3 (2–5) · 3.9 s | 2.3 (1–3) · 4.6 s | 2.7 (2–3) · 4.6 s |
+| T7.9 | 1.7 (1–3) · 2.4 s | 1.0 (1–1) · 1.6 s | 2.0 (2–2) · 4.6 s |
+| T7.10 | 5.7 (5–6) · 6.5 s | 4.7 (2–6) · 8.1 s | 5.0 (5–5) · 9.8 s |
+| T7.11 | 3.0 (3–3) · 3.4 s | 3.0 (3–3) · 4.3 s | 2.0 (1–3) · 4.4 s |
+| T7.13 (move run) | 14.3 (9–22) · 15.1 s | — | — |
+| T7.14 (move run, Hindi) | 11.0 (10–13) · 13.7 s | — | — |
 
 ## What the stored runs hold
 
