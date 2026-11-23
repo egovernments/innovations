@@ -99,5 +99,13 @@ The run turned up four problems. All four are fixed in lenspack#35:
    (connection refused)" or a similar reason, and other errors lose their URLs, hosts and ports. The raw error stays
    in the server log.
 
-Run `readonly full tunnel` again once #35 is deployed: all three should pass, and the tunnel reply should name no
-host.
+### 2026-11-23, 16c, after the fixes
+
+Run against Lenspack `a109f45` (lenspack#35), 10:15–10:18 CET, scenarios `readonly full tunnel`. All 16 checks
+passed, for $0.005 of model spend.
+
+- **readonly and full:** Lenspack serves and answers (in 4.1 s and 4.3 s). A settings write gets 503 with the
+  reason, and the settings on the volume are unchanged.
+- **tunnel:** the reply says the data source is unreachable ("host not found") and names no host or port. The raw
+  error is in the server log.
+- **End state:** healthy, and `/data` matched its backup.
