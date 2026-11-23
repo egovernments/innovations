@@ -88,7 +88,9 @@ docker compose logs lenspack | grep "lenspack-superset:"
 ```
 
 The log shows that Lenspack created its account. After that, `SUPERSET_ADMIN_PASSWORD` can come out of the Lenspack
-service, because the account's password is kept in `lenspack-data`.
+service, because the account's password is kept in `lenspack-data`. If you already have a `lenspack` user that other tools
+sign in as, set `LENSPACK_SUPERSET_PASSWORD` to its password instead. Lenspack then uses that account as it is
+([optional](ADD-TO-EXISTING-SUPERSET-REFERENCE.md#lenspacks-superset-account)).
 
 Optional: [French labels](ADD-TO-EXISTING-SUPERSET-REFERENCE.md#french-labels), and [who may edit through the chat](ADD-TO-EXISTING-SUPERSET-REFERENCE.md#who-may-do-what).
 

@@ -123,6 +123,8 @@ until step 6.
   - which charts Lenspack made.
 - Don't start it yet. Lenspack exits until the datasets in its config exist (step 5).
 - **Optional:**
+  - `LENSPACK_SUPERSET_PASSWORD`: an existing `lenspack` account's password, used as it is. Lenspack then makes or resets no
+    account, and other tools that sign in as `lenspack` (an eval harness, for example) keep working ([Lenspack's Superset account](#lenspacks-superset-account));
   - `LENSPACK_EDIT_POLICY` ([Who may do what](#who-may-do-what));
   - `LENSPACK_AUDIT_RETENTION_DAYS` ([The audit log](#the-audit-log));
   - `OPENROUTER_API_KEY`, for the chat's microphone (speech to text).
@@ -237,8 +239,10 @@ user, `lenspack`.
 - **Role.** The account gets **Admin**. Lenspack edits dashboards it doesn't own, and Superset lets only owners and
   admins change a dashboard. Who may edit what *through the chat* is decided per person by
   [the edit policy](#who-may-do-what), not by this role.
-- **An account you manage.** Set `LENSPACK_SUPERSET_PASSWORD`, and `superset.username` in the Lenspack config if it
-  isn't `lenspack`. Lenspack then uses that account as is and never calls the bootstrap.
+- **An account you manage (optional).** Set `LENSPACK_SUPERSET_PASSWORD`, and set `superset.username` in the Lenspack config if the
+  account isn't `lenspack`. Lenspack then uses that account as it is and never calls the bootstrap. That matters when
+  something else signs in with the same password, because the bootstrap would reset it. Upgrading from a setup with a
+  hand-made `lenspack` user, keep the variable and nothing changes for that account.
 
 ## The audit log
 
