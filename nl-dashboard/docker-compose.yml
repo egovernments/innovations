@@ -10,6 +10,8 @@ x-superset-env: &superset-env
   DB_HOST: db
   DB_PASSWORD: ${PG_PASSWORD:?set in .env}
   TALISMAN_ENABLED: ${TALISMAN_ENABLED:-true}
+  # true behind a TLS gateway (trust its X-Forwarded-*); then let only the gateway reach PORT.
+  ENABLE_PROXY_FIX: ${ENABLE_PROXY_FIX:-false}
   # Mapbox public (pk.) token for the basemap under deck.gl map charts; empty = no basemap.
   MAPBOX_API_KEY: ${MAPBOX_API_KEY:-}
 
