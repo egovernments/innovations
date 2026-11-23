@@ -37,9 +37,9 @@ decline, three times each on synthetic campaign data in eGov's unified-dev Click
 
 | Model | Pass rate | Cost per right answer | Typical reply time |
 |---|---|---|---|
-| Claude Haiku 5.5, tuned config | **95 %** | **$0.0016** | under 5 s |
+| Claude Haiku 5.5, tuned config | **95 %** | **$0.0015** | under 5 s |
 | Claude Sonnet 5.5 | 91 % | $0.020 | about 5 s |
-| Claude Opus 5.5 | 92 % | $0.038 | about 7 s |
+| Claude Opus 5.5 | 91 % | $0.038 | about 7 s |
 
 Sonnet and Opus ran on the config before tuning, on which Haiku scored 89 %.
 
