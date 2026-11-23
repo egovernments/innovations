@@ -1,6 +1,6 @@
 {
  "suite": "hcm-superset-ng-post-v2",
- "computed": "2026-11-23T03:00:06+00:00",
+ "computed": "2026-11-23T05:55:32+00:00",
  "fingerprint": {
   "su_ni_task_rows": 50000,
   "su_ni_cov_rows": 2275,
@@ -1177,6 +1177,19 @@
      "value": 0.9420198741731463
     }
    ]
+  },
+  "T10.2": {
+   "shape": "list",
+   "unit": "count",
+   "value": [
+    [
+     "Kambaza",
+     14
+    ]
+   ],
+   "sql_sha": "e53704d00913",
+   "k": 1,
+   "dayOne": "2026-10-12"
   }
  }
 }

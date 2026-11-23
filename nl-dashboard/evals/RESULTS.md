@@ -34,8 +34,13 @@ changes. Each run page now also lists tool calls and latency per edit question.
 | [2026-11-22T18-57-26](results/2026-11-22T18-57-26.md) | v2: T1.7 and T7.7 rerun after a pack build lost an entity | post-rebase-v2 | Haiku × 3 | 6 | $0.01 | 100% | 0 | 0 | 0 |
 | [2026-11-23T03-06-03](results/2026-11-23T03-06-03.md) | definitions tier T9 | post-rebase-v2 | Haiku × 3 | 27 | $0.03 | 96% | 1 (0) | 0 | 0 (1 on hand check, see FAILURES §10) |
 | [2026-11-23T05-40-14](results/2026-11-23T05-40-14.md) | move questions T7.13 and T7.14, with the move fix | post-rebase-v2 | Haiku × 3 | 6 | $0.03 | 0% (6/6 before the scorer change) | 5 (0) | 0 | 0 |
+| [2026-11-23T06-00-19](results/2026-11-23T06-00-19.md) | heatmap tier T10 (create, read, edit) on the heatmap branch (lenspack#24, draft), judge Haiku | post-rebase-v2 | Haiku × 3 | 15 | $0.02 | 100% | 0 | 0 | 0 |
 
-Total model spend: about **$25.93**.
+Total model spend: about **$25.95**.
+
+T10 note: each run first tried a daily series heatmap, which Superset's heatmap cannot keep in order, so Lenspack
+refuses it before the change (the 9 tool errors in the run); the model then built a breakdown over `day_label` split
+by ward. T10.1 takes 3 tool calls, T10.3 6 over its two turns.
 
 ## Model × tier, the two full runs
 

@@ -1494,3 +1494,61 @@ questions:
   - simple average
   - not an average
   - rather than averag
+- id: T10.1
+  tier: T10
+  prompt: Add a heatmap of children vaccinated by ward and day.
+  expect: edit
+  widget:
+    kind:
+    - chart
+    chart:
+    - heatmap
+    query:
+      kind:
+      - breakdown
+      dimension:
+      - day_label
+      measure:
+      - children_vaccinated
+- id: T10.2
+  tier: T10
+  turns:
+  - Add a heatmap of children vaccinated by ward and day.
+  - Which ward was lowest on day 3 in that heatmap?
+  expect: answer
+  accept:
+    measures:
+    - children_vaccinated
+    dimension:
+    - ward
+  truth:
+    shape: list
+    unit: count
+    k: 1
+    sql: SELECT ward, sum(children_vaccinated) v FROM su_ni_cov WHERE campaign_day = 3 GROUP BY ward ORDER BY v ASC LIMIT 1
+- id: T10.3
+  tier: T10
+  turns:
+  - Add a heatmap of children vaccinated by ward and day.
+  - Show households registered in that heatmap instead.
+  expect: edit
+  widget:
+    kind:
+    - chart
+    chart:
+    - heatmap
+    query:
+      kind:
+      - breakdown
+      dimension:
+      - day_label
+      measure:
+      - households_registered
+      - households
+  absent:
+    query:
+      dimension:
+      - day_label
+      measure:
+      - children_vaccinated
+    new_only: true

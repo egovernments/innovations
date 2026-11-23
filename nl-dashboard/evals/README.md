@@ -5,7 +5,7 @@ Questions are asked in a campaign manager's words. Each reply is scored against 
 SQL: the right number, the right chart, or an honest "can't". The data is the **synthetic** field test in
 `default.su_ni_*`, and every figure here comes from it.
 
-**Headline** (full runs: 68 questions in T1–T8, Claude 5.5 models, 3 repeats; the 9 T9 definition questions came later and ran on Haiku, 26/27; details in [RESULTS.md](RESULTS.md)):
+**Headline** (full runs: 68 questions in T1–T8, Claude 5.5 models, 3 repeats; the 9 T9 definition questions came later and ran on Haiku, 26/27, as did the 3 T10 heatmap questions, 9/9; details in [RESULTS.md](RESULTS.md)):
 
 | | Haiku | Sonnet | Opus |
 |---|---|---|---|
@@ -57,5 +57,5 @@ pnpm eval:suite --suite <this folder>/suite/suite-post-v2.yaml --truth <this fol
 pnpm eval:suite ... --rescore results/<run>.json     # rescore a stored run offline, no model calls
 ```
 
-The pre-rebase pack can't answer T9 (it has no access, team or settlement-type fields), so run the pre-rebase suite
-with `--tiers T1,T2,T3,T4,T5,T6,T7,T8`.
+The pre-rebase pack can't answer T9 (it has no access, team or settlement-type fields) or T10 (no `day_label`), so run
+the pre-rebase suite with `--tiers T1,T2,T3,T4,T5,T6,T7,T8`. T10 needs a Lenspack with the heatmap chart.

@@ -127,3 +127,14 @@ Tags: `ambiguous` = more than one defensible answer (see [DEFINITIONS.md](DEFINI
 | T9.7 | Which LGA is doing best? | answer | ambiguous, definitions | Kalgo · alt: most children vaccinated Birnin Kebbi |
 | T9.8 | How many child visits were in hard-to-reach settlements? | answer | ambiguous, definitions | 3,333 · alt: access class Harder to reach 9,656; access class not Accessible 12,564 |
 | T9.9 | What is the average coverage across settlements? | answer | ambiguous, definitions | 93.77% · alt: mean of settlement percentages 94.20% |
+
+## T10. Heatmaps (3)
+
+Superset's heatmap cannot keep a time axis in order, so a ward-by-day heatmap is a breakdown over `day_label` split by
+ward. Post-rebase pack only.
+
+| # | Question | Expect | Tags | Truth |
+|---|---|---|---|---|
+| T10.1 | Add a heatmap of children vaccinated by ward and day. | edit | | heatmap, breakdown over day_label, children_vaccinated |
+| T10.2 | (after T10.1's turn) Which ward was lowest on day 3 in that heatmap? | answer | multi-turn | Kambaza (14) |
+| T10.3 | (after T10.1's turn) Show households registered in that heatmap instead. | edit | multi-turn | the heatmap now shows households_registered; no children_vaccinated heatmap left |
