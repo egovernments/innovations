@@ -38,8 +38,9 @@ changes. Each run page now also lists tool calls and latency per edit question.
 | [2026-11-23T06-07-20](results/2026-11-23T06-07-20.md) | move questions, fix round 1 (lenspack superset 701a644) | post-rebase-v2 | Haiku × 3 | 6 | $0.03 | 50% | 1 (0) | 0 | 0 |
 | [2026-11-23T06-31-41](results/2026-11-23T06-31-41.md) | move questions, fix round 2 (lenspack superset d33dc24) | post-rebase-v2 | Haiku × 3 | 6 | $0.01 | **100%** | 0 | 0 | 0 |
 | [2026-11-23T06-32-24](results/2026-11-23T06-32-24.md) | heatmap tier T10 on d33dc24 (prompt v14), regression check | post-rebase-v2 | Haiku × 1 | 3 | $0.01 | 67% | 1 (0) | 0 | 0 |
+| [2026-11-23T07-37-21](results/2026-11-23T07-37-21.md) | move questions on prompt v15 (lenspack superset 2829038): row and width words from the tool notes, no names | post-rebase-v2 | Haiku × 3 | 6 | $0.01 | **100%** | 0 | 0 | 0 |
 
-Total model spend: about **$26.00**.
+Total model spend: about **$26.01**.
 
 T10 note: each run first tried a daily series heatmap, which Superset's heatmap cannot keep in order, so Lenspack
 refuses it before the change (the 9 tool errors in the run); the model then built a breakdown over `day_label` split
@@ -141,6 +142,8 @@ Per turn: mean tool calls (min–max) · median latency. Most edits take 1–4 c
 | T7.14, fix round 1 (701a644) | 12.3 (9–16) · 15.8 s | — | — |
 | T7.13, fix round 2 (d33dc24) | **1.7 (1–2) · 3.6 s** | — | — |
 | T7.14, fix round 2 (d33dc24) | **3.0 (1–6) · 4.3 s** | — | — |
+| T7.13, prompt v15 (2829038) | 2.0 (2–2) · 3.9 s | — | — |
+| T7.14, prompt v15 (2829038) | 2.0 (1–3) · 5.6 s | — | — |
 
 ## What the stored runs hold
 
