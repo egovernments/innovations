@@ -9,8 +9,8 @@ SQL: the right number, the right chart, or an honest "can't". The data is the **
 
 | | Haiku | Sonnet | Opus |
 |---|---|---|---|
-| pass, pre-rebase pack | 84% | 87% | 86% |
-| pass, pack on eGov's `su_ni_*` views | 89% | 91% | 92% |
+| pass, pre-rebase pack | 84% | 87% | 85% |
+| pass, pack on eGov's `su_ni_*` views | 89% | 91% | 91% |
 | pass, same pack with definitions in the instructions (v2) | 95% | — | — |
 | confidently wrong, after the hand check | 0 | 0 | 0 |
 | $ per right answer | 0.0016 | 0.020 | 0.038 |

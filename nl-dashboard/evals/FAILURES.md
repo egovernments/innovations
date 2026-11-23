@@ -139,7 +139,7 @@ it's now a definitions entry too. The right reply divides, or says which denomin
 ## 8. What the rebase gained and lost
 
 Moving the datasets onto eGov's `su_ni_*` views (pre → post) raised pass rates (Haiku 84→89%, Sonnet 87→91%, Opus
-86→92%).
+85→91%).
 
 **Gained:** three expected fails became answerable.
 - **E8 field worker:** the `team` column holds a login.
@@ -337,7 +337,7 @@ Haiku looped between move and resize (8–16 tool calls). Three of six replies s
 and the layout couldn't be confirmed, two of them on a right board. One turn reached the step limit and ended on a
 refusal message with the board scrambled.
 
-**Fix round 2** (lenspack superset d33dc24, PR #25; run `2026-11-23T06-31-41`, **6/6**):
+**Fix round 2** (lenspack superset d33dc24, PR #25; run `2026-11-23T06-31-41`, **6/6**; 5/6 since the row-mate rule in [RESULTS.md](RESULTS.md)):
 - a resize in a full row narrows its row-mates, or refuses, and never pushes one off the row;
 - notes name row changes, and say when a row is full and no resize is needed;
 - a turn that reaches the step limit ends with a description of the board;

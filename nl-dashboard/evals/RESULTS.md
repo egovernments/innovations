@@ -21,24 +21,26 @@ except the move run's: five old T7.2 turns that ran out of steps without replyin
 Opus ×1, post-rebase Opus ×2 and Haiku ×1, v2 Haiku ×1), and no other right edit, out of about 300, had collateral
 changes. Each run page now also lists tool calls and latency per edit question.
 
+**Scorer change, later on 2026-11-23.** A chart in an edited row that the model itself moved out of the row or widened (a move or resize call it didn't undo) now makes a right board partial; narrowing one to make room, as the packing does, doesn't count. Rescored offline: Opus 86→85% pre-rebase and 92→91% post-rebase (T7.6: after the removal it made the three remaining tiles a third wide each, unasked, though it said so), and one Haiku turn in each move run from fix round 1 on (it sent the gender pie to a row of its own).
+
 ## Every run
 
 | Run (UTC) | What | Config | Models × repeats | Turns | Cost | Pass | Partial (def. unsaid) | Declined ok | Confidently wrong |
 |---|---|---|---|---|---|---|---|---|---|
 | [2026-11-22T16-16-05](results/2026-11-22T16-16-05.md) | dry run, 5 questions | pre-rebase | Haiku × 1 | 5 | $0.007 | 60% | 2 (1) | 1 | 0 |
 | [2026-11-22T16-44-31](results/2026-11-22T16-44-31.md) | Haiku pass over all 68, to find suite and scorer errors | pre-rebase | Haiku × 1 | 68 | $0.09 | 81% | 10 (6) | 14 | 2 raw → 0 (both reclassified) |
-| [2026-11-22T17-26-23](results/2026-11-22T17-26-23.md) | **full run** | pre-rebase | 3 models × 3 | 612 | $12.39 | Haiku 84% · Sonnet 87% · Opus 86% | 31 (21) · 22 (17) · 25 (18) | 45 each | 0 |
+| [2026-11-22T17-26-23](results/2026-11-22T17-26-23.md) | **full run** | pre-rebase | 3 models × 3 | 612 | $12.39 | Haiku 84% · Sonnet 87% · Opus 85% | 31 (21) · 22 (17) · 27 (18) | 45 each | 0 |
 | [2026-11-22T17-58-30](results/2026-11-22T17-58-30-pr18.md) | dashboard edits on lenspack#18 | pre-rebase | 3 models × 3 | 108 | $2.08 | 100% · 100% · 97% | 0 | 3 each | 0 |
-| [2026-11-22T18-07-48](results/2026-11-22T18-07-48.md) | **full run** | post-rebase | 3 models × 3 | 612 | $11.01 | Haiku 89% · Sonnet 91% · Opus 92% | 18 (15) · 11 (8) · 14 (11) | 39 · 38 · 39 | 0 |
+| [2026-11-22T18-07-48](results/2026-11-22T18-07-48.md) | **full run** | post-rebase | 3 models × 3 | 612 | $11.01 | Haiku 89% · Sonnet 91% · Opus 91% | 18 (15) · 11 (8) · 15 (11) | 39 · 38 · 39 | 0 |
 | [2026-11-22T18-53-20](results/2026-11-22T18-53-20.md) | v2 config | post-rebase-v2 | Haiku × 3 | 204 | $0.28 | 92% (95% with the next row) | 11 (7) | 36 | 0 |
 | [2026-11-22T18-57-26](results/2026-11-22T18-57-26.md) | v2: T1.7 and T7.7 rerun after a pack build lost an entity | post-rebase-v2 | Haiku × 3 | 6 | $0.01 | 100% | 0 | 0 | 0 |
 | [2026-11-23T03-06-03](results/2026-11-23T03-06-03.md) | definitions tier T9 | post-rebase-v2 | Haiku × 3 | 27 | $0.03 | 96% | 1 (0) | 0 | 0 (1 on hand check, see FAILURES §10) |
 | [2026-11-23T05-40-14](results/2026-11-23T05-40-14.md) | move questions T7.13 and T7.14, with the move fix | post-rebase-v2 | Haiku × 3 | 6 | $0.03 | 0% (6/6 before the scorer change) | 5 (0) | 0 | 0 |
 | [2026-11-23T06-00-19](results/2026-11-23T06-00-19.md) | heatmap tier T10 (create, read, edit) on the heatmap branch (lenspack#24, draft), judge Haiku | post-rebase-v2 | Haiku × 3 | 15 | $0.02 | 100% | 0 | 0 | 0 |
-| [2026-11-23T06-07-20](results/2026-11-23T06-07-20.md) | move questions, fix round 1 (lenspack superset 701a644) | post-rebase-v2 | Haiku × 3 | 6 | $0.03 | 50% | 1 (0) | 0 | 0 |
-| [2026-11-23T06-31-41](results/2026-11-23T06-31-41.md) | move questions, fix round 2 (lenspack superset d33dc24) | post-rebase-v2 | Haiku × 3 | 6 | $0.01 | **100%** | 0 | 0 | 0 |
+| [2026-11-23T06-07-20](results/2026-11-23T06-07-20.md) | move questions, fix round 1 (lenspack superset 701a644) | post-rebase-v2 | Haiku × 3 | 6 | $0.03 | 33% | 2 (0) | 0 | 0 |
+| [2026-11-23T06-31-41](results/2026-11-23T06-31-41.md) | move questions, fix round 2 (lenspack superset d33dc24) | post-rebase-v2 | Haiku × 3 | 6 | $0.01 | **83%** | 1 (0) | 0 | 0 |
 | [2026-11-23T06-32-24](results/2026-11-23T06-32-24.md) | heatmap tier T10 on d33dc24 (prompt v14), regression check | post-rebase-v2 | Haiku × 1 | 3 | $0.01 | 67% | 1 (0) | 0 | 0 |
-| [2026-11-23T07-37-21](results/2026-11-23T07-37-21.md) | move questions on prompt v15 (lenspack superset 2829038): row and width words from the tool notes, no names | post-rebase-v2 | Haiku × 3 | 6 | $0.01 | **100%** | 0 | 0 | 0 |
+| [2026-11-23T07-37-21](results/2026-11-23T07-37-21.md) | move questions on prompt v15 (lenspack superset 2829038): row and width words from the tool notes, no names | post-rebase-v2 | Haiku × 3 | 6 | $0.01 | **83%** | 1 (0) | 0 | 0 |
 
 Total model spend: about **$26.01**.
 
@@ -64,9 +66,9 @@ compare the per-tier rates, not the denominators.
 | T4 ratios, coverage | 18/24 | 23/24 | 21/24 | 24/24 | 21/24 | 24/24 |
 | T5 ranking, thresholds | 16/24 | 13/24 | 15/24 | 17/24 | 13/24 | 16/24 |
 | T6 cross-entity | 8/15 | 9/15 | 13/15 | 9/15 | 13/15 | 9/15 |
-| T7 dashboard edits | 33/36 | 33/36 | 33/36 | 33/36 | 33/36 | 33/36 |
+| T7 dashboard edits | 33/36 | 33/36 | 33/36 | 33/36 | 31/36 | 32/36 |
 | T8 expected fails | 39/39 | 30/30 | 39/39 | 30/30 | 39/39 | 30/30 |
-| **all** | **84%** | **89%** | **87%** | **91%** | **86%** | **92%** |
+| **all** | **84%** | **89%** | **87%** | **91%** | **85%** | **91%** |
 
 T5 and T6 misses are almost all *partial*: the right number with the definition unsaid (zero-dose share, threshold
 coverage), or a multi-step answer missing one item. The T7 misses are T7.2, the KPI-row bug: 0/9 on both packs
