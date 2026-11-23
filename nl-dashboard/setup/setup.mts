@@ -228,9 +228,15 @@ FROM default.su_ni_team_stock`,
     schema: "default",
     sql: `SELECT health_facility, state, lga, ward, latitude, longitude, zero_dose_band, zero_dose_children, children_enumerated
 FROM default.su_ni_zd_facility`,
-    description: "Health facilities from eGov's view su_ni_zd_facility, one row per facility with its location and zero-dose band (quartiles). For zero-dose counts and shares by place, use ni_coverage.",
+    description: "Health facilities from eGov's view su_ni_zd_facility, one row per facility with its location, zero-dose band (quartiles) and catchment counts. Its facility_* measures size or rank facilities on a map; for zero-dose counts and shares by place over time, use ni_coverage.",
     columns: { health_facility: PLACES.health_facility!, state: PLACES.state!, lga: PLACES.lga!, ward: PLACES.ward!, zero_dose_band: ["Zero-dose band", "Facility's zero-dose share quartile, 1 (lowest) to 4 (highest)"] },
-    metrics: [{ metric_name: "facilities", verbose_name: "Health facilities", expression: "count()", d3format: ",d" }],
+    metrics: [
+      { metric_name: "facilities", verbose_name: "Health facilities", expression: "count()", d3format: ",d" },
+      // Named facility_* so they don't clash with ni_coverage's zero_dose_children / children_enumerated / zero_dose_pct.
+      { metric_name: "facility_zero_dose_children", verbose_name: "Zero-dose children (facility)", expression: "sum(zero_dose_children)", description: "Zero-dose children in each health facility's catchment at the end of the campaign; for maps and facility rankings. Totals match coverage's zero_dose_children.", d3format: ",d" },
+      { metric_name: "facility_children_enumerated", verbose_name: "Children enumerated (facility)", expression: "sum(children_enumerated)", description: "Eligible children enumerated in each health facility's catchment at the end of the campaign.", d3format: ",d" },
+      { metric_name: "facility_zero_dose_pct", verbose_name: "Zero-dose share % (facility)", expression: pct("sum(zero_dose_children)", "sum(children_enumerated)"), description: "Zero-dose children over children enumerated, per health facility catchment.", d3format: ".1%" },
+    ],
   },
   {
     table: "ni_referrals",
