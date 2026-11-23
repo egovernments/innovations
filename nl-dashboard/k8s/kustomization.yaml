@@ -15,4 +15,4 @@ images:
     newTag: "superset5-76676fb"
   - name: nl-dashboard-lenspack
     newName: ghcr.io/theflywheel/lenspack
-    newTag: "superset-2e621ee"
+    newTag: "superset-a109f45"
