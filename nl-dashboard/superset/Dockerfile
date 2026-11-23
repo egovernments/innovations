@@ -14,6 +14,8 @@ COPY build_translations.py /tmp/build_translations.py
 RUN /app/.venv/bin/python /tmp/build_translations.py fr && rm /tmp/build_translations.py
 
 COPY superset_config.py /app/superset_config.py
+# Lenspack's additions, imported by superset_config.py. On PYTHONPATH (/app/pythonpath) for the CLI and the server.
+COPY lenspack_superset.py /app/pythonpath/lenspack_superset.py
 COPY templates/tail_js_custom_extra.html /app/superset/templates/tail_js_custom_extra.html
 COPY templates/lenspack /app/superset/templates/lenspack
 COPY init.sh /app/nl-dashboard-init.sh

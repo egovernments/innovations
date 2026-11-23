@@ -19,7 +19,8 @@ const env = (name: string) => {
   if (!v) throw new Error(`${name} is not set`);
   return v;
 };
-const client = supersetClient({ url: env("SUPERSET_URL"), username: "admin", password: env("SUPERSET_ADMIN_PASSWORD") });
+// Any Superset admin account (SUPERSET_ADMIN_USERNAME, default "admin").
+const client = supersetClient({ url: env("SUPERSET_URL"), username: process.env.SUPERSET_ADMIN_USERNAME || "admin", password: env("SUPERSET_ADMIN_PASSWORD") });
 
 type Metric = { metric_name: string; verbose_name: string; expression: string; description?: string; d3format?: string };
 

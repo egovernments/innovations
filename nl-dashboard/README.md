@@ -14,6 +14,8 @@ and get it as ordinary Superset charts on an ordinary Superset dashboard. Goal, 
   - **Inside:** an "Ask Lenspack" button on Superset's own dashboard page.
   - **Beside:** a Lenspack page with the chat on the left and the dashboard in an iframe, on its own port.
 - **Admins get a settings page** in Superset: Settings → Manage → **AI assistant**.
+- **Already running Superset 5?** [Add Lenspack to an existing Superset](docs/ADD-TO-EXISTING-SUPERSET.md) on the stock
+  image, with Docker Compose or the official Helm chart, without this folder's Superset image.
 
 ## How it fits together
 
@@ -39,8 +41,9 @@ the host, not the port), and Superset allows it to frame dashboards through the 
 
 | Path | What it is |
 |---|---|
-| [`superset/Dockerfile`](superset/Dockerfile) | `apache/superset:5.0.0` + `psycopg2-binary` + `clickhouse-connect`, with the two files below baked in |
+| [`superset/Dockerfile`](superset/Dockerfile) | `apache/superset:5.0.0` + `psycopg2-binary` + `clickhouse-connect` + French labels, with the files below baked in |
 | [`superset/superset_config.py`](superset/superset_config.py) | Superset settings, all from environment variables (documented at the top of the file) |
+| [`superset/lenspack_superset.py`](superset/lenspack_superset.py) | Lenspack's additions as one module, imported at the end of `superset_config.py`: the AI assistant page, the overlay's settings, the Flask-AppBuilder list-filter fix, and templates from a mounted folder |
 | [`superset/templates/tail_js_custom_extra.html`](superset/templates/tail_js_custom_extra.html) | Replaces Superset's [file of the same name](https://github.com/apache/superset/blob/5.0.0/superset/templates/tail_js_custom_extra.html) with a single script tag that loads the overlay |
 | [`superset/templates/lenspack/settings.html`](superset/templates/lenspack/settings.html) | The Settings → Manage → AI assistant page, registered from `superset_config.py` (`FLASK_APP_MUTATOR`) |
 | [`superset/init.sh`](superset/init.sh) | One-off: schema, `admin` user, `lenspack` service account, roles |
