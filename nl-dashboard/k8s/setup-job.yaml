@@ -12,7 +12,7 @@ spec:
       restartPolicy: OnFailure
       containers:
         - name: setup
-          image: ghcr.io/theflywheel/lenspack:superset-2829038
+          image: ghcr.io/theflywheel/lenspack:superset-e161618
           command: [/app/node_modules/.bin/tsx, --tsconfig, /app/tsconfig.base.json, /setup/setup.mts]
           env:
             - { name: SUPERSET_URL, value: "http://nl-dashboard-superset:8088" }

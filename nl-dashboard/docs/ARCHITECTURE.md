@@ -43,8 +43,10 @@ flowchart LR
 ### Inside mode
 
 The chat lives on Superset's own dashboard page. Superset's documented template hook `tail_js_custom_extra.html` adds
-one script tag, `/lenspack/overlay.js`, carrying the page's CSP nonce, so Superset's security headers (Talisman) stay on.
-The script adds an **Ask Lenspack** button and a floating panel that you can move, resize, dock or close. When the
+one small inline script carrying the page's CSP nonce, so Superset's security headers (Talisman) stay on. It loads
+`/lenspack/overlay.js`, retrying with backoff while Lenspack is restarting. The overlay adds an **Ask Lenspack** button
+and a floating panel that you can move, resize, dock or close. While Lenspack restarts, the button stays, muted and
+saying it is reconnecting, an open panel shows a banner and waits, and an answer cut off mid-way gets a Retry button. When the
 chat changes the dashboard, the panel asks Superset's single-page app to re-render the dashboard in place. It falls
 back to a full reload if that takes too long.
 

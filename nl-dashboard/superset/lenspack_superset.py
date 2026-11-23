@@ -383,9 +383,39 @@ FLASK_APP_MUTATOR = lenspack_app_mutator
 
 
 # Superset includes this at the end of every page and documents it as overridable.
-TAIL_JS = r'''{# The "Ask Lenspack" button: one script tag on every page, for signed-in users. With Talisman on it carries the page's CSP nonce. #}
+TAIL_JS = r'''{# The "Ask Lenspack" button: one small script on every page, for signed-in users. With Talisman on it carries the page's CSP nonce.
+   It loads /lenspack/overlay.js; while Lenspack is restarting (a 5xx or no answer) it tries again after 1, 2, 4… s, at most 30 s apart,
+   while the tab is visible. Signed out or refused (another 4xx): it stops. Once loaded, the overlay handles restarts itself. #}
 {% if current_user.is_authenticated %}{% set lp_nonce = csp_nonce() if csp_nonce is defined else "" %}
-<script{% if lp_nonce %} nonce="{{ lp_nonce }}"{% endif %} src="/lenspack/overlay.js" defer></script>
+<script{% if lp_nonce %} nonce="{{ lp_nonce }}"{% endif %}>
+(function () {
+  var wait = 1000;
+  function load() {
+    var s = document.createElement("script");
+    s.src = "/lenspack/overlay.js";
+    s.onerror = function () {
+      s.remove();
+      fetch("/lenspack/healthz", { cache: "no-store" })
+        .then(function (r) { return r.status; }, function () { return 0; })
+        .then(function (status) {
+          if (status >= 400 && status < 500 && status !== 429) return;
+          setTimeout(whenVisible, wait);
+          wait = Math.min(wait * 2, 30000);
+        });
+    };
+    document.body.appendChild(s);
+  }
+  function whenVisible() {
+    if (!document.hidden) return load();
+    document.addEventListener("visibilitychange", function shown() {
+      if (document.hidden) return;
+      document.removeEventListener("visibilitychange", shown);
+      load();
+    });
+  }
+  load();
+})();
+</script>
 {% endif %}
 '''
 
