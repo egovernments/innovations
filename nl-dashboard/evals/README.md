@@ -28,6 +28,9 @@ SQL: the right number, the right chart, or an honest "can't". The data is the **
   land, but by trial and error and with other charts resized, so since 2026-11-23 the scorer marks a right board with
   collateral changes as partial and a silent edit as wrong ([FAILURES.md §11–12](FAILURES.md#11-a-move-reported-success-but-left-the-chart-where-it-was-engine-bug-found-in-the-lab-demo)).
 - **This data is clean and synthetic**, so treat the scores as a ceiling.
+- **Speech-to-text** is evaluated separately ([speech/SPEECH.md](speech/SPEECH.md)): Voxtral Mini Transcribe is the mic's
+  default (6.4 / 9.1 / 3.5 / 8.2% WER on Central African French, Niger French, FLEURS French and Hindi; 0.67 s), with
+  Gemini 3.5 Transcribe as the Hindi alternative.
 
 ## Files
 
@@ -38,6 +41,7 @@ SQL: the right number, the right chart, or an honest "can't". The data is the **
 | [DEFINITIONS.md](DEFINITIONS.md) · [`definitions.yaml`](definitions.yaml) | the definitions register: terms with more than one reading, each reading's value, what the config says, the open question for eGov |
 | [RESULTS.md](RESULTS.md) | every run with its timestamp, config, models, cost, outcomes and model × tier table |
 | [FAILURES.md](FAILURES.md) | each kind of failure with sample model output, cause and fix, plus every result reclassified after the hand check |
+| [speech/SPEECH.md](speech/SPEECH.md) | the speech-to-text evaluation behind the mic's default model: 11 models on accented French and Hindi, with and without the language hint, every clip's transcript and WER, failures, the decision, the scripts to rerun |
 | `results/` | one page per run |
 | `suite/suite.yaml` | the questions, with truth SQL, accepted measures, alternatives and disclosure words |
 | `suite/make_post_suite.py` | `suite.yaml` → `suite-post.yaml` / `suite-post-v2.yaml` for the rebased pack |
