@@ -51,6 +51,9 @@ spec:
             - { name: ENABLE_PROXY_FIX, value: "true" }
             # Each streaming chat turn holds a gunicorn thread for 30-60 s; 4 x 20 threads leaves plenty.
             - { name: SERVER_WORKER_AMOUNT, value: "4" }
+            # Keep idle connections open longer than the ingress does: with gunicorn's 2 s default,
+            # ingress-nginx reuses connections Superset already closed and chart tiles fail with 502.
+            - { name: GUNICORN_KEEPALIVE, value: "75" }
             # Where Superset's server reaches Lenspack (the /lenspack/ route and the AI assistant page).
             - { name: LENSPACK_INTERNAL_URL, value: "http://nl-dashboard-lenspack:8795" }
           ports: [{ containerPort: 8088 }]
