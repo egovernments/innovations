@@ -86,6 +86,18 @@
         <button type="submit" {% if not sp.writable %}disabled{% endif %}>Save</button>
         {% if sp.source == 'settings' %}<button class="ghost" type="submit" name="reset" value="1" {% if not sp.writable %}disabled{% endif %}>Back to default ({{ sp.defaultModel }})</button>{% endif %}
       </form>
+      {% if sp.defaultHoldMs is defined %}
+        {% set rng = sp.holdMsRange if sp.holdMsRange is defined and sp.holdMsRange else [500, 3000] %}
+        {% set lo = rng.min if rng is mapping else rng[0] %}{% set hi = rng.max if rng is mapping else rng[1] %}
+        <form class="lp-form" method="post" action="/ai-assistant/speech-hold" style="margin-top:8px">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <label class="mute" for="lp-hold">Hold the space bar for</label>
+          <input id="lp-hold" type="number" name="holdMs" min="{{ lo }}" max="{{ hi }}" step="100" value="{{ sp.holdMs or sp.defaultHoldMs }}" style="width:90px" {% if not sp.writable %}disabled{% endif %}>
+          <span class="mute">ms to start recording ({{ lo }}–{{ hi }}; default {{ sp.defaultHoldMs }})</span>
+          <button type="submit" {% if not sp.writable %}disabled{% endif %}>Save</button>
+          {% if sp.holdMs is not none and sp.holdMs != sp.defaultHoldMs %}<button class="ghost" type="submit" name="reset" value="1" {% if not sp.writable %}disabled{% endif %}>Back to default</button>{% endif %}
+        </form>
+      {% endif %}
       <details style="margin-top:8px"><summary class="mute">Lab bench results (word error rate with a language hint; median latency)</summary>
         <table class="bench"><tr><th>Model</th><th>Central Africa fr</th><th>Niger fr</th><th>FLEURS fr</th><th>FLEURS hi</th><th>Latency</th></tr>
           {% for id, r in stt_bench|dictsort %}<tr><td><code>{{ id }}</code>{% if id == sp.model %} <b>(current)</b>{% endif %}</td><td>{{ r[0] }}</td><td>{{ r[1] }}</td><td>{{ r[2] }}</td><td>{{ r[3] }}</td><td>{{ r[4] }}</td></tr>{% endfor %}

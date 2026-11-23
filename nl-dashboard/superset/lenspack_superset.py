@@ -173,7 +173,7 @@ def lenspack_app_mutator(app):
         route_base = "/ai-assistant"
         default_view = "index"
         # The forms below use the page's own permission (can_index), so no new permissions to sync.
-        method_permission_name = {"index": "index", "chat": "index", "speech": "index", "language": "index"}
+        method_permission_name = {"index": "index", "chat": "index", "speech": "index", "speech_hold": "index", "language": "index"}
 
         @expose("/")
         @has_access
@@ -236,6 +236,20 @@ def lenspack_app_mutator(app):
                 abort(403)
             model = None if request.form.get("reset") else request.form.get("model", "")
             return saved("Speech-to-text model", put("/_superset/settings/speech", {"model": model}))
+
+        @expose("/speech-hold", methods=["POST"])
+        @has_access
+        def speech_hold(self):
+            if not security_manager.is_admin():
+                abort(403)
+            if request.form.get("reset"):
+                return saved("Space-bar hold", put("/_superset/settings/speech", {"holdMs": None}))
+            try:
+                hold = int(request.form.get("holdMs", ""))
+            except ValueError:
+                flash("Space-bar hold: enter a whole number of milliseconds.", "danger")
+                return redirect("/ai-assistant/")
+            return saved("Space-bar hold", put("/_superset/settings/speech", {"holdMs": hold}))
 
         @expose("/language", methods=["POST"])
         @has_access
