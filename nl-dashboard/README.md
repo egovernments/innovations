@@ -95,6 +95,7 @@ trusts the `X-Forwarded-*` headers it receives.
 | `SUPERSET_SECRET_KEY` | Superset | yes | | Signs sessions and encrypts the database passwords Superset saves. Keep it stable. |
 | `PG_PASSWORD` | Postgres, Superset | yes | | Postgres password (metadata db `superset`, sample db `hcm`) |
 | `SUPERSET_ADMIN_PASSWORD` | init, setup, Lenspack | yes | | Superset's `admin` user. Lenspack uses it once, on its first start, to create its own account `lenspack`, whose password stays in Lenspack's volume |
+| `LENSPACK_SUPERSET_PASSWORD` | Lenspack | no | | An existing `lenspack` account's password, used as is: no account is made or reset. For stacks where other tools sign in as `lenspack` (the eval harness) |
 | `ANTHROPIC_API_KEY` | Lenspack | for the chat | | Claude Sonnet, Opus and Haiku 5.5. Read by the Anthropic adapter, never logged. |
 | `LENSPACK_LLM_PROVIDERS` | Lenspack | for the chat | | Any other models, as Lenspack's JSON provider list (wins over `ANTHROPIC_API_KEY`) |
 | `DATA_SQLALCHEMY_URI` | setup | no | the sample `hcm` db | The data, as Superset connects to it |

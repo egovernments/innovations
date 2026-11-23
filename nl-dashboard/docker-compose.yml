@@ -67,6 +67,9 @@ services:
       # First start only: Lenspack signs in as the admin once to make its own Superset account, and keeps
       # that account's password in /data. Remove it afterwards if you like.
       SUPERSET_ADMIN_PASSWORD: ${SUPERSET_ADMIN_PASSWORD:-}
+      # Optional: an existing "lenspack" account's password, used as is instead (no account made or reset). For
+      # stacks whose lenspack user other tools also sign in as, e.g. the eval harness.
+      LENSPACK_SUPERSET_PASSWORD: ${LENSPACK_SUPERSET_PASSWORD:-}
       # Who may change dashboards through the chat: superset (whoever Superset lets edit it) or signed-in.
       LENSPACK_EDIT_POLICY: ${LENSPACK_EDIT_POLICY:-superset}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
