@@ -4,9 +4,6 @@
 # which runs the SQL. A string "env:NAME" reads the environment variable NAME.
 superset:
   url: env:SUPERSET_URL
-  username: lenspack
-  passwordEnv: LENSPACK_SUPERSET_PASSWORD
-  publicUrl: env:SUPERSET_PUBLIC_URL
 
 publicPath: /lenspack
 host: 0.0.0.0

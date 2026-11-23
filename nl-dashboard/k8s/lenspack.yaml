@@ -1,4 +1,5 @@
-# The Lenspack server for Superset: chat API, the "beside" page and the overlay script, under /lenspack.
+# The Lenspack server for Superset: chat API and the overlay script. Not exposed: browsers reach it through
+# Superset's /lenspack/ route, which signs who is asking.
 apiVersion: v1
 kind: Service
 metadata: { name: nl-dashboard-lenspack }
@@ -22,14 +23,16 @@ spec:
           image: nl-dashboard-lenspack
           env:
             - { name: SUPERSET_URL, value: "http://nl-dashboard-superset:8088" }
-            # Where browsers reach Superset (the config's superset.publicUrl).
-            - { name: SUPERSET_PUBLIC_URL, value: "https://superset.hcm-lab.digit.org" }
-            - { name: LENSPACK_SUPERSET_PASSWORD, valueFrom: { secretKeyRef: { name: nl-dashboard, key: LENSPACK_SUPERSET_PASSWORD } } }
+            # Lenspack makes its own Superset account with this on first start and keeps the password in /data.
+            # With /data on an emptyDir (below) it is made again on every start, so keep this set; with a
+            # PersistentVolume it can be removed after the first start.
+            - { name: SUPERSET_ADMIN_PASSWORD, valueFrom: { secretKeyRef: { name: nl-dashboard, key: SUPERSET_ADMIN_PASSWORD, optional: true } } }
+            # superset (default): edits follow Superset's dashboard rights; signed-in: anyone signed in may edit.
+            - { name: LENSPACK_EDIT_POLICY, value: superset }
             - { name: ANTHROPIC_API_KEY, valueFrom: { secretKeyRef: { name: nl-dashboard, key: ANTHROPIC_API_KEY } } }
-            - { name: LENSPACK_SETTINGS_TOKEN, valueFrom: { secretKeyRef: { name: nl-dashboard, key: LENSPACK_SETTINGS_TOKEN, optional: true } } }
           ports: [{ containerPort: 8795 }]
           # Up once Superset answers and the datasets exist (setup); it restarts until then.
-          readinessProbe: { httpGet: { path: /_superset/info, port: 8795 }, periodSeconds: 10 }
+          readinessProbe: { httpGet: { path: /healthz, port: 8795 }, periodSeconds: 10 }
           resources:
             requests: { cpu: 100m, memory: 256Mi }
             limits: { cpu: "1", memory: 1Gi }
@@ -40,4 +43,4 @@ spec:
         - name: config
           configMap: { name: nl-dashboard-lenspack }   # key lenspack-superset.yaml: the sample or the ClickHouse config (README)
         - name: data
-          emptyDir: {}                                 # charts Lenspack made; Superset keeps the dashboards
+          emptyDir: {}                                 # its account, settings, audit log, charts it made (use a PVC to keep them)

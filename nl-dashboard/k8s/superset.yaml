@@ -1,4 +1,5 @@
-# Superset: a one-off Job for the schema and users (superset/init.sh), then the web server.
+# Superset: a one-off Job for the schema and the admin (superset/init.sh), then the web server, which also
+# serves /lenspack/ (lenspack_superset.py forwards it to the Lenspack Service for signed-in users).
 apiVersion: batch/v1
 kind: Job
 metadata: { name: nl-dashboard-superset-init }
@@ -17,8 +18,6 @@ spec:
             - { name: DB_HOST, value: nl-dashboard-db }
             - { name: DB_PASSWORD, valueFrom: { secretKeyRef: { name: nl-dashboard, key: PG_PASSWORD } } }
             - { name: SUPERSET_ADMIN_PASSWORD, valueFrom: { secretKeyRef: { name: nl-dashboard, key: SUPERSET_ADMIN_PASSWORD } } }
-            - { name: LENSPACK_SUPERSET_PASSWORD, valueFrom: { secretKeyRef: { name: nl-dashboard, key: LENSPACK_SUPERSET_PASSWORD } } }
-            - { name: LENSPACK_URL, value: /lenspack }
             - { name: TALISMAN_ENABLED, value: "true" }
           resources:
             requests: { cpu: 250m, memory: 1Gi }
@@ -47,13 +46,13 @@ spec:
             - { name: SUPERSET_SECRET_KEY, valueFrom: { secretKeyRef: { name: nl-dashboard, key: SUPERSET_SECRET_KEY } } }
             - { name: DB_HOST, value: nl-dashboard-db }
             - { name: DB_PASSWORD, valueFrom: { secretKeyRef: { name: nl-dashboard, key: PG_PASSWORD } } }
-            - { name: LENSPACK_URL, value: /lenspack }
             - { name: TALISMAN_ENABLED, value: "true" }
+            # Behind the ingress: trust its X-Forwarded-* (https, the public host).
+            - { name: ENABLE_PROXY_FIX, value: "true" }
+            # Each streaming chat turn holds a gunicorn thread for 30-60 s; 4 x 20 threads leaves plenty.
             - { name: SERVER_WORKER_AMOUNT, value: "4" }
-            # Where Superset's server reaches Lenspack, for Settings → Manage → AI assistant.
+            # Where Superset's server reaches Lenspack (the /lenspack/ route and the AI assistant page).
             - { name: LENSPACK_INTERNAL_URL, value: "http://nl-dashboard-lenspack:8795" }
-            - { name: LENSPACK_BESIDE_URL, value: "https://superset.hcm-lab.digit.org/lenspack/" }
-            - { name: LENSPACK_SETTINGS_TOKEN, valueFrom: { secretKeyRef: { name: nl-dashboard, key: LENSPACK_SETTINGS_TOKEN, optional: true } } }
           ports: [{ containerPort: 8088 }]
           readinessProbe: { httpGet: { path: /health, port: 8088 }, periodSeconds: 10, failureThreshold: 30 }
           livenessProbe: { httpGet: { path: /health, port: 8088 }, initialDelaySeconds: 120, periodSeconds: 30 }

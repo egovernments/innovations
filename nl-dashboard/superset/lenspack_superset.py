@@ -1,32 +1,41 @@
-"""Lenspack's additions to Superset 5, as one module. No fork and no custom image needed.
+"""Lenspack's additions to Superset 5, as one file. No fork, no custom image, no second web server.
 
 Load it at the end of superset_config.py (on the Helm chart: a configOverrides entry):
 
     from lenspack_superset import *  # noqa: F401,F403
 
-It adds the Settings → Manage → "AI assistant" page (FLASK_APP_MUTATOR), the settings that
-templates/tail_js_custom_extra.html reads to load the "Ask Lenspack" overlay, a fix for concurrent
-list requests in Flask-AppBuilder, and (only with LENSPACK_BESIDE_ORIGINS) CSP frame-ancestors for the
-beside page. If your config already sets FLASK_APP_MUTATOR, call lenspack_app_mutator(app) from yours
-and set FLASK_APP_MUTATOR back to yours after this import.
+It adds:
+  - /lenspack/...: Superset itself forwards these requests to the Lenspack container, for signed-in users
+    only, with a signed header saying who is asking, whether they are an admin, and whether Superset would
+    let them view and edit the dashboard the request is about. Chat replies stream through unbuffered.
+    Lenspack trusts nothing else, so its port never needs to be reachable from outside.
+  - the "Ask Lenspack" button on every page (Superset's tail_js_custom_extra.html), for signed-in users;
+  - Settings → Manage → "AI assistant" (admins): models, languages, spend, the audit log;
+  - /api/v1/lenspack/bootstrap and /api/v1/lenspack/identity-key, which Lenspack calls on start: the first
+    makes Lenspack's own service account (admins only), the second hands it the signing key, derived from
+    SECRET_KEY (admins and that account only);
+  - a fix for concurrent list requests in Flask-AppBuilder.
+If your config already sets FLASK_APP_MUTATOR, call lenspack_app_mutator(app) from yours and set
+FLASK_APP_MUTATOR back to yours after this import.
 
-Environment:
-  LENSPACK_URL             where browsers load the Lenspack overlay from, without a trailing slash:
-                           a path on Superset's own host ("/lenspack", behind an ingress) or a full URL.
-  LENSPACK_PORT            used when LENSPACK_URL is unset: Lenspack on the same host as Superset, this port.
-  LENSPACK_BESIDE_ORIGINS  space-separated origins allowed to frame Superset (the "beside" page on its own
-                           port, e.g. "http://superset-host:8795"). Added to the CSP's frame-ancestors.
-  LENSPACK_INTERNAL_URL    where Superset's server reaches Lenspack, for the Settings → AI assistant page
-                           (default http://lenspack:8795).
-  LENSPACK_BESIDE_URL      where browsers reach the beside page, for links on that page (optional).
-  LENSPACK_SETTINGS_TOKEN  shared with the Lenspack container; lets the AI assistant page change Lenspack's
-                           runtime settings (chat model, speech-to-text model). Unset: the page is read-only.
-  LENSPACK_TEMPLATES       a folder of templates that take precedence over Superset's own: tail_js_custom_extra.html
-                           and lenspack/settings.html. Default: "templates" next to this file, if it exists. Lets a
-                           stock image use them from a mounted folder instead of files copied into the image.
+Environment (all optional):
+  LENSPACK_INTERNAL_URL   where Superset's server reaches Lenspack (default http://lenspack:8795).
+  LENSPACK_SERVICE_USER   Lenspack's Superset account (default lenspack).
+  LENSPACK_TEMPLATES      a folder whose tail_js_custom_extra.html or lenspack/settings.html replace the
+                          ones built in here.
+
+Capacity: a chat turn holds one of Superset's gunicorn threads for as long as it streams (30-60 s). Stock
+Superset runs 1 worker x 20 threads (SERVER_WORKER_AMOUNT, SERVER_THREADS_AMOUNT): about 10 chats at once
+with room left for dashboards. Raise the threads for more.
 """
 
+import base64
+import hashlib
+import hmac
+import json
 import os
+import re
+import time
 
 # Import the ClickHouse driver once, while the config loads. Otherwise Superset imports it lazily
 # from several request threads at once after a restart, and a worker can fail with "partially
@@ -66,38 +75,10 @@ def _per_request_list_filters() -> None:
 
 _per_request_list_filters()
 
-
-# The "beside" page frames Superset and the "inside" overlay loads a script from
-# Lenspack. With Lenspack under Superset's own host (LENSPACK_URL=/lenspack) both
-# are same-origin, so Superset's default CSP allows them: the overlay's script tag
-# carries the page's nonce (templates/tail_js_custom_extra.html) and the iframe is
-# SAMEORIGIN. On two ports they are cross-origin, and the CSP blocks them.
-#
-# The beside page on another origin (its own port) frames Superset: allow exactly those
-# origins in the CSP's frame-ancestors, and drop X-Frame-Options (SAMEORIGIN would win in
-# older browsers; frame-ancestors replaces it).
-LENSPACK_BESIDE_ORIGINS = os.environ.get("LENSPACK_BESIDE_ORIGINS", "").split()
-if LENSPACK_BESIDE_ORIGINS:
-    from superset.config import TALISMAN_CONFIG as _DEFAULT_TALISMAN
-
-    TALISMAN_CONFIG = {
-        **_DEFAULT_TALISMAN,
-        "content_security_policy": {
-            **_DEFAULT_TALISMAN["content_security_policy"],
-            "frame-ancestors": ["'self'", *LENSPACK_BESIDE_ORIGINS],
-        },
-        "frame_options": None,
-    }
-
-# Read by templates/tail_js_custom_extra.html.
-LENSPACK_URL = os.environ.get("LENSPACK_URL", "").rstrip("/")
-LENSPACK_PORT = os.environ.get("LENSPACK_PORT", "8795")
-
-# Settings → Manage → "AI assistant": what Lenspack runs with (datasets, models, where the LLM key
-# comes from, budget, today's usage) and Superset's data connections. Admins only. No fork: Superset
-# calls FLASK_APP_MUTATOR once Flask-AppBuilder is set up, before its own views. Never shows secrets.
+LENSPACK_PATH = "/lenspack"  # where browsers reach Lenspack: Superset's own route below
 LENSPACK_INTERNAL_URL = os.environ.get("LENSPACK_INTERNAL_URL", "http://lenspack:8795").rstrip("/")
-LENSPACK_SETTINGS_TOKEN = os.environ.get("LENSPACK_SETTINGS_TOKEN", "")
+LENSPACK_SERVICE_USER = os.environ.get("LENSPACK_SERVICE_USER", "lenspack")
+LENSPACK_TEMPLATES = os.environ.get("LENSPACK_TEMPLATES") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates")
 
 # Speech-to-text models measured by the lab's voice bench (OpenRouter, with a language hint):
 # word error rate on four test sets and median latency. Help text on the AI assistant page only.
@@ -114,44 +95,190 @@ STT_BENCH = {
     "openai/whisper-large-v3-turbo": ("9.2%", "13.9%", "7.9%", "61.9%", "1.41 s"),
     "qwen/qwen3-asr-1.7b": ("4.0%", "8.6%", "4.2%", "13.7%", "0.80 s"),
 }
-LENSPACK_BESIDE_URL = os.environ.get("LENSPACK_BESIDE_URL", "").rstrip("/")
-LENSPACK_TEMPLATES = os.environ.get("LENSPACK_TEMPLATES") or os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "templates"
-)
+
+
+# Who is asking, signed for Lenspack (packages/superset/src/identity.ts verifies it): base64url(JSON) "."
+# HMAC-SHA256 hex. The key is derived from SECRET_KEY, so rotating SECRET_KEY rotates it (restart Lenspack).
+def lenspack_identity_key() -> str:
+    from flask import current_app
+
+    secret = current_app.config["SECRET_KEY"]
+    return hmac.new(secret.encode() if isinstance(secret, str) else secret, b"lenspack-identity-v1", hashlib.sha256).hexdigest()
+
+
+def lenspack_sign(user: str, admin: bool, dashboard=None, can_edit=None, can_view=None) -> str:
+    claims = {"u": user, "a": bool(admin), "t": int(time.time())}
+    if dashboard is not None:
+        claims.update({"d": dashboard, "e": bool(can_edit), "v": bool(can_view)})
+    body = base64.urlsafe_b64encode(json.dumps(claims, separators=(",", ":")).encode()).rstrip(b"=").decode()
+    return body + "." + hmac.new(lenspack_identity_key().encode(), body.encode(), hashlib.sha256).hexdigest()
 
 
 def lenspack_app_mutator(app):
-    # Templates from a mounted folder win over Superset's own (its tail_js_custom_extra.html is documented as
-    # overridable). Without the folder, the templates must be in /app/superset/templates, as in a built image.
-    if os.path.isdir(LENSPACK_TEMPLATES):
-        from jinja2 import ChoiceLoader, FileSystemLoader
-
-        app.jinja_loader = ChoiceLoader([FileSystemLoader(LENSPACK_TEMPLATES), app.jinja_loader])
-
-    import json
     import urllib.error
     import urllib.request
+    from urllib.parse import urlparse
 
-    from flask import abort, flash, redirect, request
+    import requests
+    from flask import Response, abort, flash, g, jsonify, redirect, request, stream_with_context
     from flask_appbuilder import BaseView, expose
     from flask_appbuilder.security.decorators import has_access
+    from jinja2 import ChoiceLoader, DictLoader, FileSystemLoader
 
-    from superset.extensions import appbuilder, db, security_manager
+    from superset.extensions import appbuilder, csrf, db, security_manager
 
-    def fetch(path):
+    # The two templates live in this file; a LENSPACK_TEMPLATES folder (if it exists) wins over them.
+    loaders = [DictLoader({"tail_js_custom_extra.html": TAIL_JS, "lenspack/settings.html": SETTINGS_HTML}), app.jinja_loader]
+    if os.path.isdir(LENSPACK_TEMPLATES):
+        loaders.insert(0, FileSystemLoader(LENSPACK_TEMPLATES))
+    app.jinja_loader = ChoiceLoader(loaders)
+
+    def is_admin(user) -> bool:
+        return any(r.name == security_manager.auth_role_admin for r in getattr(user, "roles", []) or [])
+
+    # --- Rights on one dashboard, as Superset decides them ------------------------------------------
+    # View: Superset's dashboard access check. Edit: what Superset's own dashboard API requires, an owner
+    # (admins count as owners) with can_write on Dashboard.
+    def dashboard_rights(id_or_slug):
+        from sqlalchemy import or_
+
+        from superset.models.dashboard import Dashboard
+
+        key = str(id_or_slug).strip()
+        if not key:
+            return None
+        q = db.session.query(Dashboard)
+        dash = q.filter(or_(Dashboard.id == int(key), Dashboard.slug == key)).one_or_none() if key.isdigit() else q.filter(Dashboard.slug == key).one_or_none()
+        if dash is None:
+            return None
+        can_view = bool(security_manager.can_access_dashboard(dash))
+        can_edit = can_view and security_manager.is_owner(dash) and (security_manager.is_admin() or security_manager.can_access("can_write", "Dashboard"))
+        return {"id": dash.id, "view": can_view, "edit": bool(can_edit)}
+
+    BOARD = re.compile(r"(?:^|/)superset-(\d+)(?:/|$)")
+    HOP = {"connection", "keep-alive", "transfer-encoding", "content-encoding", "content-length", "te", "trailer", "upgrade", "proxy-authenticate", "proxy-authorization"}
+
+    # --- /lenspack/...: Superset forwards to Lenspack -------------------------------------------------
+    def lenspack_proxy(path=""):
+        user = g.user if getattr(g, "user", None) is not None else None
+        if user is None or not getattr(user, "is_authenticated", False) or getattr(user, "is_anonymous", True):
+            return jsonify({"error": "sign in to Superset first"}), 401
+        # No CSRF token on these calls (the chat is a script on Superset's own pages): refuse a change sent from
+        # another site instead. Browsers send Sec-Fetch-Site / Origin with every cross-site POST.
+        if request.method not in ("GET", "HEAD", "OPTIONS"):
+            site = request.headers.get("Sec-Fetch-Site")
+            origin = request.headers.get("Origin")
+            if (site and site not in ("same-origin", "none")) or (origin and urlparse(origin).netloc != request.host):
+                return jsonify({"error": "cross-site request refused"}), 403
+        # The dashboard this request is about: a board "superset-<id>" in the path, or ?dashboard= when binding.
+        m = BOARD.search(path)
+        wanted = m.group(1) if m else (request.args.get("dashboard") if path.startswith("_superset/bind") else None)
+        rights = dashboard_rights(wanted) if wanted else None
+        if rights and not rights["view"]:
+            return jsonify({"error": "You don't have access to this dashboard in Superset."}), 403
+        admin = is_admin(user)
+        headers = {
+            "x-lenspack-identity": lenspack_sign(user.username, admin, rights["id"], rights["edit"], rights["view"]) if rights else lenspack_sign(user.username, admin),
+            "x-forwarded-proto": request.scheme,
+            "x-forwarded-host": request.host,
+            "x-forwarded-prefix": LENSPACK_PATH,
+        }
+        for h in ("content-type", "accept", "accept-language"):
+            if request.headers.get(h):
+                headers[h] = request.headers[h]
         try:
-            with urllib.request.urlopen(LENSPACK_INTERNAL_URL + path, timeout=5) as r:
-                return json.load(r), None
-        except Exception as e:  # unreachable, 404, not JSON: say so on the page
-            return None, f"{type(e).__name__}: {str(e)[:160]}"
+            upstream = requests.request(
+                request.method,
+                f"{LENSPACK_INTERNAL_URL}/{path}",
+                params=request.query_string,
+                data=request.get_data() if request.method not in ("GET", "HEAD") else None,
+                headers=headers,
+                stream=True,
+                allow_redirects=False,
+                timeout=(5, 300),
+            )
+        except requests.RequestException as e:
+            return jsonify({"error": f"Lenspack is not reachable: {type(e).__name__}"}), 502
 
-    def put(path, body):
-        """Change a Lenspack runtime setting. The token never reaches the browser."""
+        def body():
+            try:
+                for chunk in upstream.iter_content(chunk_size=None):
+                    yield chunk
+            finally:
+                upstream.close()
+
+        out = [(k, v) for k, v in upstream.headers.items() if k.lower() not in HOP]
+        # Chat replies stream: no buffering in a proxy in front of Superset, no compression here.
+        out += [("X-Accel-Buffering", "no"), ("Cache-Control", upstream.headers.get("cache-control", "no-store"))]
+        return Response(stream_with_context(body()), status=upstream.status_code, headers=out, direct_passthrough=True)
+
+    methods = ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD"]
+    app.add_url_rule(LENSPACK_PATH + "/", "lenspack_proxy_root", lenspack_proxy, methods=methods, defaults={"path": ""})
+    app.add_url_rule(LENSPACK_PATH + "/<path:path>", "lenspack_proxy", lenspack_proxy, methods=methods)
+    csrf.exempt(lenspack_proxy)
+
+    # --- What Lenspack calls on start (a JWT from /api/v1/security/login) -----------------------------
+    def api_user():
+        from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
+
+        try:
+            verify_jwt_in_request()
+        except Exception:
+            return None
+        ident = get_jwt_identity()
+        try:
+            return security_manager.get_user_by_id(int(ident))
+        except (TypeError, ValueError):
+            return security_manager.find_user(username=str(ident))
+
+    def identity_key_view():
+        user = api_user()
+        if user is None:
+            return jsonify({"message": "sign in with a token"}), 401
+        if not (is_admin(user) or user.username == LENSPACK_SERVICE_USER):
+            return jsonify({"message": f"only admins and {LENSPACK_SERVICE_USER} may read this"}), 403
+        return jsonify({"result": {"key": lenspack_identity_key()}})
+
+    # Lenspack's own account, made (or its password reset) by an admin's token. It edits dashboards it
+    # doesn't own, which Superset allows only owners and admins, so it gets the Admin role; who may edit
+    # what through the chat is decided per user, per dashboard, by the identity header above.
+    def bootstrap_view():
+        user = api_user()
+        if user is None:
+            return jsonify({"message": "sign in with a token"}), 401
+        if not is_admin(user):
+            return jsonify({"message": "only admins may make Lenspack's account"}), 403
+        body = request.get_json(silent=True) or {}
+        username, password = str(body.get("username") or ""), str(body.get("password") or "")
+        if username != LENSPACK_SERVICE_USER:
+            return jsonify({"message": f"the account must be {LENSPACK_SERVICE_USER} (LENSPACK_SERVICE_USER)"}), 400
+        if len(password) < 24:
+            return jsonify({"message": "password too short"}), 400
+        role = security_manager.find_role(security_manager.auth_role_admin)
+        existing = security_manager.find_user(username=username)
+        if existing:
+            security_manager.reset_password(existing.id, password)
+            if role not in existing.roles:
+                existing.roles.append(role)
+                security_manager.update_user(existing)
+            made = "reset"
+        else:
+            if not security_manager.add_user(username, "Lenspack", "Service", f"{username}@lenspack.invalid", role, password=password):
+                return jsonify({"message": "Superset could not create the account"}), 500
+            made = "created"
+        return jsonify({"result": {"username": username, "account": made}})
+
+    app.add_url_rule("/api/v1/lenspack/identity-key", "lenspack_identity_key", identity_key_view, methods=["GET"])
+    app.add_url_rule("/api/v1/lenspack/bootstrap", "lenspack_bootstrap", bootstrap_view, methods=["POST"])
+
+    # --- Settings → Manage → AI assistant ---------------------------------------------------------------
+    def call(method, path, body=None):
+        """Lenspack's settings API, as the signed-in admin."""
         req = urllib.request.Request(
             LENSPACK_INTERNAL_URL + path,
-            data=json.dumps(body).encode(),
-            method="PUT",
-            headers={"content-type": "application/json", "x-lenspack-settings-token": LENSPACK_SETTINGS_TOKEN},
+            data=json.dumps(body).encode() if body is not None else None,
+            method=method,
+            headers={"content-type": "application/json", "x-lenspack-identity": lenspack_sign(g.user.username, True)},
         )
         try:
             with urllib.request.urlopen(req, timeout=10) as r:
@@ -161,11 +288,11 @@ def lenspack_app_mutator(app):
                 return None, json.load(e).get("error") or f"HTTP {e.code}"
             except Exception:
                 return None, f"HTTP {e.code}"
-        except Exception as e:
+        except Exception as e:  # unreachable, not JSON: say so on the page
             return None, f"{type(e).__name__}: {str(e)[:160]}"
 
     def saved(what, result):
-        data, error = result
+        _data, error = result
         flash(f"{what} saved." if error is None else f"{what} not saved: {error}", "info" if error is None else "danger")
         return redirect("/ai-assistant/")
 
@@ -182,40 +309,26 @@ def lenspack_app_mutator(app):
                 abort(403)
             from superset.models.core import Database
 
-            settings, settings_error = fetch("/_superset/settings")
+            settings, settings_error = call("GET", "/_superset/settings")
             stt_models = None
             if settings and settings.get("speech"):
-                stt_models, _ = fetch("/_superset/settings/speech/models")
+                stt_models, _ = call("GET", "/_superset/settings/speech/models")
             info = None
             if settings is None:
-                info, _ = fetch("/_superset/info")
-            usage, usage_error = fetch("/api/_usage")
+                info, _ = call("GET", "/_superset/info")
+            usage, usage_error = call("GET", "/api/_usage")
+            audit, audit_error = call("GET", "/_superset/audit?limit=20")
             databases = [
-                {
-                    "name": d.database_name,
-                    "backend": d.backend,
-                    # Superset stores the URI with the password already masked (XXXXXXXXXX).
-                    "uri": d.sqlalchemy_uri,
-                    "datasets": len(d.tables),
-                }
+                {"name": d.database_name, "backend": d.backend, "uri": d.sqlalchemy_uri, "datasets": len(d.tables)}  # URI password already masked
                 for d in db.session.query(Database).order_by(Database.database_name)
             ]
-            account = security_manager.find_user(username="lenspack")
+            account = security_manager.find_user(username=(settings or {}).get("superset", {}).get("username") or LENSPACK_SERVICE_USER)
             return self.render_template(
                 "lenspack/settings.html",
-                settings=settings,
-                settings_error=settings_error,
-                info=info,
-                usage=usage,
-                usage_error=usage_error,
-                databases=databases,
+                settings=settings, settings_error=settings_error, info=info, usage=usage, usage_error=usage_error,
+                audit=audit, audit_error=audit_error, databases=databases,
                 account_roles=[r.name for r in account.roles] if account else None,
-                lenspack_url=LENSPACK_URL or "",
-                beside_url=LENSPACK_BESIDE_URL,
-                internal_url=LENSPACK_INTERNAL_URL,
-                stt_models=stt_models,
-                stt_bench=STT_BENCH,
-                token_set=bool(LENSPACK_SETTINGS_TOKEN),
+                internal_url=LENSPACK_INTERNAL_URL, stt_models=stt_models, stt_bench=STT_BENCH,
             )
 
         # Forms on the page. Admin only, Superset's CSRF token required (Flask-WTF checks every POST).
@@ -225,9 +338,9 @@ def lenspack_app_mutator(app):
             if not security_manager.is_admin():
                 abort(403)
             if request.form.get("reset"):
-                return saved("Chat model", put("/_superset/settings/chat", {"model": None}))
+                return saved("Chat model", call("PUT", "/_superset/settings/chat", {"model": None}))
             model, _, effort = request.form.get("choice", "").partition("|")
-            return saved("Chat model", put("/_superset/settings/chat", {"model": model, "effort": effort or None}))
+            return saved("Chat model", call("PUT", "/_superset/settings/chat", {"model": model, "effort": effort or None}))
 
         @expose("/speech", methods=["POST"])
         @has_access
@@ -235,7 +348,7 @@ def lenspack_app_mutator(app):
             if not security_manager.is_admin():
                 abort(403)
             model = None if request.form.get("reset") else request.form.get("model", "")
-            return saved("Speech-to-text model", put("/_superset/settings/speech", {"model": model}))
+            return saved("Speech-to-text model", call("PUT", "/_superset/settings/speech", {"model": model}))
 
         @expose("/speech-hold", methods=["POST"])
         @has_access
@@ -243,13 +356,13 @@ def lenspack_app_mutator(app):
             if not security_manager.is_admin():
                 abort(403)
             if request.form.get("reset"):
-                return saved("Space-bar hold", put("/_superset/settings/speech", {"holdMs": None}))
+                return saved("Space-bar hold", call("PUT", "/_superset/settings/speech", {"holdMs": None}))
             try:
                 hold = int(request.form.get("holdMs", ""))
             except ValueError:
                 flash("Space-bar hold: enter a whole number of milliseconds.", "danger")
                 return redirect("/ai-assistant/")
-            return saved("Space-bar hold", put("/_superset/settings/speech", {"holdMs": hold}))
+            return saved("Space-bar hold", call("PUT", "/_superset/settings/speech", {"holdMs": hold}))
 
         @expose("/language", methods=["POST"])
         @has_access
@@ -260,22 +373,240 @@ def lenspack_app_mutator(app):
                 body = {"default": None, "titles": None, "board": None}
             else:
                 body = {k: request.form[k] for k in ("default", "titles", "board") if request.form.get(k)}
-            return saved("Chat language", put("/_superset/settings/language", body))
+            return saved("Chat language", call("PUT", "/_superset/settings/language", body))
 
     appbuilder.add_view_no_menu(LenspackSettingsView)
-    appbuilder.add_link(
-        "AI assistant",
-        label="AI assistant",
-        href="/ai-assistant/",
-        icon="fa-comments",
-        category="Manage",
-        cond=lambda: security_manager.is_admin(),
-    )
+    appbuilder.add_link("AI assistant", label="AI assistant", href="/ai-assistant/", icon="fa-comments", category="Manage", cond=lambda: security_manager.is_admin())
 
 
 FLASK_APP_MUTATOR = lenspack_app_mutator
 
+
+# Superset includes this at the end of every page and documents it as overridable.
+TAIL_JS = r'''{# The "Ask Lenspack" button: one script tag on every page, for signed-in users. With Talisman on it carries the page's CSP nonce. #}
+{% if current_user.is_authenticated %}{% set lp_nonce = csp_nonce() if csp_nonce is defined else "" %}
+<script{% if lp_nonce %} nonce="{{ lp_nonce }}"{% endif %} src="/lenspack/overlay.js" defer></script>
+{% endif %}
+'''
+
+# Settings → Manage → AI assistant.
+SETTINGS_HTML = r'''{# Settings → Manage → AI assistant. What Lenspack runs with and Superset's data connections. Never shows a secret. #}
+{% extends "appbuilder/base.html" %}
+{% block title %}AI assistant · Settings{% endblock %}
+{% block content %}
+<style>
+  .lp-wrap{max-width:1040px;margin:24px auto;padding:0 16px;font:14px/1.5 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:#1f2328}
+  .lp-wrap h1{font-size:22px;margin:0 0 4px}
+  .lp-wrap .lede{color:#667085;margin:0 0 20px}
+  .lp-card{background:#fff;border:1px solid #e4e7ec;border-radius:8px;padding:16px 18px;margin:0 0 16px}
+  .lp-card h2{font-size:15px;margin:0 0 10px}
+  .lp-wrap table{border-collapse:collapse;width:100%}
+  .lp-wrap th,.lp-wrap td{text-align:left;padding:6px 8px;border-bottom:1px solid #f0f2f5;vertical-align:top}
+  .lp-wrap th{color:#667085;font-weight:500;width:220px}
+  .lp-wrap code{background:#f5f7fa;border-radius:4px;padding:1px 5px;font-size:12.5px}
+  .ok{color:#067647}.bad{color:#b42318}.mute{color:#667085}
+  .lp-wrap a{color:#1a85a0}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .lp-form{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:4px 0 0}
+  .lp-form select{min-width:280px;max-width:100%;padding:6px 8px;border:1px solid #d0d5dd;border-radius:6px;background:#fff;font:inherit}
+  .lp-form button{padding:6px 14px;border-radius:6px;border:1px solid #1a85a0;background:#1a85a0;color:#fff;font:inherit;cursor:pointer}
+  .lp-form button.ghost{background:#fff;color:#1a85a0}
+  .lp-form button[disabled]{opacity:.5;cursor:not-allowed}
+  .lp-flash{padding:8px 12px;border-radius:6px;margin:0 0 12px}
+  .lp-flash.info{background:#ecfdf3;color:#067647}.lp-flash.danger{background:#fef3f2;color:#b42318}
+  .bench{font-variant-numeric:tabular-nums}
+  .bench td,.bench th{padding:3px 8px!important;font-size:12.5px}
+  @media (max-width:820px){.grid2{grid-template-columns:1fr}.lp-wrap th{width:auto}}
+</style>
+<div class="lp-wrap">
+  <h1>AI assistant</h1>
+  <p class="lede">Lenspack adds a chat to Superset dashboards: the <b>Ask Lenspack</b> button on a dashboard.
+    Models are chosen here; the rest comes from Lenspack's config file and environment. This page never shows a secret.</p>
+
+  {% for category, message in get_flashed_messages(with_categories=true) %}
+    <div class="lp-flash {{ 'danger' if category == 'danger' else 'info' }}">{{ message }}</div>
+  {% endfor %}
+
+  {% if settings and settings.chat %}{% set c = settings.chat %}
+  <div class="lp-card">
+    <h2>Chat model</h2>
+    <p class="mute" style="margin:0 0 8px">The model that answers in the chat and edits dashboards, for everyone. Applies to the next question; no restart.</p>
+    <form class="lp-form" method="post" action="/ai-assistant/chat">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <select name="choice" aria-label="Chat model" {% if not c.writable %}disabled{% endif %}>
+        {% for p in c.options %}
+          {% if p.efforts %}
+            <optgroup label="{{ p.name }} ({{ p.model }}){% if p.available is sameas false %}: not answering{% endif %}">
+              {% for e in p.efforts.levels %}
+                <option value="{{ p.name }}|{{ e }}" {% if p.name == c.model and e == c.effort %}selected{% endif %} {% if p.available is sameas false %}disabled{% endif %}>{{ p.name }} · {{ e }} effort{% if e == p.efforts.default %} (its default){% endif %}</option>
+              {% endfor %}
+            </optgroup>
+          {% else %}
+            <option value="{{ p.name }}|" {% if p.name == c.model %}selected{% endif %} {% if p.available is sameas false %}disabled{% endif %}>{{ p.name }} ({{ p.model }}){% if p.available is sameas false %}: not answering{% endif %}</option>
+          {% endif %}
+        {% endfor %}
+      </select>
+      <button type="submit" {% if not c.writable %}disabled{% endif %}>Save</button>
+      {% if c.source == 'settings' %}<button class="ghost" type="submit" name="reset" value="1" {% if not c.writable %}disabled{% endif %}>Back to default ({{ c.defaultModel }})</button>{% endif %}
+    </form>
+    <p class="mute" style="margin:8px 0 0">Now: <b>{{ c.model or 'none' }}</b>{% if c.effort %} · {{ c.effort }} effort{% endif %} · {{ 'chosen here' if c.source == 'settings' else 'the deployment default' }}.
+      Models come from the configured keys{% if settings.llmFrom %} (<code>{{ settings.llmFrom }}</code>){% endif %}; adding an OpenRouter key adds its models.</p>
+    {% if not c.writable %}<p class="bad" style="margin:6px 0 0">Read-only: Lenspack has no identity key from Superset yet (restart Lenspack once Superset is up).</p>{% endif %}
+  </div>
+  {% endif %}
+
+  {% if settings %}
+  <div class="lp-card">
+    <h2>Speech to text</h2>
+    {% if settings.speech %}{% set sp = settings.speech %}
+      <p class="mute" style="margin:0 0 8px">Turns the chat's microphone recordings into text.
+        {% if sp.enabled %}Key from <code>{{ sp.keyFrom }}</code> (value never shown).{% else %}<span class="bad">No key set (<code>OPENROUTER_API_KEY</code>): the microphone is hidden.</span>{% endif %}</p>
+      <form class="lp-form" method="post" action="/ai-assistant/speech">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <select name="model" aria-label="Speech-to-text model" {% if not sp.writable %}disabled{% endif %}>
+          {% set ids = (stt_models or [])|map(attribute='id')|list %}
+          {% for m in (stt_models or []) %}
+            <option value="{{ m.id }}" {% if m.id == sp.model %}selected{% endif %}>{{ m.name or m.id }}{% if m.id in stt_bench %} · WER {{ stt_bench[m.id][0] }} / {{ stt_bench[m.id][2] }} fr / {{ stt_bench[m.id][3] }} hi · {{ stt_bench[m.id][4] }}{% endif %}{% if m.usdPerMinute %} · ${{ m.usdPerMinute }}/min{% endif %}</option>
+          {% endfor %}
+          {% if sp.model not in ids %}<option value="{{ sp.model }}" selected>{{ sp.model }}</option>{% endif %}
+        </select>
+        <button type="submit" {% if not sp.writable %}disabled{% endif %}>Save</button>
+        {% if sp.source == 'settings' %}<button class="ghost" type="submit" name="reset" value="1" {% if not sp.writable %}disabled{% endif %}>Back to default ({{ sp.defaultModel }})</button>{% endif %}
+      </form>
+      {% if sp.defaultHoldMs is defined %}
+        {% set rng = sp.holdMsRange if sp.holdMsRange is defined and sp.holdMsRange else [500, 3000] %}
+        {% set lo = rng.min if rng is mapping else rng[0] %}{% set hi = rng.max if rng is mapping else rng[1] %}
+        <form class="lp-form" method="post" action="/ai-assistant/speech-hold" style="margin-top:8px">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <label class="mute" for="lp-hold">Hold the space bar for</label>
+          <input id="lp-hold" type="number" name="holdMs" min="{{ lo }}" max="{{ hi }}" step="100" value="{{ sp.holdMs or sp.defaultHoldMs }}" style="width:90px" {% if not sp.writable %}disabled{% endif %}>
+          <span class="mute">ms to start recording ({{ lo }}–{{ hi }}; default {{ sp.defaultHoldMs }})</span>
+          <button type="submit" {% if not sp.writable %}disabled{% endif %}>Save</button>
+          {% if sp.holdMs is not none and sp.holdMs != sp.defaultHoldMs %}<button class="ghost" type="submit" name="reset" value="1" {% if not sp.writable %}disabled{% endif %}>Back to default</button>{% endif %}
+        </form>
+      {% endif %}
+      <details style="margin-top:8px"><summary class="mute">Lab bench results (word error rate with a language hint; median latency)</summary>
+        <table class="bench"><tr><th>Model</th><th>Central Africa fr</th><th>Niger fr</th><th>FLEURS fr</th><th>FLEURS hi</th><th>Latency</th></tr>
+          {% for id, r in stt_bench|dictsort %}<tr><td><code>{{ id }}</code>{% if id == sp.model %} <b>(current)</b>{% endif %}</td><td>{{ r[0] }}</td><td>{{ r[1] }}</td><td>{{ r[2] }}</td><td>{{ r[3] }}</td><td>{{ r[4] }}</td></tr>{% endfor %}
+        </table></details>
+    {% else %}
+      <p class="mute">Speech-to-text isn't installed in this Lenspack build.</p>
+    {% endif %}
+  </div>
+
+  {% if settings.language %}{% set lg = settings.language %}
+  {% set names = {'auto': 'Follow the person (Superset language / browser)', 'en': 'English', 'fr': 'French', 'hi': 'Hindi', "board": "The board's language", 'speaker': 'The language of the question'} %}
+  {% set opts = lg.options if lg.options is mapping else {} %}
+  <div class="lp-card">
+    <h2>Chat language</h2>
+    <form class="lp-form" method="post" action="/ai-assistant/language">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label>Replies in <select name="default" {% if not lg.writable %}disabled{% endif %}>{% for o in (opts.default or ['auto', 'en', 'fr', 'hi']) %}<option value="{{ o }}" {% if o == lg.default %}selected{% endif %}>{{ names.get(o, o) }}</option>{% endfor %}</select></label>
+      <label>Chart titles in <select name="titles" {% if not lg.writable %}disabled{% endif %}>{% for o in (opts.titles or ['board', 'speaker']) %}<option value="{{ o }}" {% if o == lg.titles %}selected{% endif %}>{{ names.get(o, o) }}</option>{% endfor %}</select></label>
+      <label>Board language <select name="board" {% if not lg.writable %}disabled{% endif %}>{% for o in (opts.board or ['en', 'fr', 'hi']) %}<option value="{{ o }}" {% if o == lg.board %}selected{% endif %}>{{ names.get(o, o) }}</option>{% endfor %}</select></label>
+      <button type="submit" {% if not lg.writable %}disabled{% endif %}>Save</button>
+      {% if lg.source == 'settings' %}<button class="ghost" type="submit" name="reset" value="1" {% if not lg.writable %}disabled{% endif %}>Back to defaults</button>{% endif %}
+    </form>
+  </div>
+  {% endif %}
+  {% endif %}
+
+  <div class="lp-card">
+    <h2>Lenspack</h2>
+    <table>
+      <tr><th>Status</th><td>
+        {% if settings %}<span class="ok">● running</span>
+        {% elif info %}<span class="ok">● running</span> <span class="mute">(this Lenspack version reports less; update it for the full page)</span>
+        {% else %}<span class="bad">● not reachable</span> <span class="mute">{{ settings_error }}</span>{% endif %}
+        <span class="mute">· {{ internal_url }}</span>
+      </td></tr>
+      {% set s = settings or info or {} %}
+      {% if s.pack %}<tr><th>Pack</th><td><code>{{ s.pack }}</code></td></tr>{% endif %}
+      {% if settings %}
+        <tr><th>Datasets it reads</th><td>{% for d in settings.datasets %}<code>{{ d.schema ~ '.' if d.schema }}{{ d.table }}</code> as <b>{{ d.entity }}</b>{% if not loop.last %}<br>{% endif %}{% endfor %}</td></tr>
+        <tr><th>Vocabulary</th><td>{{ settings.dimensions }} dimensions, {{ settings.measures|length }} measures
+          <details><summary class="mute">measures</summary>{% for m in settings.measures %}<code>{{ m.key }}</code> {{ m.label }} <span class="mute">({{ m.agg }})</span><br>{% endfor %}</details></td></tr>
+        <tr><th>Superset account</th><td><code>{{ settings.superset.username }}</code>{% if account_roles is not none %} · roles: {{ account_roles|join(', ') or 'none' }}{% endif %}
+          {% if settings.superset.account %}<span class="mute">({{ {'bootstrap': 'made by Lenspack on first start', 'state': 'made by Lenspack; password in its state directory', 'env': 'password from LENSPACK_SUPERSET_PASSWORD'}.get(settings.superset.account, settings.superset.account) }})</span>{% endif %}</td></tr>
+        <tr><th>Who may edit dashboards</th><td>{% if settings.editPolicy == 'signed-in' %}Anyone signed in to Superset <span class="mute">(<code>LENSPACK_EDIT_POLICY=signed-in</code>)</span>{% else %}Whoever Superset lets edit that dashboard: its owners with write access, and admins. Everyone who can view it may ask questions. <span class="mute">(<code>LENSPACK_EDIT_POLICY=superset</code>, the default)</span>{% endif %}</td></tr>
+        <tr><th>Dashboards bound</th><td>{{ settings.dashboards|join(', ') or 'none yet (a dashboard binds when the chat opens on it)' }}</td></tr>
+      {% elif account_roles is not none %}
+        <tr><th>Superset account</th><td><code>lenspack</code> · roles: {{ account_roles|join(', ') or 'none' }}</td></tr>
+      {% endif %}
+      {% if settings %}<tr><th>Chat opens as</th><td>{{ 'a side panel' if settings.panel == 'dock' else 'a floating window' }} <span class="mute">(default for everyone, set by <code>overlay.panel</code> in the Lenspack config; each person can change it with the gear in the chat)</span></td></tr>{% endif %}
+      {% if s.examples %}<tr><th>Example questions</th><td>{% for e in s.examples %}{{ e }}{% if not loop.last %}<br>{% endif %}{% endfor %}</td></tr>{% endif %}
+    </table>
+  </div>
+
+  <div class="grid2">
+    <div class="lp-card">
+      <h2>Language models</h2>
+      {% if settings %}
+        <table>
+          <tr><th>Key from</th><td>{% if settings.llmFrom %}<code>{{ settings.llmFrom }}</code>{% if settings.llmFrom == 'LENSPACK_LLM_PROVIDERS' %} <span class="mute">(this stack's Lenspack image builds it from <code>ANTHROPIC_API_KEY</code> when that is set)</span>{% endif %} <span class="mute">(environment; the value is never shown)</span>{% else %}<span class="bad">no key set: the chat is off</span>{% endif %}</td></tr>
+          {% for p in settings.providers %}
+            <tr><th>{{ p.name }}</th><td><code>{{ p.model }}</code> <span class="mute">{{ p.kind }}</span>
+              {% if p.available %}<span class="ok">● answering</span>{% elif p.available is sameas false %}<span class="bad">● {{ p.error or 'not answering' }}</span>{% else %}<span class="mute">● not checked yet</span>{% endif %}</td></tr>
+          {% endfor %}
+        </table>
+      {% else %}<p class="mute">Shown once Lenspack reports its settings.</p>{% endif %}
+    </div>
+    <div class="lp-card">
+      <h2>Spend today</h2>
+      {% if usage %}
+        <table>
+          <tr><th>Spent</th><td>${{ '%.4f'|format(usage.budget.spent if usage.budget else usage.total.usd) }}{% if usage.budget and usage.budget.usdPerDay %} of ${{ usage.budget.usdPerDay }} a day{% endif %}</td></tr>
+          {% if usage.budget and usage.budget.usdPerUserPerDay %}<tr><th>Per person</th><td>${{ usage.budget.usdPerUserPerDay }} a day</td></tr>{% endif %}
+          <tr><th>Chat turns</th><td>{{ usage.total.turns }}</td></tr>
+          <tr><th>Model calls</th><td>{{ usage.total.calls }}{% if usage.total.failed %} <span class="bad">({{ usage.total.failed }} failed)</span>{% endif %}</td></tr>
+          <tr><th>Tokens</th><td>{{ usage.total.inputTokens }} in, {{ usage.total.outputTokens }} out</td></tr>
+        </table>
+      {% else %}<p class="mute">Not available: {{ usage_error }}</p>{% endif %}
+    </div>
+  </div>
+
+  <div class="lp-card">
+    <h2>Audit log</h2>
+    {% if audit and audit.enabled %}
+      <p class="mute" style="margin:0 0 8px">Every board change, refused change, chat turn and settings change, with who made it. Kept {{ audit.retentionDays }} days in Lenspack's state directory (<code>audit.jsonl</code>, one file a month); the spend figures above reset when Lenspack restarts, this does not.</p>
+      <table class="bench">
+        <tr><th>When (UTC)</th><th>Who</th><th>What</th><th>Outcome</th><th>Detail</th></tr>
+        {% for e in audit.events %}<tr><td>{{ e.at[:19]|replace('T', ' ') }}</td><td>{{ e.user }}</td><td>{{ e.action }}{% if e.board %} <span class="mute">{{ e.board }}</span>{% endif %}</td><td class="{{ 'ok' if e.outcome == 'ok' else 'bad' }}">{{ e.outcome }}</td><td class="mute">{{ (e.detail or '')[:120] }}</td></tr>
+        {% else %}<tr><td colspan="5" class="mute">Nothing yet this month.</td></tr>{% endfor %}
+      </table>
+      {% if audit.months|length > 1 %}<p class="mute" style="margin:6px 0 0">Earlier months on file: {{ audit.months[1:]|join(', ') }}.</p>{% endif %}
+    {% elif audit %}<p class="mute">Off (<code>audit: false</code> in the Lenspack config).</p>
+    {% else %}<p class="mute">Not available: {{ audit_error or 'this Lenspack version has no audit log' }}</p>{% endif %}
+  </div>
+
+  <div class="lp-card">
+    <h2>Data connections in Superset</h2>
+    <table>
+      <tr><th>Name</th><td class="mute">Backend · connection (password masked) · datasets</td></tr>
+      {% for d in databases %}
+        <tr><th>{{ d.name }}</th><td><code>{{ d.backend }}</code> · <code>{{ d.uri }}</code> · {{ d.datasets }}</td></tr>
+      {% else %}
+        <tr><td colspan="2" class="mute">None yet.</td></tr>
+      {% endfor %}
+    </table>
+    <p class="mute">Add or edit them under Settings → Database Connections. Saved passwords are encrypted with Superset's secret key.</p>
+  </div>
+
+  <div class="lp-card">
+    <h2>Where to change things</h2>
+    <table>
+      <tr><th>Chat and speech models</th><td>On this page (saved in Lenspack's state, kept across restarts)</td></tr>
+      <tr><th>LLM and speech keys</th><td><code>ANTHROPIC_API_KEY</code>, <code>LENSPACK_LLM_PROVIDERS</code>, <code>OPENROUTER_API_KEY</code> in the deployment's environment (<code>.env</code> / the k8s Secret)</td></tr>
+      <tr><th>Datasets, guidance, budget</th><td><code>lenspack/lenspack-superset.yaml</code></td></tr>
+      <tr><th>Who may use the chat</th><td>Anyone signed in to Superset who can view the dashboard. Superset's <code>/lenspack/</code> route checks the session and signs who is asking for every Lenspack request.</td></tr>
+      <tr><th>Who may edit through it</th><td><code>LENSPACK_EDIT_POLICY</code> on the Lenspack container: <code>superset</code> (default) or <code>signed-in</code></td></tr>
+    </table>
+  </div>
+</div>
+{% endblock %}
+'''
+
 __all__ = [
-    "LENSPACK_URL", "LENSPACK_PORT", "LENSPACK_BESIDE_ORIGINS", "LENSPACK_BESIDE_URL", "LENSPACK_INTERNAL_URL",
-    "LENSPACK_SETTINGS_TOKEN", "LENSPACK_TEMPLATES", "STT_BENCH", "FLASK_APP_MUTATOR", "lenspack_app_mutator",
-] + (["TALISMAN_CONFIG"] if LENSPACK_BESIDE_ORIGINS else [])
+    "LENSPACK_PATH", "LENSPACK_INTERNAL_URL", "LENSPACK_SERVICE_USER", "LENSPACK_TEMPLATES", "STT_BENCH", "FLASK_APP_MUTATOR",
+    "lenspack_app_mutator", "lenspack_sign", "lenspack_identity_key",
+]
