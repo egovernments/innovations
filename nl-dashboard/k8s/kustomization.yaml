@@ -12,7 +12,7 @@ resources:
 images:
   - name: nl-dashboard-superset
     newName: ghcr.io/theflywheel/lenspack
-    newTag: "superset5-a05ca0f"
+    newTag: "superset5-a85bc7d"
   - name: nl-dashboard-lenspack
     newName: ghcr.io/theflywheel/lenspack
-    newTag: "superset-eae58a5"
+    newTag: "superset-3f6916c"

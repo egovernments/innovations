@@ -43,7 +43,7 @@ installed.
 | You need | Tested with | Notes |
 |---|---|---|
 | Superset 5.0 | `apache/superset:5.0.0` (Flask-AppBuilder 4.5.5) | Superset 6 is untested. |
-| The Lenspack image | `ghcr.io/theflywheel/lenspack:superset-eae58a5` | Public. This tag is built from Lenspack's `superset` branch until the Superset support reaches `main`; after that, use a `main` tag. |
+| The Lenspack image | `ghcr.io/theflywheel/lenspack:superset-3f6916c` | Public. This tag is built from Lenspack's `superset` branch until the Superset support reaches `main`; after that, use a `main` tag. |
 | A Superset admin's password | | Used once, on Lenspack's first start, to create its own account. |
 | An LLM API key | Anthropic (Claude Sonnet, Opus and Haiku 5.5) | Or any OpenAI-compatible API through `LENSPACK_LLM_PROVIDERS`. |
 | Your data in Superset | ClickHouse, through `clickhouse-connect` | The stock image has no ClickHouse driver: [adding it](#the-clickhouse-driver). |
@@ -334,7 +334,7 @@ bootstrapScript: |
 
 **3. Lenspack.** Use [`../k8s/lenspack.yaml`](../k8s/lenspack.yaml) as the template: a Deployment with one replica and a
 Service on port 8795, with no Ingress. Change these:
-- the image, to `ghcr.io/theflywheel/lenspack:superset-eae58a5`;
+- the image, to `ghcr.io/theflywheel/lenspack:superset-3f6916c`;
 - `SUPERSET_URL`, to your Superset Service (e.g. `http://superset:8088`);
 - the Secret holding `SUPERSET_ADMIN_PASSWORD` and the LLM key.
 
