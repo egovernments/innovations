@@ -1,0 +1,48 @@
+# Postgres for Superset's metadata (users, dashboards, charts) and, optionally, the sample "hcm" data.
+apiVersion: v1
+kind: Service
+metadata: { name: nl-dashboard-db }
+spec:
+  selector: { app: nl-dashboard-db }
+  ports: [{ port: 5432, targetPort: 5432 }]
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata: { name: nl-dashboard-db }
+spec:
+  serviceName: nl-dashboard-db
+  replicas: 1
+  selector: { matchLabels: { app: nl-dashboard-db } }
+  template:
+    metadata: { labels: { app: nl-dashboard-db } }
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          env:
+            - { name: POSTGRES_USER, value: superset }
+            - { name: POSTGRES_DB, value: superset }
+            - { name: POSTGRES_PASSWORD, valueFrom: { secretKeyRef: { name: nl-dashboard, key: PG_PASSWORD } } }
+            - { name: PGDATA, value: /var/lib/postgresql/data/pgdata }
+          ports: [{ containerPort: 5432 }]
+          readinessProbe: { exec: { command: [pg_isready, -U, superset] }, periodSeconds: 5 }
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { cpu: "1", memory: 1Gi }
+          volumeMounts:
+            - { name: data, mountPath: /var/lib/postgresql/data }
+            - { name: init, mountPath: /docker-entrypoint-initdb.d, readOnly: true }
+      volumes:
+        - name: init
+          configMap: { name: nl-dashboard-db-init }
+  volumeClaimTemplates:
+    - metadata: { name: data }
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources: { requests: { storage: 5Gi } }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata: { name: nl-dashboard-db-init }
+data:
+  01-hcm.sql: "CREATE DATABASE hcm;"

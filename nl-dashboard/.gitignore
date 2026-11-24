@@ -1,0 +1,3 @@
+.env
+# Local Lenspack configs (e.g. an older pack kept for comparison runs)
+lenspack/*.local.yaml

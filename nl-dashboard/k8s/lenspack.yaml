@@ -1,0 +1,46 @@
+# The Lenspack server for Superset: chat API and the overlay script. Not exposed: browsers reach it through
+# Superset's /lenspack/ route, which signs who is asking.
+apiVersion: v1
+kind: Service
+metadata: { name: nl-dashboard-lenspack }
+spec:
+  selector: { app: nl-dashboard-lenspack }
+  ports: [{ port: 8795, targetPort: 8795 }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: nl-dashboard-lenspack }
+spec:
+  replicas: 1                     # board bookkeeping is per process: keep one
+  strategy: { type: Recreate }
+  selector: { matchLabels: { app: nl-dashboard-lenspack } }
+  template:
+    metadata: { labels: { app: nl-dashboard-lenspack } }
+    spec:
+      securityContext: { fsGroup: 1000 }
+      containers:
+        - name: lenspack
+          image: nl-dashboard-lenspack
+          env:
+            - { name: SUPERSET_URL, value: "http://nl-dashboard-superset:8088" }
+            # Lenspack makes its own Superset account with this on first start and keeps the password in /data.
+            # With /data on an emptyDir (below) it is made again on every start, so keep this set; with a
+            # PersistentVolume it can be removed after the first start.
+            - { name: SUPERSET_ADMIN_PASSWORD, valueFrom: { secretKeyRef: { name: nl-dashboard, key: SUPERSET_ADMIN_PASSWORD, optional: true } } }
+            # superset (default): edits follow Superset's dashboard rights; signed-in: anyone signed in may edit.
+            - { name: LENSPACK_EDIT_POLICY, value: superset }
+            - { name: ANTHROPIC_API_KEY, valueFrom: { secretKeyRef: { name: nl-dashboard, key: ANTHROPIC_API_KEY } } }
+          ports: [{ containerPort: 8795 }]
+          # Up once Superset answers and the datasets exist (setup); it restarts until then.
+          readinessProbe: { httpGet: { path: /healthz, port: 8795 }, periodSeconds: 10 }
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { cpu: "1", memory: 1Gi }
+          volumeMounts:
+            - { name: config, mountPath: /config, readOnly: true }
+            - { name: data, mountPath: /data }
+      volumes:
+        - name: config
+          configMap: { name: nl-dashboard-lenspack }   # key lenspack-superset.yaml: the sample or the ClickHouse config (README)
+        - name: data
+          emptyDir: {}                                 # its account, settings, audit log, charts it made (use a PVC to keep them)

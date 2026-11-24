@@ -1,0 +1,21 @@
+# Superset only: it serves /lenspack/ itself (lenspack_superset.py), so Lenspack needs no ingress of its own.
+# *.hcm-lab.digit.org already resolves to the lab VM; cert-manager issues the certificate.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nl-dashboard-superset
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/proxy-body-size: 20m
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    # Chat replies stream through Superset's /lenspack/ route; Superset also sends X-Accel-Buffering: no.
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+spec:
+  ingressClassName: nginx
+  tls: [{ hosts: [superset.hcm-lab.digit.org], secretName: nl-dashboard-tls }]
+  rules:
+    - host: superset.hcm-lab.digit.org
+      http:
+        paths:
+          - { path: /, pathType: Prefix, backend: { service: { name: nl-dashboard-superset, port: { number: 8088 } } } }

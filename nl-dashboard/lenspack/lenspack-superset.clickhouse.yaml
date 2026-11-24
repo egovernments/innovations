@@ -1,0 +1,79 @@
+# Lenspack over Superset, on HCM analytics in ClickHouse: the ni_* datasets setup/setup.mts makes when
+# CLICKHOUSE_PASSWORD is set, over eGov's own Superset-ready views (default.su_ni_*) plus the targets and
+# referrals marts. Select it with LENSPACK_CONFIG. Lenspack never connects to ClickHouse: it asks Superset,
+# which runs the SQL. A string "env:NAME" reads the environment variable NAME.
+superset:
+  url: env:SUPERSET_URL
+
+publicPath: /lenspack
+host: 0.0.0.0
+port: 8795
+
+datasets: [default.ni_coverage, default.ni_status, default.ni_visits, default.ni_members, default.ni_missed,
+  default.ni_team_stock, default.ni_facilities, analytics.ni_referrals]
+dashboards: []
+state: /data/superset-boards.json
+budget: { usdPerDay: 15, usdPerUserPerDay: 10 }
+
+overlay:
+  pack: hcm_clickhouse
+  entities: { ni_coverage: coverage, ni_status: coverage_status, ni_visits: visit, ni_members: member, ni_missed: missed, ni_team_stock: stock, ni_facilities: facility, ni_referrals: referral }
+  description: >-
+    eGov's HCM campaign analytics in ClickHouse, on eGov's Superset-ready views for the ng field-test
+    vaccination campaign (nOPV2): coverage against targets, child visits, missed children, vaccine stock per
+    team, people in registered households, health facilities, and referrals.
+  timeZone: UTC
+  hierarchies:
+    boundary: [state, lga, ward, health_facility, settlement]
+  instructions: >-
+    The campaign lasted 7 days (campaign_day 1-7): "last 30 days" is empty, so say so and use campaign days.
+    coverage (settlement x day) is the only home of children vaccinated, households registered, targets, zero-dose
+    and enumerated children, and their % measures. Targets are end-of-campaign values: never filter a coverage % to
+    one day; for progress by day use the cumulative actual/planned % in a daily series. Say each definition in one
+    short clause: children_vaccinated includes revisits (visits with outcome VACCINATED is smaller); zero_dose_pct
+    is zero-dose over enumerated children (not per visit); vial wastage is dose-based, 1 - vaccinated / (vials used
+    x 50), not opened or spoilt vials (spoilt_vials_pct = spoilt / issued); for thresholds like "above 95%" say
+    coverage of what (children vs target by default). visit (one row per child visit) has outcome, refusal/absence
+    reason, gender, age band, settlement type, access, team, campaign day and the location columns (state, LGA,
+    ward, health facility, settlement): count visits, filtering vaccinated = Yes or zero_dose = Yes by gender or age.
+    member (one row per person in a registered household) gives people_registered by place, gender and age band.
+    missed: children missed per day, and outstanding at the end of each day (a level: never sum over days). stock
+    is per team, whole campaign, no dates; children_per_vial and vials_per_child are inverses. coverage_status is
+    for coverage pies (filter grp). For zero-dose by facility use coverage by health_facility. Superset computes
+    every % from sums: never add or average percentages. A chart reads one dataset. A heatmap by day is a breakdown
+    over day_label split by the rows (Superset can't sort a time axis).
+    Layout: the board packs itself. Make layout changes in one batch: four tiles in a row are quarter width, three
+    are third. Widgets kept as Superset's can be moved, resized or removed but not edited.
+  # Each question is the chip's words by language (the panel shows the one it is in, English otherwise);
+  # the model sees the English wording with its query as a worked example.
+  examples:
+    - question:
+        en: Add children coverage % by ward, lowest first
+        fr: Ajoute la couverture des enfants (%) par ward, du plus bas au plus haut
+        hi: वार्ड के हिसाब से बच्चों का कवरेज % जोड़ो, सबसे कम वाला पहले
+      query: { kind: breakdown, dimension: ward, measure: children_coverage_pct, sort: asc, limit: 40 }
+    - question:
+        en: Show children vaccinated per day
+        fr: Montre les enfants vaccinés par jour
+        hi: हर दिन कितने बच्चों का टीकाकरण हुआ, दिखाओ
+      query: { kind: series, measure: children_vaccinated, grain: day }
+    - question:
+        en: Planned vs actual children vaccinated, cumulative, by day
+        fr: Enfants vaccinés, prévu contre réalisé, en cumul par jour
+        hi: टीकाकरण वाले बच्चे, योजना बनाम वास्तविक, दिन के हिसाब से कुल मिलाकर
+      query: { kind: series, measure: actual_children_cum_pct, measures: [planned_children_cum_pct], grain: day }
+    - question:
+        en: Break down visits by outcome
+        fr: Répartis les visites par résultat
+        hi: विज़िट को नतीजे के हिसाब से बाँटो
+      query: { kind: breakdown, dimension: outcome, measure: visits, limit: 10 }
+    - question:
+        en: Zero-dose share by LGA
+        fr: Part des enfants zéro dose par LGA
+        hi: LGA के हिसाब से ज़ीरो-डोज़ बच्चों का हिस्सा
+      query: { kind: breakdown, dimension: lga, measure: zero_dose_pct, limit: 10 }
+    - question:
+        en: Which team used the most vials per child vaccinated?
+        fr: Quelle équipe a utilisé le plus de flacons par enfant vacciné ?
+        hi: किस टीम ने हर टीका लगे बच्चे पर सबसे ज़्यादा वायल इस्तेमाल किए?
+      query: { kind: breakdown, dimension: team, measure: vials_per_child, limit: 10 }
