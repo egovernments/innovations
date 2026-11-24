@@ -67,7 +67,7 @@ for lang in ("fr_fr", "hi_in", "pt_br"):
     if not fl:
         continue
     left = stream(FLEURS.format(lang=lang), fl)
-    for a in fl:
+    for a in fl.values():  # the paths (the keys are bare file names)
         p = HERE / a
         if p.exists():
             tmp = p.with_suffix(".s16.wav")

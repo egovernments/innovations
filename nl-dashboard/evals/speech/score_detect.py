@@ -20,7 +20,8 @@ HERE = Path(__file__).resolve().parent
 FR = set("le la les des un une est et de du que qui dans pour pas sur avec ce il elle nous vous je".split())
 EN = set("the a an is and of to in that it for on with this be are was you i".split())
 HI_LATN = set("hai hain ka ki ke ko mein se aur kya nahi tha thi".split())
-PT = set("não do da dos das nas um uma com os é são ao pelo pela muito também isso você em mais seu sua ele ela eles".split())
+PT = set("o e não do da dos das nas um uma com os é são ao pelo pela muito também isso você em mais seu sua ele ela eles".split())
+PT_MARK = re.compile(r"[ãõ]|[a-zà-ÿ]nh[a-zà-ÿ]|[a-zà-ÿ]lh[a-zà-ÿ]")  # spellings French, English and Spanish don't have
 ES = set("el los las del muy fue esto usted lo pero hay su sus al ella ellos más también".split()) - {"também"}
 
 
@@ -31,8 +32,12 @@ def lang_of(text):
     if re.search(r"[؀-ۿ]", t):
         return "ur"
     w = re.findall(r"[a-zà-ÿ']+", t.lower())
-    scores = {"fr": sum(x in FR for x in w), "en": sum(x in EN for x in w), "hi-latn": sum(x in HI_LATN for x in w), "pt": sum(x in PT for x in w), "es": sum(x in ES for x in w)}
+    scores = {"fr": sum(x in FR for x in w), "en": sum(x in EN for x in w), "hi-latn": sum(x in HI_LATN for x in w), "pt": sum(x in PT or bool(PT_MARK.search(x)) for x in w), "es": sum(x in ES for x in w)}
     best = max(scores, key=scores.get)
+    # A tie with Portuguese goes to Portuguese when the text has its spellings (ã, õ, -nh-, -lh-), which French
+    # and English never do; "acho que não" otherwise ties que (fr) with não (pt).
+    if scores[best] and scores["pt"] == scores[best] and PT_MARK.search(t.lower()):
+        return "pt"
     return best if scores[best] else "?"
 
 

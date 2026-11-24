@@ -20,7 +20,8 @@ def session(user, pw):
     html = op.open(BASE + "/login/", timeout=20).read().decode()
     csrf = re.search(r'name="csrf_token"[^>]*value="([^"]+)"', html) or re.search(r'id="csrf_token"[^>]*value="([^"]+)"', html)
     data = urllib.parse.urlencode({"username": user, "password": pw, "csrf_token": csrf.group(1) if csrf else ""}).encode()
-    op.open(urllib.request.Request(BASE + "/login/", data=data), timeout=20).read()
+    # Over https, Flask-WTF also checks the Referer of a form post.
+    op.open(urllib.request.Request(BASE + "/login/", data=data, headers={"Referer": BASE + "/login/"}), timeout=20).read()
     # Superset's CSRF token for later POST/PUT through the proxy (the /lenspack route takes the session).
     return op
 

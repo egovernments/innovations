@@ -4,7 +4,7 @@ The chat panel's mic turns speech into text before the question goes to the chat
 behind its default model, `mistralai/voxtral-mini-transcribe-3-0`: the method, every result, each clip's transcript
 and score, the failures, the decision, and the scripts to run it again. It was run on **2026-11-22** against
 OpenRouter's `/api/v1/audio/transcriptions`. The whole run, with and without a language hint, cost **$1.51** as
-OpenRouter reported it. There is no audio and no key in this folder.
+OpenRouter reported it. Portuguese was added on **2026-11-24** ([Portuguese](#portuguese), $1.14). There is no audio and no key in this folder.
 
 ## Contents
 
@@ -127,12 +127,75 @@ French clips in one: Arabic script for Voxtral and AssemblyAI, Devanagari for Sc
 
 ## Portuguese
 
-Added 2026-11-24, when the panel gained Portuguese (theflywheel/lenspack#39). The three sets are under
-[Data](#data): Brazilian (FLEURS, Common Voice) and European Portuguese (Common Voice), 105 clips, 12.6 min.
+Added 2026-11-24, when the panel gained Portuguese (theflywheel/lenspack#39). It ran on 105 clips (12.6 min of
+audio): Brazilian Portuguese from FLEURS and Common Voice, and European Portuguese from Common Voice (see
+[Data](#data)). All 11 models ran with and without the hint. The run cost **$1.14**, as OpenRouter reported it.
 
-**Results: not run yet.** The OpenRouter key available for evaluation had no credits (every request answered
-402), so no transcript has been produced; the error rows were discarded. The run is ready: all 11 models, with and
-without the hint, about $1.2 at the measured prices. The tables go here once it has run.
+**In one line:** Voxtral, the default, stays the pick for Portuguese. It scores 7.7% (Brazil), 6.0% (Portugal) and
+2.3% (FLEURS) WER with the hint, and 8.1 / 7.3 / 2.3% without it, at 0.49 s median and $0.0032 per audio minute.
+
+### With the hint
+
+Latency and cost are measured on the Portuguese clips only.
+
+| Model | Brazil (CV) | Portugal (CV) | FLEURS pt (Brazil) | Median latency (s) | $ per audio min |
+|---|---|---|---|---|---|
+| assemblyai/universal-3-6-pro | 8.9% | 14.1% | 2.7% | 0.32 | 0.0050 |
+| deepgram/nova-3 | **3.0%** | **6.0%** | 7.2% | 0.37 | 0.0043 |
+| elevenlabs/scribe-v2 | 9.8% | 6.8% | 3.5% | 0.64 | 0.0037 |
+| google/chirp-3 | 10.2% | 11.1% | **2.3%** | 1.68 | 0.0170 |
+| google/gemini-3.5-transcribe | 9.8% | 12.0% | 2.9% | 2.08 | 0.0047 |
+| **mistralai/voxtral-mini-transcribe-3-0** | 7.7% | **6.0%** | **2.3%** | 0.49 | 0.0032 |
+| nvidia/nemotron-3.5-asr-streaming-multilingual-0.6b | 20.9% | 21.8% | 8.9% | 1.25 | 0.0002 |
+| openai/gpt-4o-mini-transcribe | 13.2% | 13.7% | 3.9% | 0.85 | 0.0015 |
+| openai/gpt-transcribe | 7.7% | 10.7% | 3.2% | 0.74 | 0.0048 |
+| openai/whisper-large-v3-turbo | 22.6% | 17.9% | 4.2% | 0.82 | 0.0003 |
+| qwen/qwen3-asr-1.7b | 14.0% | 16.2% | 4.1% | 0.74 | 0.0004 |
+
+**Common Voice clips are short.** They average about 5 s, and many are one to three words or a list of place names.
+So a single wrong word moves a set's WER more than on FLEURS' long read sentences, and with 40 clips per set a gap of
+a few points is within noise.
+
+### Without the hint
+
+Each WER cell reads hint → no hint.
+- **Non-Latin** counts the transcripts, out of 105, that came back in another script: the panel's script guard
+  refuses these.
+- **Empty** counts the transcripts that came back blank.
+
+| Model | Brazil (CV) | Portugal (CV) | FLEURS pt | Non-Latin | Empty |
+|---|---|---|---|---|---|
+| **voxtral-mini-transcribe-3-0** | 7.7 → 8.1% | 6.0 → 7.3% | 2.3 → 2.3% | 4 | 0 |
+| scribe-v2 | 9.8 → 10.6% | 6.8 → 9.4% | 3.5 → 3.6% | 4 | 0 |
+| chirp-3 | 10.2 → 10.6% | 11.1 → 11.1% | 2.3 → 2.4% | 1 | 0 |
+| gpt-transcribe | 7.7 → 12.3% | 10.7 → 13.7% | 3.2 → 2.7% | 0 | 0 |
+| gemini-3.5-transcribe | 9.8 → **17.9%** | 12.0 → 15.0% | 2.9 → 3.8% | 2 | 0 |
+| universal-3-6-pro | 8.9 → 9.8% | 14.1 → **22.6%** | 2.7 → 2.7% | 2 | 0 |
+| gpt-4o-mini-transcribe | 13.2 → 15.3% | 13.7 → 13.2% | 3.9 → 3.5% | 1 | 0 |
+| qwen3-asr-1.7b | 14.0 → 15.3% | 16.2 → 20.1% | 4.1 → 3.8% | 2 | 0 |
+| whisper-large-v3-turbo | 22.6 → 21.3% | 17.9 → 24.8% | 4.2 → 3.9% | 1 | 0 |
+| nemotron-3.5-asr 0.6b | 20.9 → 22.1% | 21.8 → 28.6% | 8.9 → 8.6% | 4 | 6 |
+| nova-3 | 3.0 → **95.7%** | 6.0 → **93.6%** | 7.2 → **99.8%** | 0 | **51** |
+
+- **Voxtral without the hint.** Its 4 non-Latin transcripts are all one- or two-word prompts: *Palma* and *Allahu
+  Akbar* in Arabic script, *Mambaí* in Devanagari, and one in Thai.
+  - With the hint, it returned none in 105.
+  - In the panel, Auto sends the languages it expects (now `en, fr, hi, pt`), so such a guess is transcribed once
+    more with a fallback language before anything reaches the input.
+- **Nova-3 without a hint fails here as it did on French.** It returns nothing for half the clips and English for
+  most of the rest. With the hint it is the most accurate on Common Voice, but Auto sends no hint.
+- **The output-language column of `score_detect.py`** now recognises Portuguese and Spanish. On one- and two-word
+  prompts it often can't tell (`?`), so the non-Latin count above is the firmer measure. No model's transcripts read
+  as Spanish, apart from a single Nemotron clip.
+
+### What it changes
+
+- **No change to the default or the product.** Voxtral is the most accurate model across the three sets taken
+  together, it barely moves without the hint, and it is the cheapest of the accurate ones.
+- **Nova-3 with a hint** is the best Common Voice result. A deployment where everyone picks Portuguese in the menu
+  (which always sends the hint) could choose it in Settings → AI assistant. Auto users would lose it.
+- **European versus Brazilian Portuguese:** the leading models do about as well on European Portuguese as on
+  Brazilian. Voxtral, Nova-3 and Scribe are under 7% on Portugal (CV).
 
 ## Failures
 
@@ -146,8 +209,10 @@ without the hint, about $1.2 at the measured prices. The tables go here once it 
   is most of its 62–75% WER.
 - **32-bit float WAV is refused.**
   - FLEURS ships float WAV. Chirp 3 and AssemblyAI answered "Audio data does not appear to be in a supported
-    encoding" until the clips were converted to 16-bit PCM and rerun.
-  - [`fetch_audio.py`](fetch_audio.py) now converts them.
+    encoding" (AssemblyAI: "malformed WAV: unknown format: 3") until the clips were converted to 16-bit PCM and rerun.
+  - [`fetch_audio.py`](fetch_audio.py) converts them. Its conversion loop had a bug until 2026-11-24: it looked up
+    file names instead of paths, so nothing was converted. The Portuguese run hit this, and those two models were
+    rerun on converted clips. The other nine took FLEURS pt as float WAV; the audio content is the same.
   - The browser sends webm/opus or mp4, so the product doesn't hit this.
 - **Whisper on the CPU is too slow.** faster-whisper large-v3-turbo (int8, 8 threads) on a shared 16-core server took
   about 21 s per 5 s clip (RTF about 6). That rules out self-hosting on that hardware.
@@ -209,8 +274,9 @@ reproduce there. Another tab or origin is the likely source.
   WER will be higher. Colleagues are recording 10–20 short notes of real dashboard questions this week (week of
   2026-11-23), in African-accented French and in Hindi.
 - **African Portuguese.** No open set labels Mozambican or Angolan speakers, so the Portuguese numbers cover
-  Brazil and Portugal only. A few voice notes from Mozambique or Angola, scored the same way, would close this. They will be scored the same way, with
-  [`folder_manifest.py`](folder_manifest.py), as an own-domain set.
+  Brazil and Portugal only. European Portuguese is the nearest proxy, and the leading models handle it as well as
+  Brazilian. A few voice notes from Mozambique or Angola, scored as an own-domain set with
+  [`folder_manifest.py`](folder_manifest.py), would close this.
 - **End to end with a real key.** The server's `POST /api/_stt` is tested against a stub provider. Real clips through
   the deployed mic → server → provider path wait for a production speech-to-text key.
 
@@ -218,9 +284,9 @@ reproduce there. Another tab or origin is the likely source.
 
 | File | What |
 |---|---|
-| [`data/manifest.jsonl`](data/manifest.jsonl) | the 210 clips: id, set, language, speaker, source path, reference text, seconds |
+| [`data/manifest.jsonl`](data/manifest.jsonl) | the 315 clips: id, set, language, speaker, source path, reference text, seconds |
 | [`results/<model>.jsonl`](results/), `…__nohint.jsonl` | the raw output per clip: transcript, latency, OpenRouter usage and cost (22 files, 11 models × 2 passes) |
-| [`results/per_clip.csv`](results/per_clip.csv) | one row per clip × model × pass (3,740 rows): reference, transcript, both normalised, WER, latency, cost |
+| [`results/per_clip.csv`](results/per_clip.csv) | one row per clip × model × pass (6,050 rows, 2,310 of them Portuguese): reference, transcript, both normalised, WER, latency, cost |
 | [`score.py`](score.py) | the WER and latency table, with the normalisation rules (`norm()`) |
 | [`score_detect.py`](score_detect.py) | hint vs no hint, and the output language read off the text |
 | [`per_clip.py`](per_clip.py) | builds `results/per_clip.csv` with `score.py`'s normalisation |

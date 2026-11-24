@@ -128,3 +128,108 @@
 {"id": "fleurs-hi/10907654079731428081", "hyp": "Shipboard", "latency": 0.444, "usage": {"seconds": 12.78, "cost": 0.000915900000000426, "extra": {}}}
 {"id": "fleurs-hi/10921902647446458507", "hyp": "", "latency": 0.536, "usage": {"seconds": 14.94, "cost": 0.001070700000000498, "extra": {}}}
 {"id": "fleurs-hi/10924000697500767031", "hyp": "Italian", "latency": 0.493, "usage": {"seconds": 18.36, "cost": 0.001315800000000612, "extra": {}}}
+{"id": "fleurs-pt/10008174856218516817", "hyp": "", "latency": 1.377, "usage": {"seconds": 17.76, "cost": 0.001272800000000592, "extra": {}}}
+{"id": "fleurs-pt/10047022047800689031", "hyp": "", "latency": 1.083, "usage": {"seconds": 13.62, "cost": 0.000976100000000454, "extra": {}}}
+{"id": "fleurs-pt/10083615766068544069", "hyp": "", "latency": 0.419, "usage": {"seconds": 8.4, "cost": 0.00060200000000028, "extra": {}}}
+{"id": "fleurs-pt/10103427908302527934", "hyp": "", "latency": 0.869, "usage": {"seconds": 10.68, "cost": 0.000765400000000356, "extra": {}}}
+{"id": "fleurs-pt/10116774789336634117", "hyp": "With scaffolding", "latency": 0.621, "usage": {"seconds": 12.72, "cost": 0.000911600000000424, "extra": {}}}
+{"id": "fleurs-pt/10123292114373653004", "hyp": "", "latency": 1.002, "usage": {"seconds": 19.32, "cost": 0.001384600000000644, "extra": {}}}
+{"id": "fleurs-pt/10124265429093233069", "hyp": "", "latency": 0.436, "usage": {"seconds": 14.4, "cost": 0.00103200000000048, "extra": {}}}
+{"id": "fleurs-pt/101298017130488094", "hyp": "", "latency": 0.492, "usage": {"seconds": 8.82, "cost": 0.000632100000000294, "extra": {}}}
+{"id": "fleurs-pt/10134749222604455839", "hyp": "", "latency": 0.954, "usage": {"seconds": 17.4, "cost": 0.00124700000000058, "extra": {}}}
+{"id": "fleurs-pt/10181435093488396236", "hyp": "", "latency": 0.425, "usage": {"seconds": 14.4, "cost": 0.00103200000000048, "extra": {}}}
+{"id": "fleurs-pt/10182869931433112315", "hyp": "", "latency": 0.379, "usage": {"seconds": 11.4, "cost": 0.00081700000000038, "extra": {}}}
+{"id": "fleurs-pt/10250542229422804450", "hyp": "", "latency": 0.41, "usage": {"seconds": 15.12, "cost": 0.001083600000000504, "extra": {}}}
+{"id": "fleurs-pt/10330760965710671860", "hyp": "", "latency": 0.445, "usage": {"seconds": 16.56, "cost": 0.001186800000000552, "extra": {}}}
+{"id": "fleurs-pt/10336892012774138351", "hyp": "", "latency": 0.461, "usage": {"seconds": 20.1, "cost": 0.00144050000000067, "extra": {}}}
+{"id": "fleurs-pt/10396608688977778715", "hyp": "", "latency": 0.408, "usage": {"seconds": 12.48, "cost": 0.000894400000000416, "extra": {}}}
+{"id": "fleurs-pt/10447088554932977161", "hyp": "", "latency": 0.369, "usage": {"seconds": 9.24, "cost": 0.000662200000000308, "extra": {}}}
+{"id": "fleurs-pt/10481332407254391001", "hyp": "", "latency": 0.37, "usage": {"seconds": 13.74, "cost": 0.000984700000000458, "extra": {}}}
+{"id": "fleurs-pt/10505166955967423279", "hyp": "", "latency": 0.412, "usage": {"seconds": 20.4, "cost": 0.00146200000000068, "extra": {}}}
+{"id": "fleurs-pt/10556936069191551163", "hyp": "", "latency": 0.342, "usage": {"seconds": 6.48, "cost": 0.000464400000000216, "extra": {}}}
+{"id": "fleurs-pt/10559649525180085600", "hyp": "", "latency": 0.363, "usage": {"seconds": 12.84, "cost": 0.000920200000000428, "extra": {}}}
+{"id": "fleurs-pt/10563386743453394183", "hyp": "", "latency": 0.914, "usage": {"seconds": 13.98, "cost": 0.001001900000000466, "extra": {}}}
+{"id": "fleurs-pt/10572113470910404412", "hyp": "", "latency": 0.356, "usage": {"seconds": 10.44, "cost": 0.000748200000000348, "extra": {}}}
+{"id": "fleurs-pt/10574848004314450267", "hyp": "", "latency": 0.355, "usage": {"seconds": 12.96, "cost": 0.000928800000000432, "extra": {}}}
+{"id": "fleurs-pt/10605163429114699143", "hyp": "", "latency": 0.343, "usage": {"seconds": 9.24, "cost": 0.000662200000000308, "extra": {}}}
+{"id": "fleurs-pt/1060610497899453249", "hyp": "", "latency": 0.464, "usage": {"seconds": 20.64, "cost": 0.001479200000000688, "extra": {}}}
+{"id": "cv-pt-pt/common_voice_pt_39364757", "hyp": "Vulvarsoa Mutale.", "latency": 0.318, "usage": {"seconds": 4.356, "cost": 0.0003121800000001452, "extra": {}}}
+{"id": "cv-pt-pt/common_voice_pt_37106116", "hyp": "Atmeseyville.", "latency": 0.32, "usage": {"seconds": 3.888, "cost": 0.0002786400000001296, "extra": {}}}
+{"id": "cv-pt-pt/common_voice_pt_36886783", "hyp": "", "latency": 0.314, "usage": {"seconds": 4.788, "cost": 0.0003431400000001596, "extra": {}}}
+{"id": "cv-pt-pt/common_voice_pt_34892444", "hyp": "", "latency": 0.296, "usage": {"seconds": 3.6, "cost": 0.00025800000000012, "extra": {}}}
+{"id": "cv-pt-pt/common_voice_pt_42027923", "hyp": "Usewezu.", "latency": 0.314, "usage": {"seconds": 4.536, "cost": 0.0003250800000001512, "extra": {}}}
+{"id": "cv-pt-pt/common_voice_pt_36889617", "hyp": "Objective", "latency": 0.306, "usage": {"seconds": 1.62, "cost": 0.000116100000000054, "extra": {}}}
+{"id": "cv-pt-pt/common_voice_pt_39364819", "hyp": "Application programming interface API permit integration system mesh.", "latency": 0.326, "usage": {"seconds": 5.976, "cost": 0.0004282800000001992, "extra": {}}}
+{"id": "cv-pt-pt/common_voice_pt_38377500", "hyp": "Okay.", "latency": 0.316, "usage": {"seconds": 2.088, "cost": 0.0001496400000000696, "extra": {}}}
+{"id": "cv-pt-pt/common_voice_pt_40928985", "hyp": "Tordos Conios Celtics Iveros Delaix Dusitanj Celtics", "latency": 0.317, "usage": {"seconds": 10.188, "cost": 0.0007301400000003396, "extra": {}}}
+{"id": "cv-pt-pt/common_voice_pt_36886687", "hyp": "Arbitrats.", "latency": 0.349, "usage": {"seconds": 2.628, "cost": 0.0001883400000000876, "extra": {}}}
+{"id": "cv-pt-pt/common_voice_pt_34937916", "hyp": "", "latency": 0.298, "usage": {"seconds": 3.816, "cost": 0.0002734800000001272, "extra": {}}}
+{"id": "cv-pt-pt/common_voice_pt_36551063", "hyp": "Autonimatin's Da Silva", "latency": 0.306, "usage": {"seconds": 4.392, "cost": 0.0003147600000001464, "extra": {}}}
+{"id": "cv-pt-pt/common_voice_pt_39588407", "hyp": "Ah, move a card.", "latency": 0.304, "usage": {"seconds": 3.276, "cost": 0.0002347800000001092, "extra": {}}}
+{"id": "cv-pt-pt/common_voice_pt_39900315", "hyp": "Stoicon mise en precompareno khakhnov", "latency": 0.318, "usage": {"seconds": 4.14, "cost": 0.000296700000000138, "extra": {}}}
+{"id": "cv-pt-pt/common_voice_pt_39640179", "hyp": "Ethamb.", "latency": 0.315, "usage": {"seconds": 6.48, "cost": 0.000464400000000216, "extra": {}}}
+{"id": "cv-pt-pt/common_voice_pt_31842754", "hyp": "Otuno inferno, prevail tempo inferno.", "latency": 0.32, "usage": {"seconds": 4.968, "cost": 0.0003560400000001656, "extra": {}}}
+{"id": "cv-pt-pt/common_voice_pt_36991674", "hyp": "Corazon to multuaria dispatchers.", "latency": 0.323, "usage": {"seconds": 4.824, "cost": 0.0003457200000001608, "extra": {}}}
+{"id": "cv-pt-pt/common_voice_pt_37369213", "hyp": "", "latency": 0.311, "usage": {"seconds": 5.04, "cost": 0.000361200000000168, "extra": {}}}
+{"id": "cv-pt-pt/common_voice_pt_41061442", "hyp": "", "latency": 0.319, "usage": {"seconds": 10.188, "cost": 0.0007301400000003396, "extra": {}}}
+{"id": "cv-pt-pt/common_voice_pt_39793581", "hyp": "Epatriot Glorioso de Trimina Sainte Lourencia.", "latency": 0.322, "usage": {"seconds": 4.86, "cost": 0.000348300000000162, "extra": {}}}
+{"id": "cv-pt-pt/common_voice_pt_36855322", "hyp": "", "latency": 0.321, "usage": {"seconds": 10.44, "cost": 0.000748200000000348, "extra": {}}}
+{"id": "cv-pt-pt/common_voice_pt_39705627", "hyp": "Paulo de Sales should go to poise de Alfred Silva.", "latency": 0.328, "usage": {"seconds": 4.356, "cost": 0.0003121800000001452, "extra": {}}}
+{"id": "cv-pt-pt/common_voice_pt_39575686", "hyp": "Market research involves Schizad Mercado.", "latency": 0.321, "usage": {"seconds": 7.236, "cost": 0.0005185800000002412, "extra": {}}}
+{"id": "cv-pt-pt/common_voice_pt_41877524", "hyp": "Nauseam, triple detergent, opacus, and feciphus.", "latency": 0.331, "usage": {"seconds": 5.4, "cost": 0.00038700000000018, "extra": {}}}
+{"id": "cv-pt-pt/common_voice_pt_32314000", "hyp": "Ever the other reverse ill be on boof", "latency": 0.31, "usage": {"seconds": 4.68, "cost": 0.000335400000000156, "extra": {}}}
+{"id": "cv-pt-pt/common_voice_pt_42789609", "hyp": "", "latency": 0.307, "usage": {"seconds": 5.868, "cost": 0.0004205400000001956, "extra": {}}}
+{"id": "cv-pt-pt/common_voice_pt_23815862", "hyp": "", "latency": 0.311, "usage": {"seconds": 3.696, "cost": 0.0002648800000001232, "extra": {}}}
+{"id": "cv-pt-pt/common_voice_pt_26998407", "hyp": "Cuquenya cement to ensuing shows agnoea unsegrette", "latency": 0.318, "usage": {"seconds": 6.876, "cost": 0.0004927800000002292, "extra": {}}}
+{"id": "cv-pt-pt/common_voice_pt_39640240", "hyp": "", "latency": 0.471, "usage": {"seconds": 5.328, "cost": 0.0003818400000001776, "extra": {}}}
+{"id": "cv-pt-pt/common_voice_pt_32340986", "hyp": "", "latency": 0.307, "usage": {"seconds": 5.904, "cost": 0.0004231200000001968, "extra": {}}}
+{"id": "cv-pt-pt/common_voice_pt_39870563", "hyp": "", "latency": 0.304, "usage": {"seconds": 5.22, "cost": 0.000374100000000174, "extra": {}}}
+{"id": "cv-pt-pt/common_voice_pt_39916211", "hyp": "Livent Bandera Te Marte", "latency": 0.299, "usage": {"seconds": 3.636, "cost": 0.0002605800000001212, "extra": {}}}
+{"id": "cv-pt-pt/common_voice_pt_36845020", "hyp": "", "latency": 0.833, "usage": {"seconds": 5.688, "cost": 0.0004076400000001896, "extra": {}}}
+{"id": "cv-pt-pt/common_voice_pt_40807390", "hyp": "", "latency": 0.317, "usage": {"seconds": 5.688, "cost": 0.0004076400000001896, "extra": {}}}
+{"id": "cv-pt-pt/common_voice_pt_40385706", "hyp": "Continue.", "latency": 0.306, "usage": {"seconds": 2.556, "cost": 0.0001831800000000852, "extra": {}}}
+{"id": "cv-pt-pt/common_voice_pt_39796980", "hyp": "Object Oriented Programming Facilita Organise Sound du Coilho", "latency": 0.324, "usage": {"seconds": 6.588, "cost": 0.0004721400000002196, "extra": {}}}
+{"id": "cv-pt-pt/common_voice_pt_32932140", "hyp": "Mumbai", "latency": 0.3, "usage": {"seconds": 2.7, "cost": 0.00019350000000009, "extra": {}}}
+{"id": "cv-pt-pt/common_voice_pt_37106118", "hyp": "", "latency": 0.314, "usage": {"seconds": 5.22, "cost": 0.000374100000000174, "extra": {}}}
+{"id": "cv-pt-pt/common_voice_pt_36886787", "hyp": "", "latency": 0.307, "usage": {"seconds": 5.688, "cost": 0.0004076400000001896, "extra": {}}}
+{"id": "cv-pt-pt/common_voice_pt_34892447", "hyp": "Masakang.", "latency": 0.297, "usage": {"seconds": 2.628, "cost": 0.0001883400000000876, "extra": {}}}
+{"id": "cv-pt-br/common_voice_pt_37616530", "hyp": "Ilyvej Graci Hitalina.", "latency": 0.318, "usage": {"seconds": 3.564, "cost": 0.0002554200000001188, "extra": {}}}
+{"id": "cv-pt-br/common_voice_pt_40224406", "hyp": "Gigro and Grand Magalenecio Pub.", "latency": 0.356, "usage": {"seconds": 2.988, "cost": 0.0002141400000000996, "extra": {}}}
+{"id": "cv-pt-br/common_voice_pt_39575914", "hyp": "Augmented reality", "latency": 0.309, "usage": {"seconds": 8.28, "cost": 0.000593400000000276, "extra": {}}}
+{"id": "cv-pt-br/common_voice_pt_38058032", "hyp": "Immediately.", "latency": 0.317, "usage": {"seconds": 2.628, "cost": 0.0001883400000000876, "extra": {}}}
+{"id": "cv-pt-br/common_voice_pt_38816958", "hyp": "This is from Lattus Methodology in CNS.", "latency": 0.303, "usage": {"seconds": 6.084, "cost": 0.0004360200000002028, "extra": {}}}
+{"id": "cv-pt-br/common_voice_pt_32501234", "hyp": "", "latency": 0.311, "usage": {"seconds": 4.356, "cost": 0.0003121800000001452, "extra": {}}}
+{"id": "cv-pt-br/common_voice_pt_36468627", "hyp": "Kiloku.", "latency": 0.295, "usage": {"seconds": 2.628, "cost": 0.0001883400000000876, "extra": {}}}
+{"id": "cv-pt-br/common_voice_pt_36821394", "hyp": "Porquefosis known as Sabinx was propias noticias.", "latency": 0.318, "usage": {"seconds": 6.336, "cost": 0.0004540800000002112, "extra": {}}}
+{"id": "cv-pt-br/common_voice_pt_31397222", "hyp": "", "latency": 0.308, "usage": {"seconds": 6.912, "cost": 0.0004953600000002304, "extra": {}}}
+{"id": "cv-pt-br/common_voice_pt_36955900", "hyp": "", "latency": 0.301, "usage": {"seconds": 7.416, "cost": 0.0005314800000002472, "extra": {}}}
+{"id": "cv-pt-br/common_voice_pt_35843723", "hyp": "Palma.", "latency": 0.301, "usage": {"seconds": 2.016, "cost": 0.0001444800000000672, "extra": {}}}
+{"id": "cv-pt-br/common_voice_pt_39582644", "hyp": "Ashuki Now", "latency": 0.305, "usage": {"seconds": 2.628, "cost": 0.0001883400000000876, "extra": {}}}
+{"id": "cv-pt-br/common_voice_pt_32796837", "hyp": "Wiwapuru.", "latency": 0.318, "usage": {"seconds": 2.916, "cost": 0.0002089800000000972, "extra": {}}}
+{"id": "cv-pt-br/common_voice_pt_38114702", "hyp": "Monetariumage", "latency": 0.337, "usage": {"seconds": 3.708, "cost": 0.0002657400000001236, "extra": {}}}
+{"id": "cv-pt-br/common_voice_pt_38169351", "hyp": "Think about it.", "latency": 0.296, "usage": {"seconds": 2.808, "cost": 0.0002012400000000936, "extra": {}}}
+{"id": "cv-pt-br/common_voice_pt_39702862", "hyp": "", "latency": 0.71, "usage": {"seconds": 9.252, "cost": 0.0006630600000003084, "extra": {}}}
+{"id": "cv-pt-br/common_voice_pt_40918018", "hyp": "", "latency": 0.798, "usage": {"seconds": 5.436, "cost": 0.0003895800000001812, "extra": {}}}
+{"id": "cv-pt-br/common_voice_pt_39577994", "hyp": "", "latency": 0.301, "usage": {"seconds": 4.968, "cost": 0.0003560400000001656, "extra": {}}}
+{"id": "cv-pt-br/common_voice_pt_40019719", "hyp": "", "latency": 0.656, "usage": {"seconds": 3.456, "cost": 0.0002476800000001152, "extra": {}}}
+{"id": "cv-pt-br/common_voice_pt_38359377", "hyp": "Vena permissum verbi gratia vista viola soun permit facilita impression furnace cement.", "latency": 0.434, "usage": {"seconds": 9.9, "cost": 0.00070950000000033, "extra": {}}}
+{"id": "cv-pt-br/common_voice_pt_36458487", "hyp": "Inchimidacao", "latency": 0.32, "usage": {"seconds": 4.608, "cost": 0.0003302400000001536, "extra": {}}}
+{"id": "cv-pt-br/common_voice_pt_37487729", "hyp": "", "latency": 0.326, "usage": {"seconds": 7.02, "cost": 0.000503100000000234, "extra": {}}}
+{"id": "cv-pt-br/common_voice_pt_36803864", "hyp": "", "latency": 0.333, "usage": {"seconds": 9.684, "cost": 0.0006940200000003228, "extra": {}}}
+{"id": "cv-pt-br/common_voice_pt_38412878", "hyp": "Anarchismo, anarchista, anarcho, anarchia.", "latency": 0.315, "usage": {"seconds": 7.74, "cost": 0.000554700000000258, "extra": {}}}
+{"id": "cv-pt-br/common_voice_pt_38231851", "hyp": "Nicochinamida adenina benzo ileo jester feniglanino sinonkru.", "latency": 0.47, "usage": {"seconds": 6.804, "cost": 0.0004876200000002268, "extra": {}}}
+{"id": "cv-pt-br/common_voice_pt_37008964", "hyp": "Her duregansis dopaminergic es antagonism.", "latency": 0.413, "usage": {"seconds": 5.256, "cost": 0.0003766800000001752, "extra": {}}}
+{"id": "cv-pt-br/common_voice_pt_32885783", "hyp": "Vergonia Grita.", "latency": 0.772, "usage": {"seconds": 4.536, "cost": 0.0003250800000001512, "extra": {}}}
+{"id": "cv-pt-br/common_voice_pt_36961403", "hyp": "Call staff.", "latency": 0.403, "usage": {"seconds": 3.132, "cost": 0.0002244600000001044, "extra": {}}}
+{"id": "cv-pt-br/common_voice_pt_37405557", "hyp": "", "latency": 0.427, "usage": {"seconds": 6.66, "cost": 0.000477300000000222, "extra": {}}}
+{"id": "cv-pt-br/common_voice_pt_38254536", "hyp": "Macro, Lotuscript, Chordo script, QuickScript, SaksBasic, WordBasic, TwinWrap, Delphi.", "latency": 0.441, "usage": {"seconds": 10.116, "cost": 0.0007249800000003371, "extra": {}}}
+{"id": "cv-pt-br/common_voice_pt_37990973", "hyp": "Prescreevy", "latency": 0.393, "usage": {"seconds": 2.7, "cost": 0.00019350000000009, "extra": {}}}
+{"id": "cv-pt-br/common_voice_pt_39601887", "hyp": "Pancino quasicinon sagittala.", "latency": 0.399, "usage": {"seconds": 4.356, "cost": 0.0003121800000001452, "extra": {}}}
+{"id": "cv-pt-br/common_voice_pt_33771614", "hyp": "Ovelo, ultimo mestri trapezia.", "latency": 0.322, "usage": {"seconds": 5.148, "cost": 0.0003689400000001716, "extra": {}}}
+{"id": "cv-pt-br/common_voice_pt_38944527", "hyp": "", "latency": 0.412, "usage": {"seconds": 7.668, "cost": 0.0005495400000002556, "extra": {}}}
+{"id": "cv-pt-br/common_voice_pt_36462063", "hyp": "", "latency": 0.405, "usage": {"seconds": 7.38, "cost": 0.000528900000000246, "extra": {}}}
+{"id": "cv-pt-br/common_voice_pt_39748126", "hyp": "Nochi", "latency": 0.315, "usage": {"seconds": 1.98, "cost": 0.000141900000000066, "extra": {}}}
+{"id": "cv-pt-br/common_voice_pt_37293423", "hyp": "Petra Machupito Coliseo Taj Mahal.", "latency": 0.357, "usage": {"seconds": 5.58, "cost": 0.000399900000000186, "extra": {}}}
+{"id": "cv-pt-br/common_voice_pt_32381369", "hyp": "Eucopo Fazia semiplanta.", "latency": 0.413, "usage": {"seconds": 6.228, "cost": 0.0004463400000002076, "extra": {}}}
+{"id": "cv-pt-br/common_voice_pt_36464786", "hyp": "Guercitorno Mais Haras.", "latency": 0.393, "usage": {"seconds": 3.96, "cost": 0.000283800000000132, "extra": {}}}
+{"id": "cv-pt-br/common_voice_pt_39868025", "hyp": "Tuas Gay", "latency": 0.375, "usage": {"seconds": 3.456, "cost": 0.0002476800000001152, "extra": {}}}
