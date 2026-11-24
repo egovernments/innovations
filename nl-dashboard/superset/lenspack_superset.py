@@ -318,6 +318,8 @@ def lenspack_app_mutator(app):
                 info, _ = call("GET", "/_superset/info")
             usage, usage_error = call("GET", "/api/_usage")
             audit, audit_error = call("GET", "/_superset/audit?limit=20")
+            # What each answer cost, from the audit log (absent on a Lenspack without /_superset/turns: the card hides).
+            turns, _ = call("GET", "/_superset/turns?limit=50")
             databases = [
                 {"name": d.database_name, "backend": d.backend, "uri": d.sqlalchemy_uri, "datasets": len(d.tables)}  # URI password already masked
                 for d in db.session.query(Database).order_by(Database.database_name)
@@ -326,7 +328,7 @@ def lenspack_app_mutator(app):
             return self.render_template(
                 "lenspack/settings.html",
                 settings=settings, settings_error=settings_error, info=info, usage=usage, usage_error=usage_error,
-                audit=audit, audit_error=audit_error, databases=databases,
+                audit=audit, audit_error=audit_error, turns=turns, databases=databases,
                 account_roles=[r.name for r in account.roles] if account else None,
                 internal_url=LENSPACK_INTERNAL_URL, stt_models=stt_models, stt_bench=STT_BENCH,
             )
@@ -636,6 +638,26 @@ SETTINGS_HTML = r'''{# Settings → Manage → AI assistant. What Lenspack runs 
       {% else %}<p class="mute">Not available: {{ usage_error }}</p>{% endif %}
     </div>
   </div>
+
+  {% if turns and turns.enabled %}
+  <div class="lp-card">
+    <h2>Cost per answer</h2>
+    <p class="mute" style="margin:0 0 8px">What each chat answer cost: every model call it made (chat steps and the reviewer) plus speech to text when the question was spoken. {{ turns.estimate }} Read from the audit log, so it survives restarts.{% if settings and settings.features and settings.features.values.turnCost is sameas false %} The cost line in the chat is turned off (Off switches); costs are still recorded here.{% endif %}</p>
+    <table>
+      <tr><th>Today (UTC)</th><td>≈ ${{ '%.4f'|format(turns.today.costUsd) }} for {{ turns.today.turns }} answer{{ '' if turns.today.turns == 1 else 's' }}{% if turns.today.sttUsd %} <span class="mute">(speech to text ${{ '%.4f'|format(turns.today.sttUsd) }})</span>{% endif %} · {{ '{:,}'.format(turns.today.tokensIn) }} tokens in, {{ '{:,}'.format(turns.today.tokensOut) }} out</td></tr>
+      <tr><th>Last 7 days</th><td>≈ ${{ '%.4f'|format(turns.week.costUsd) }} for {{ turns.week.turns }} answer{{ '' if turns.week.turns == 1 else 's' }}{% if turns.week.sttUsd %} <span class="mute">(speech to text ${{ '%.4f'|format(turns.week.sttUsd) }})</span>{% endif %} · {{ '{:,}'.format(turns.week.tokensIn) }} tokens in, {{ '{:,}'.format(turns.week.tokensOut) }} out{% if turns.week.unpriced %} <span class="mute">({{ turns.week.unpriced }} unpriced calls not counted)</span>{% endif %}</td></tr>
+    </table>
+    {% if turns.recent %}
+    <details open><summary class="mute">Recent answers (newest first, last {{ turns.recent|length }})</summary>
+      <table class="lp-turns">
+        <tr><th>Time (UTC)</th><th>User</th><th>Dashboard</th><th>Model</th><th>Tokens in / out</th><th>Cost</th></tr>
+        {% for r in turns.recent %}<tr><td>{{ r.at[:19]|replace('T', ' ') }}</td><td>{{ r.user }}</td><td>{% if r.board and r.board.startswith('superset-') %}<a href="/superset/dashboard/{{ r.board[9:] }}/">{{ r.board[9:] }}</a>{% else %}{{ r.board or '' }}{% endif %}</td><td><code>{{ r.models|join(', ') }}</code></td><td>{{ '{:,}'.format(r.tokens['in']) }} / {{ '{:,}'.format(r.tokens.out) }}</td><td>≈ ${{ '%.4f'|format(r.costUsd) }}{% if r.sttUsd %} <span class="mute">(speech ${{ '%.4f'|format(r.sttUsd) }})</span>{% endif %}</td></tr>
+        {% endfor %}
+      </table>
+    </details>
+    {% else %}<p class="mute">No answers in the last 7 days.</p>{% endif %}
+  </div>
+  {% endif %}
 
   <div class="lp-card">
     <h2>Audit log</h2>
