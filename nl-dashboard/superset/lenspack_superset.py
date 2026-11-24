@@ -548,15 +548,15 @@ SETTINGS_HTML = r'''{# Settings → Manage → AI assistant. What Lenspack runs 
   </div>
 
   {% if settings.language %}{% set lg = settings.language %}
-  {% set names = {'auto': 'Follow the person (Superset language / browser)', 'en': 'English', 'fr': 'French', 'hi': 'Hindi', "board": "The board's language", 'speaker': 'The language of the question'} %}
+  {% set names = {'auto': 'Follow the person (Superset language / browser)', 'en': 'English', 'fr': 'French', 'hi': 'Hindi', 'pt': 'Portuguese', "board": "The board's language", 'speaker': 'The language of the question'} %}
   {% set opts = lg.options if lg.options is mapping else {} %}
   <div class="lp-card">
     <h2>Chat language</h2>
     <form class="lp-form" method="post" action="/ai-assistant/language">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <label>Replies in <select name="default" {% if not lg.writable %}disabled{% endif %}>{% for o in (opts.default or ['auto', 'en', 'fr', 'hi']) %}<option value="{{ o }}" {% if o == lg.default %}selected{% endif %}>{{ names.get(o, o) }}</option>{% endfor %}</select></label>
+      <label>Replies in <select name="default" {% if not lg.writable %}disabled{% endif %}>{% for o in (opts.default or ['auto', 'en', 'fr', 'hi', 'pt']) %}<option value="{{ o }}" {% if o == lg.default %}selected{% endif %}>{{ names.get(o, o) }}</option>{% endfor %}</select></label>
       <label>Chart titles in <select name="titles" {% if not lg.writable %}disabled{% endif %}>{% for o in (opts.titles or ['board', 'speaker']) %}<option value="{{ o }}" {% if o == lg.titles %}selected{% endif %}>{{ names.get(o, o) }}</option>{% endfor %}</select></label>
-      <label>Board language <select name="board" {% if not lg.writable %}disabled{% endif %}>{% for o in (opts.board or ['en', 'fr', 'hi']) %}<option value="{{ o }}" {% if o == lg.board %}selected{% endif %}>{{ names.get(o, o) }}</option>{% endfor %}</select></label>
+      <label>Board language <select name="board" {% if not lg.writable %}disabled{% endif %}>{% for o in (opts.board or ['en', 'fr', 'hi', 'pt']) %}<option value="{{ o }}" {% if o == lg.board %}selected{% endif %}>{{ names.get(o, o) }}</option>{% endfor %}</select></label>
       <button type="submit" {% if not lg.writable %}disabled{% endif %}>Save</button>
       {% if lg.source == 'settings' %}<button class="ghost" type="submit" name="reset" value="1" {% if not lg.writable %}disabled{% endif %}>Back to defaults</button>{% endif %}
     </form>
