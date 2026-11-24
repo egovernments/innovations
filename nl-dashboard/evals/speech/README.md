@@ -4,11 +4,13 @@
 speech-to-text models on 315 clips of read speech from public datasets: African-accented and European French, Hindi,
 and Brazilian and European Portuguese, about 31 minutes in all. **Mistral's Voxtral Mini Transcribe 3.0 is the
 default**: it is in the top group on every set (2.3% to 9.1% word error rate), barely changes when the panel doesn't
-say which language to expect, answers in about 0.7 s, and costs $0.0032 per minute of audio. Google's Gemini 3.5
+say which language to expect, answers in about 0.7 s (on the French and Hindi clips), and costs $0.0032 per minute
+of audio. Google's Gemini 3.5
 Transcribe is the alternative where Hindi matters most. The clips are clean read speech, so real voice notes will do
 worse; there is no labelled speech from Mozambique or Angola yet.
 
-The full report, with the method, every failure, the live-app incident and the licences, is
+The full report, with the method, every failure, a wrong-script transcript seen in the deployed app, and the
+licences, is
 [SPEECH.md](SPEECH.md). Every transcript and its score is in [`results/per_clip.csv`](results/per_clip.csv).
 
 ## Data
@@ -63,8 +65,8 @@ attribution in [SPEECH.md](SPEECH.md#attribution-and-licences).
 
 ## Models
 
-All 11 were called through OpenRouter's transcription endpoint, on 2026-11-22 (French and Hindi) and 2026-11-24
-(Portuguese). Each ran twice: once told the clip's language (*with the hint*) and once left to detect it (*no hint*),
+All 11 were called through OpenRouter's transcription endpoint (a service that resells many providers' models
+behind one API), on 22 November 2026 (French and Hindi) and 24 November 2026 (Portuguese). Each ran twice: once told the clip's language (*with the hint*) and once left to detect it (*no hint*),
 because the panel's **Auto** setting sends no hint.
 
 | Model | OpenRouter id |
@@ -89,12 +91,13 @@ A self-hosted Whisper large-v3 turbo (faster-whisper, int8, 8 CPU threads) was a
 **Word error rate (WER)** is the share of reference words the transcript got wrong (substituted, dropped or added),
 over all of a set's clips together; lower is better. Punctuation, case and apostrophes are ignored, and in French and
 Portuguese a lone digit from 0 to 10 counts as its word ([method](SPEECH.md#method)). Latency is the median time for one
-request; cost is OpenRouter's reported cost per minute of audio. Both are from the French and Hindi run; the
-Portuguese run's figures are in [SPEECH.md](SPEECH.md#portuguese) (Voxtral: 0.49 s, $0.0032).
+request; cost is OpenRouter's reported cost per minute of audio. **In the tables below, latency and cost cover only
+the French and Hindi clips** (210 of the 315), so the column headings say "fr + hi". Portuguese-only figures are in
+[SPEECH.md](SPEECH.md#portuguese) (Voxtral: 0.49 s, $0.0032).
 
 ### With the language hint
 
-| Model | Central Africa fr | Niger fr | FLEURS fr | FLEURS hi | CV Brazil pt | CV Portugal pt | FLEURS pt | Latency (s) | $ per audio min |
+| Model | Central Africa fr | Niger fr | FLEURS fr | FLEURS hi | CV Brazil pt | CV Portugal pt | FLEURS pt | Latency, fr + hi (s) | $ per audio min, fr + hi |
 |---|---|---|---|---|---|---|---|---|---|
 | AssemblyAI Universal-3.6 Pro | 6.6% | 8.5% | 3.9% | 9.4% | 8.9% | 14.1% | 2.7% | 0.37 | 0.0050 |
 | Deepgram Nova-3 | 5.1% | 8.6% | 7.5% | 14.0% | **3.0%** | **6.0%** | 7.2% | 0.65 | 0.0043 |
@@ -115,7 +118,7 @@ or two there is within noise.
 
 What the panel's Auto setting gets. The Central Africa set was not run without the hint.
 
-| Model | Niger fr | FLEURS fr | FLEURS hi | CV Brazil pt | CV Portugal pt | FLEURS pt | Latency (s) |
+| Model | Niger fr | FLEURS fr | FLEURS hi | CV Brazil pt | CV Portugal pt | FLEURS pt | Latency, fr + hi (s) |
 |---|---|---|---|---|---|---|---|
 | AssemblyAI Universal-3.6 Pro | **13.9%** | 4.1% | 9.3% | 9.8% | **22.6%** | 2.7% | 0.39 |
 | Deepgram Nova-3 | **97.1%** | **96.0%** | **100.3%** | **95.7%** | **93.6%** | **99.8%** | 0.55 |
@@ -143,7 +146,7 @@ Bold here marks a large drop from the hinted result. Without a hint:
 
 - **Accurate everywhere:** in the top group on every set, French, Hindi and Portuguese.
 - **Hardly affected by a missing hint,** which matters because Auto sends none.
-- **Fast:** 0.67 s median, among the three fastest.
+- **Fast:** 0.67 s median on the French and Hindi clips, among the three fastest.
 - **Cheap:** of the four models under 10% WER on Hindi, it is the cheapest, at $0.0032 per audio minute: under half a
   cent per minute of speech.
 
@@ -161,8 +164,7 @@ Bold here marks a large drop from the hinted result. Without a hint:
   Brazilian, but the accent itself is not tested.
 - **Read speech, not voice notes.** Real questions bring room noise, phone microphones, place and indicator names,
   numbers, and switching between languages. WER will be higher. Short voice notes of real dashboard questions, in
-  African-accented French and in Hindi, were requested from colleagues in the week of 2026-11-23; none are scored in
-  this folder yet.
+  African-accented French and in Hindi, have been requested from colleagues; none are scored in this folder yet.
 - **Not tested end to end with a real key.** The server's speech endpoint is tested against a stub provider; real
   clips through the deployed mic → server → provider path wait for a production speech-to-text key.
 - **Small sets.** 25 to 80 clips per set: enough to separate good from bad models, not to rank close ones.

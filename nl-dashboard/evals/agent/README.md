@@ -4,8 +4,9 @@
 Superset gives the right number, makes the right dashboard change, or says honestly that it can't. Every answer is
 checked against numbers computed separately in SQL. On the 68 core questions, Claude Haiku 5.5 gets 95% right with the
 best configuration, at about 0.15 US cents per right answer; Sonnet and Opus 5.5 score a little higher than Haiku
-on the same configuration, at 12 to 24 times the cost. After a person read every answer the scorer marked wrong, no
-model had stated a wrong number as fact. The data is a clean synthetic campaign, so treat these scores as a ceiling.
+on the same configuration, at 12 to 24 times the cost. A person read every answer the scorer marked as a wrong
+number stated as fact: on the core questions, none was. The data is a clean synthetic campaign, so treat these scores
+as a ceiling.
 
 | Page | What it answers |
 |---|---|
@@ -27,7 +28,8 @@ dashboard afterwards are scored. Three things matter:
 
 ## The questions
 
-85 questions in eleven groups. They are written in plain words; only the scoring side names Lenspack's measures.
+85 questions in eleven groups, numbered T1 to T11. They are written in plain words; only the scoring side names
+Lenspack's measures. Question ids such as T7.13 or E8 point to [QUESTIONS.md](QUESTIONS.md).
 
 | Kind | Questions | Groups | What a right reply does |
 |---|---|---|---|
@@ -45,10 +47,10 @@ the reply must say which one it gives.
 
 ## The data
 
-- **A synthetic campaign:** a 7-day nOPV2 polio vaccination campaign (12–18 October 2026) in three LGAs of Kebbi,
-  Nigeria: 50,000 child visits, about 24,000 households, 100 health facilities. It is loaded in eGov's development
-  ClickHouse (the unified-dev cluster) as eGov's ready-made Superset views (`default.su_ni_*`), plus eGov's analytics
-  tables. All figures on these pages come from it.
+- **A synthetic campaign:** a 7-day nOPV2 polio vaccination campaign (12–18 October 2026) in three local government
+  areas (LGAs, the district level below a Nigerian state) of Kebbi, Nigeria: 50,000 child visits, about 24,000
+  households, 100 health facilities. It is loaded in eGov's development ClickHouse database as eGov's ready-made
+  Superset views (`default.su_ni_*`), plus eGov's analytics tables. All figures on these pages come from it.
 - **Read through Superset,** as in production: Lenspack never connects to ClickHouse; it asks Superset for chart
   data. The truth SQL goes straight to ClickHouse, read-only.
 - **Not real campaign data.** The data is clean: exactly 50,000 visits, unique ward names, one week, no duplicates or
@@ -58,7 +60,8 @@ the reply must say which one it gives.
 ## Configurations
 
 Lenspack reads the data through a config file that lists the Superset datasets and gives the model its instructions.
-Three were tested. The file names are historical; these pages use the names in the first column.
+Three were tested. These pages use the names in the first column. In the file names, *pre-rebase* means before the
+move to eGov's views and *post-rebase* after it.
 
 | Name | File | What Lenspack reads |
 |---|---|---|
@@ -101,13 +104,14 @@ Code scores first; a judge model only labels declines. Full rules in [DESIGN.md]
   rankings by their members and order, series point by point.
 - **Ambiguous terms.** Any listed definition is accepted if the reply says which it used; the right number without
   that is partial ([DEFINITIONS.md](DEFINITIONS.md)).
-- **Dashboard edits: board diff.** The dashboard before and after are compared: the expected chart added or changed,
+- **Dashboard edits.** The dashboard before and after are compared: the expected chart added or changed,
   nothing else broken, and the new chart's data checked against the SQL. An edit with no reply is wrong; a right
   dashboard with changes nobody asked for is partial.
 - **Outcomes:** right, rightly declined, partial, wrong, and confidently wrong. *Pass* = right or rightly declined.
 - **Hand check.** Every answer scored confidently wrong is read by a person before it is reported. None so far was
-  the model's error; each was fixed in the scorer, the question or the judge and rescored offline
-  ([FAILURES.md §10](FAILURES.md#10-results-reclassified-after-the-hand-check)).
+  the model's error; each was fixed in the scorer, the question or the judge and rescored offline. The check works
+  the other way too: one answer the scorer marked partial (50 field workers, against 45) was a wrong figure stated as
+  fact ([FAILURES.md §10](FAILURES.md#10-results-reclassified-after-the-hand-check)).
 - **Repeats.** Each question is asked 3 times per model.
 
 ## Results
@@ -124,7 +128,7 @@ The 68 core questions, 3 tries each. Cells: pass rate · cost per right answer. 
 
 Sonnet and Opus were not run with definitions. Groups added later, Haiku with definitions: definitions 26/27, heatmaps
 9/9, maps 9/9, moving a chart 5/6 (English 3/3, Hindi 2/3). Wrong figures stated as fact after the hand check: 0 in
-every run.
+every run of the core questions, and 1 in the definitions group (the field-worker miscount above).
 
 What the results show:
 - **Configuration matters more than model.** No model says which definition it used unless the instructions name it;
@@ -159,7 +163,10 @@ pnpm eval:suite ... --rescore <run>.json     # rescore a stored run offline, no 
 ```
 
 - `--max-usd` caps the spend. A full run of all three models costs about $11–12.
-- The *own joins* config can't answer T9 (no access, team or settlement-type fields) or T10 (no day label), so run its
-  question set with `--tiers T1,T2,T3,T4,T5,T6,T7,T8`.
-- T10 needs a Lenspack with the heatmap chart; T11 one with maps (superset branch 271df6e or later) and a runner
-  whose scorer counts a map's point size and colour as its measure and dimension.
+- The `*-post-v2*` files are for the *eGov views + definitions* configuration; use `suite.yaml`, `truth.json` and
+  `board-seed-pre-rebase.json` for *own joins*, and `suite-post.yaml`, `truth-post.json` and
+  `board-seed-post-rebase.json` for *eGov views*.
+- The *own joins* config can't answer the definitions group (no access, team or settlement-type fields) or the heatmap
+  group (no day label), so run its question set with `--tiers T1,T2,T3,T4,T5,T6,T7,T8`.
+- The heatmap group needs a Lenspack build with the heatmap chart. The map group needs one with maps (Lenspack commit
+  271df6e or later) and a runner whose scorer counts a map's point size and colour as its measure and dimension.

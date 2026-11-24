@@ -5,7 +5,8 @@ actually said (on the synthetic data), the cause, and what changed. Run names ar
 in [RESULTS.md](RESULTS.md#run-history).
 
 **In short.**
-- After the hand check, no run had a wrong number stated as fact that was the model's fault.
+- After the hand check, no run of the core questions had a wrong number stated as fact. In the later definitions
+  group, one reply did (50 field workers instead of 45; §10), and the scorer had marked it only partial.
 - What separates the models is arithmetic over several steps (Haiku won't always divide two totals it already has).
 - What separates the configurations is whether the instructions name the definitions. No model says which definition
   it used unless the config tells it to.
@@ -17,7 +18,7 @@ in [RESULTS.md](RESULTS.md#run-history).
 
 | # | Failure | Where | Fixed in | Status |
 |---|---|---|---|---|
-| [1](#1-three-kpi-tiles-wouldnt-sit-in-one-row-lenspack-layout-bug) | Three KPI tiles asked for in one row ended up stacked | Lenspack layout | [lenspack#18](https://github.com/theflywheel/lenspack/pull/18), merged 2026-11-23 | fixed: 0/9 → 9/9 |
+| [1](#1-three-kpi-tiles-wouldnt-sit-in-one-row-lenspack-layout-bug) | Three KPI tiles asked for in one row ended up stacked | Lenspack layout | [lenspack#18](https://github.com/theflywheel/lenspack/pull/18) | fixed: 0/9 → 9/9 |
 | [2](#2-no-model-says-which-definition-it-used-unless-the-config-tells-it-to) | Right number, but no word on which definition it used | Lenspack config instructions | *eGov views + definitions* config | fixed where the config names the definition; the rest wait on eGov's answers in [DEFINITIONS.md](DEFINITIONS.md) |
 | [3](#3-haiku-wont-divide-totals-it-already-has) | Haiku gives two totals but won't divide them | model (Haiku) | | open; scored partial, never a wrong figure |
 | [4](#4-a-cut-off-series-read-as-complete) | A cut-off series read as if complete | model, with Lenspack's row limit | | open |
@@ -27,8 +28,8 @@ in [RESULTS.md](RESULTS.md#run-history).
 | [8](#8-what-moving-to-egovs-views-gained-and-lost) | Moving to eGov's views lost "people in households" | Lenspack config | *eGov views + definitions* config | fixed: restored as a people dataset |
 | [9](#9-superset-returned-the-wrong-dataset-for-a-name-lookup) | Superset sometimes returned the wrong dataset for a name lookup | Superset (Flask-AppBuilder) | [`lenspack_superset.py`](https://github.com/theflywheel/lenspack/blob/main/packages/superset/plugin/lenspack_superset.py) | fixed: 320/320 lookups correct |
 | [10](#10-results-reclassified-after-the-hand-check) | Answers the scorer marked wrong-as-fact that weren't | scorer, questions, judge | rescored offline | done; two scorer follow-ups open |
-| [11](#11-a-move-reported-success-but-left-the-chart-where-it-was-lenspack-bug-found-in-the-lab-demo) | A move reported success but left the chart where it was | Lenspack core | [lenspack#22](https://github.com/theflywheel/lenspack/pull/22), merged 2026-11-23 | fixed |
-| [12](#12-the-move-questions-a-right-board-reached-the-hard-way) | Moving a chart into a full row took 9–22 tool calls and changed other charts | Lenspack layout and prompt | [lenspack#25](https://github.com/theflywheel/lenspack/pull/25), merged 2026-11-23 | fixed: 1–3 calls, 5/6 pass; small wording slips remain |
+| [11](#11-a-move-reported-success-but-left-the-chart-where-it-was-lenspack-bug-found-in-the-lab-demo) | A move reported success but left the chart where it was | Lenspack core | [lenspack#22](https://github.com/theflywheel/lenspack/pull/22) | fixed |
+| [12](#12-the-move-questions-a-right-dashboard-reached-the-hard-way) | Moving a chart into a full row took 9–22 tool calls and changed other charts | Lenspack layout and prompt | [lenspack#25](https://github.com/theflywheel/lenspack/pull/25) | fixed: 1–3 calls, 5/6 pass; small wording slips remain |
 
 **Terms.** *Own joins*, *eGov views* and *eGov views + definitions* are the three Lenspack configurations tested
 ([README](README.md#configurations)). *Partial* is the right figure but incomplete, or without its definition.
@@ -37,9 +38,9 @@ are listed in [QUESTIONS.md](QUESTIONS.md).
 
 ## 1. Three KPI tiles wouldn't sit in one row (Lenspack layout bug)
 
-**Question:** "Add a row of three KPI tiles across the top: children vaccinated, children coverage %, and zero-dose children."
-**Question:** T7.2. **Result:** 0/9 for every model on [full run 1](runs/2026-11-22T17-26-23.md) (own joins). 9/9 on a
-Lenspack build with lenspack#18 ([edits rerun](runs/2026-11-22T17-58-30-pr18.md)).
+**Question (T7.2):** "Add a row of three KPI tiles across the top: children vaccinated, children coverage %, and
+zero-dose children." **Result:** 0/9 for every model on [full run 1](runs/2026-11-22T17-26-23.md) (own joins). 9/9 on
+a Lenspack build with the fix ([edits rerun](runs/2026-11-22T17-58-30-pr18.md)).
 
 Haiku, before the fix, made 18 tool calls: 3× add_widget, 7× move_widget, 5× resize_widget, get_board, set_layout_mode
 and list_versions. It ended with three full-width tiles stacked:
@@ -59,9 +60,9 @@ top_kpi_zero_dose            x=8 y=0 w=4
 ```
 > I added a top row of three KPI tiles, each a third of the width: Children vaccinated, Children coverage %, and Zero-dose children, in that order.
 
-**Cause:** in Lenspack core's placement (`place`/`pack` with `grid.fill`), a lone widget added at the top was widened
-to the edge, so the next one couldn't sit beside it. The same three adds in one batch formed a row. lenspack#18 makes
-sequential adds fill the current row, like a batch. The other T7 questions were unchanged by the fix.
+**Cause:** when a single tile was added at the top, Lenspack widened it to the right edge of the dashboard, so the
+next tile couldn't sit beside it. The same three tiles added in one step did form a row. The fix makes tiles added one
+at a time fill the current row, as if added together. The other dashboard-edit questions were unchanged by the fix.
 
 ## 2. No model says which definition it used unless the config tells it to
 
@@ -76,7 +77,8 @@ sequential adds fill the current row, like a batch. The other T7 questions were 
 
 > A total of 47,798 children were vaccinated across the campaign. This figure is distinct children and includes children recorded on a revisit. *(Haiku, T1.6, eGov views)*
 
-Definitions the config didn't mention stayed silent. Zero-dose share was disclosed by Haiku in 2/9 replies. The *eGov views + definitions*
+Where the config didn't mention a definition, the replies didn't either: Haiku named its zero-dose share definition in
+2/9 replies. The *eGov views + definitions*
 config named zero-dose share, wastage and thresholds; Haiku went to 9/9 on zero-dose and from 15 to 7 "right number,
 definition unsaid" overall ([Haiku run with definitions](runs/2026-11-22T18-53-20.md)).
 
@@ -135,7 +137,8 @@ included" isn't yet in the scorer's list of context phrases.
 > In Kalgo LGA there are 25 health facilities with registered households. Zero-dose children are reported at 19 of them; the other 6 have none in the data. *(Haiku, own joins; question T6.4)*
 
 The truth has zero-dose children at facilities the reply left out (Sabana East Health Post 5, Kwakware Health Post 11,
-…). The result was cut at a row limit, and the reply read the cut as "none". This is the same family as #4: a top-N result taken for the whole.
+…). The result was cut at a row limit, and the reply read the cut as "none". This is the same kind of failure as §4:
+the first rows of a result taken for the whole.
 
 ## 6. The instructions left location out of the visit fields
 
@@ -175,39 +178,42 @@ household-member count; the *eGov views* pack didn't. Every model then declined 
 
 > I can't give you that number, because this data doesn't record how many people live in each household. It only counts households and the eligible children in them. *(Opus, eGov views)*
 
-*eGov views + definitions* restored it as a people dataset over eGov's member view (`su_ni_member`). Its total and per-LGA figures equal direct SQL and the
-household registry mart. T1.7 and T7.7 then went to 3/3:
+*eGov views + definitions* restored it as a people dataset over eGov's household-member view (`su_ni_member`). Its
+total and per-LGA figures equal direct SQL and the household registry table in eGov's analytics database. T1.7 and T7.7 then went to 3/3:
 
 > About 121,720 people live in the registered households, across all campaign days and places. *(Haiku, eGov views + definitions)*
 
 ## 9. Superset returned the wrong dataset for a name lookup
 
-**Symptom:** a pack build occasionally lost or swapped an entity with no error. It was seen 3 times in 9 builds:
-ni_members came back as ni_missed, ni_team_stock as ni_members, ni_coverage as ni_visits. It broke the first run with definitions
-([Haiku run with definitions](runs/2026-11-22T18-53-20.md): the pack had no member entity, so T1.7 and T7.7 failed). It also explains two earlier build
-errors ("dataset not found", "also names own entity") and a **startup flake**: one restart of the live Lenspack built
-7 of 8 entities, with ni_facilities missing, and the next restart was fine.
+**Symptom:** when Lenspack built its vocabulary (the *pack*) from Superset, it occasionally lost or swapped one of its
+datasets (an *entity*) with no error. It was seen 3 times in 9 builds: ni_members came back as ni_missed,
+ni_team_stock as ni_members, ni_coverage as ni_visits. It broke the first run with definitions
+([Haiku run with definitions](runs/2026-11-22T18-53-20.md): the pack had no people dataset, so T1.7 and T7.7 failed).
+It also explains two earlier build errors ("dataset not found", "also names own entity") and a **one-off failure at
+startup**: one restart of the live Lenspack built 7 of 8 entities, with ni_facilities missing, and the next restart
+was fine.
 
 **Cause:** Flask-AppBuilder 4.5.5, which Superset 5 pins, keeps a list request's filters on the API view object shared
 across gunicorn threads. Two concurrent `GET /api/v1/dataset/?q=(filters:…)` calls can swap filters, and each gets the
 other's dataset (21 of 320 concurrent lookups in a test loop). Chart data is built per request and was never affected:
 0 mismatches across about 1,350 stored eval queries and 88 concurrent calls.
 
-**Fix:** list filters are built per request (first in `superset_config.py`, commit 1dea630, now in
-Lenspack's [`lenspack_superset.py`](https://github.com/theflywheel/lenspack/blob/main/packages/superset/plugin/lenspack_superset.py); 320/320 correct after it). Lenspack's Superset client also looks datasets up one at a time and keeps only an exact name match. The
+**Fix:** list filters are built per request (first in `superset_config.py`, now in Lenspack's
+[`lenspack_superset.py`](https://github.com/theflywheel/lenspack/blob/main/packages/superset/plugin/lenspack_superset.py);
+320/320 correct after it). Lenspack's Superset client also looks datasets up one at a time and keeps only an exact name match. The
 eval harness checks every dataset name before it trusts a pack. After the fix, 15 of 15 pack builds were clean with
 no retries. Every full run reported here was checked: its tool outputs show the expected entities.
 
 ## 10. Results reclassified after the hand check
 
 Every *confidently wrong* result was read before reporting. None turned out to be the model's error. Each fix was a
-scorer, suite, judge or infrastructure change, applied to the stored runs by rescoring offline.
+change to the scorer, a question, the judge or the infrastructure, applied to the stored runs by rescoring offline.
 
 **Haiku once over every question** ([run](runs/2026-11-22T16-44-31.md)): 2 as scored.
 
 | Question | Raw | Why it was wrong to call it that | Fix |
 |---|---|---|---|
-| E3 wards under 100 on any day | confidently wrong | Haiku answered from a ward × day series; the question was answerable, so the suite was wrong to expect a decline | moved to T6.5 with SQL truth |
+| E3 wards under 100 on any day | confidently wrong | Haiku answered from a ward × day series; the question was answerable, so it was wrong to expect a decline | moved to T6.5 with SQL truth |
 | E6 this week vs last week | confidently wrong (judge: answered) | "Zero against zero; the data sits in October" is the good reply | clearer note; judge moved from Haiku to Sonnet |
 
 The same pass also showed two scorer misses, scored partial rather than wrong: "Day 3" written for 14 Oct, and "Eight
@@ -227,7 +233,7 @@ wards" written as a word. Both are read now.
 
 | Question | Models | Raw | Why | Fix |
 |---|---|---|---|---|
-| T1.7 people in households | all three models, 7 | confidently wrong | moving to eGov's views removed the measure, so declining was right | T1.7 is an expected fail for the *eGov views* pack, answerable again in v2 |
+| T1.7 people in households | all three models, 7 | confidently wrong | moving to eGov's views removed the measure, so declining was right | T1.7 is an expected fail for *eGov views*, answerable again with *eGov views + definitions* |
 | E8 field worker | Haiku ×2, Opus ×1 | confidently wrong (judge: answered) | eGov's views exposed `team` (a login), so the question became answerable, and these replies were right | E8 is an answer question with eGov's views, truth USR-318022 / 1,592 |
 | T6.3 children per vial | Sonnet ×3 | confidently wrong | "I can't give you that number yet … the pack has no measure": an open decline on an answerable question | scored "wrong (declined)", not confidently wrong |
 
@@ -240,129 +246,135 @@ called this partial, because the query was right. By the meaning of the metric i
 follow-up for the runner: on a scalar question, a stated wrong number should be confidently wrong even when the query
 was right.
 
-**Edit rules added 2026-11-23** (§12), applied to every stored run by rescoring: five T7.2 turns from before the KPI-row
-fix moved from partial to wrong, because they ran out of steps and sent no reply (own joins: Opus ×1; eGov views: Opus
-×2, Haiku ×1; eGov views + definitions: Haiku ×1). None of them was a pass before, so no pass rate changed. The move run went from 6/6 to 0/6.
+**Edit rules added later** (§12), applied to every stored run by rescoring: five turns of the three-KPI-tiles question
+from before its fix moved from partial to wrong, because they ran out of steps and sent no reply (own joins: Opus ×1;
+eGov views: Opus ×2, Haiku ×1; eGov views + definitions: Haiku ×1). None of them was a pass before, so no pass rate
+changed. The first move run went from 6/6 to 0/6.
 
 ## 11. A move reported success but left the chart where it was (Lenspack bug, found in the lab demo)
 
 **What happened.** On the lab demo, asked in Hindi to "put this one up top with the other bar graphs too", the model
-called `move_widget` three times on "Children vaccinated by ward". It was alone at full width in the last row (row 7),
-and the other bar charts were in rows 2 and 3. Each call answered `applied: true` with a new version (v3 to v5), and the
-dashboard saved and refreshed each time. The chart's position and size afterwards were the same as before. The model
-then said honestly that the move hadn't worked.
+called `move_widget` three times on "Children vaccinated by ward". The chart was alone at full width in the last row
+(row 7), and the other bar charts were in rows 2 and 3. Each call answered `applied: true` with a new dashboard
+version, and the dashboard saved and refreshed each time. The chart's position and size afterwards were the same as
+before. The model then said honestly that the move hadn't worked.
 
-The same thing without a model, on a copy of the dashboard, with the tool's ops (resize the chart to half, then move it
-`after:` the first chart in row 2):
+The same thing happened without a model, on a copy of the dashboard, with the same tool steps (resize the chart to
+half width, then move it after the first chart in row 2):
 
 ```
 before:  row 2 = 4+8 wide, row 3 = 6+6, ... row 7 = ward chart, 12 wide
 after:   the same: ward chart at the bottom, 12 wide, reported as moved
 ```
 
-**Root cause.** In `packages/core/src/ops.ts`, `place()` handled `place: "after:<id>"` by scanning down from the anchor's
-row for the first free slot wide enough. Before the fix this was the line `if (anchor) startY = anchor.y;`, followed by
-the first-fit loop. Two board shapes defeat that scan:
+**Cause.** To place a chart "after" another one, Lenspack looked down from that chart's row for the first free space
+wide enough. Two dashboard shapes defeat that search:
 
-- **Packed boards** (`grid.fill`, which every Superset dashboard is): packing widens the last widget on each row to the
-  edge, so no row has a gap. The first free slot below the anchor is the one the moved widget has just left.
-- **Unpacked boards**: narrowing widgets leaves gaps where they were. A row can have enough room in total but split into
-  gaps (two thirds wide, with two 2-column gaps), and no single gap is wide enough.
+- **Packed dashboards**, which every Superset dashboard is. *Packing* widens the last chart on each row to the right
+  edge, so no row has a gap. The first free space below the target is the one the moved
+  chart has just left.
+- **Unpacked dashboards.** Narrowing charts leaves gaps where they were. A row can have enough room in total but split
+  into gaps (two thirds wide, with two 2-column gaps), and no single gap is wide enough.
 
-On both, the widget went back where it was, and nothing checked that the move had changed anything. The tool's
+On both, the chart went back where it was, and nothing checked that the move had changed anything. The tool's
 follow-up resize (to half) was then undone by packing, which widened the lone chart back to the edge.
 
-**When it was introduced.** With the move op itself, in Lenspack 0.1.0 (58f0e77, 2026-09-22). Packing (5235d2c,
-2026-09-23) made the full-row case the normal state of a packed board. It is not from lenspack#18: the core repro gives
-the same unchanged position at 3d38280 (before #18), at 1d52ad8 (#18), and at the superset head before the fix. The
-commerce eval's C16 (a plain, unpacked board) also fails at all three.
+The bug was there from the first version of Lenspack's move operation. It became the normal case once Lenspack began
+packing rows, since then every row is full. It was not caused by the KPI-row fix (§1): the same steps fail before and
+after that fix. A move test in Lenspack's other evaluation suite, on a plain unpacked dashboard, also failed.
 
 **Why tests and evals missed it.**
-- Core had no `move_widget` test at all.
-- The MCP tool test moved a widget to the top and checked only that the call reported `applied`, not where the widget
+- Lenspack's core had no test for moving a chart.
+- The tool's own test moved a chart to the top and checked only that the call reported `applied`, not where the chart
   ended up.
-- The dashboard-edit group had no move question. Its questions add, change, rename and remove widgets, and the KPI-row fix (§1) was about adds.
-- Every check trusted the op's own report of success.
+- The dashboard-edit group had no move question. Its questions add, change, rename and remove charts, and the
+  KPI-row fix (§1) was about adds.
+- Every check trusted the operation's own report of success.
 
-**The fix** (lenspack#22 into main; on the superset branch as 062bcb1 and 158da81):
-- `after:<id>` goes beside the anchor when the anchor's row has room.
+**The fix** ([lenspack#22](https://github.com/theflywheel/lenspack/pull/22)):
+- "After" a chart means beside it when its row has room.
 - When the row's room is split into gaps, the row slides left to join them first.
-- A really full row gets a new row straight after the anchor's row, and everything below moves down.
+- A full row gets a new row straight after it, and everything below moves down.
 - The move tool resizes before it moves, so it looks for room at the width asked for.
 
 **Prevention.**
 - A move that ends where it started is now an error, not a success: "Moving "<id>" there changes nothing: it is
   already in that position", with a hint naming what to say instead. The model can no longer be told "done" for a
-  board that didn't change.
-- Core tests for each shape: a packed board with every row full, room beside the anchor, room split into gaps (C16's
-  exact scenario), and a move with no effect.
-- C16 in the stub suite now passes, so it leaves the suite's known bugs. Two "move X up beside Y" questions were added
-  (T7.13 in English, T7.14 in Hindi; §12), and their check reads the board, not the tool's reply.
+  dashboard that didn't change.
+- Core tests for each shape: a packed dashboard with every row full, room beside the target, room split into gaps,
+  and a move with no effect.
+- The failing move test in Lenspack's other suite now passes. Two "move X up beside Y" questions were added (T7.13 in
+  English, T7.14 in Hindi; §12), and their check reads the dashboard, not the tool's reply.
 
-**Other deployments.** The bug predates the main branch's current code, so every Lenspack build with `move_widget` has
-it, including builds that never had #18. On unpacked boards it shows when the anchor's row has no single wide-enough
-gap; on packed boards, whenever the rows are full. lenspack#22 was merged into main on 2026-11-23; other deployments get the fix when they rebuild.
+**Other deployments.** Every Lenspack build with the move tool had the bug, including builds without the KPI-row fix.
+On unpacked dashboards it shows when the target's row has no single wide-enough gap; on packed dashboards, whenever
+the rows are full. The fix is in Lenspack's main branch; other deployments get it when they rebuild.
 
-## 12. The move questions: a right board, reached the hard way
+## 12. The move questions: a right dashboard, reached the hard way
 
-**What was run.** After the fix in §11, two questions reproduce the lab-demo request on a copy of the seed dashboard:
-the ward coverage bar starts alone at full width at the bottom, and the LGA coverage bar shares its row with a pie, half
-and half, so that row is full. T7.13 asks in English ("Move the ward coverage bar chart up next to the LGA coverage bar
-chart"), T7.14 in Hindi ("वार्ड वाला बार ग्राफ भी ऊपर LGA वाले बार ग्राफ के साथ रख दो ना"). The check reads the board: the ward
-bar must end on the LGA bar's row with nothing overlapping. A reply saying there's no room, with the board untouched,
-also passes; a reply claiming a move the board doesn't show is confidently wrong. Haiku × 3 on Lenspack's superset
-branch at 29ead1f ([first move run](runs/2026-11-23T05-40-14.md), $0.03).
+**What was run.** After the fix in §11, two questions reproduce the lab-demo request on a copy of the starting
+dashboard: the ward coverage bar starts alone at full width at the bottom, and the LGA coverage bar shares its row
+with a pie, half and half, so that row is full. T7.13 asks in English ("Move the ward coverage bar chart up next to the
+LGA coverage bar chart"), T7.14 in Hindi ("वार्ड वाला बार ग्राफ भी ऊपर LGA वाले बार ग्राफ के साथ रख दो ना"). The check
+reads the dashboard: the ward bar must end on the LGA bar's row with nothing overlapping. A reply saying there's no
+room, with the dashboard untouched, also passes; a reply claiming a move the dashboard doesn't show is confidently
+wrong. Haiku × 3 ([first move run](runs/2026-11-23T05-40-14.md), $0.03).
 
 **Result.** In all six turns the ward bar ended beside the LGA bar at half width, and Hindi questions got Hindi
 replies saying what moved:
 
 > वार्ड वाला बार ग्राफ (c50) अब LGA वाले बार ग्राफ (c49) के बगल में, आधी चौड़ाई पर, ऊपर की पंक्ति में है। इसके लिए "Vaccinated children: gender" वाला पाई चार्ट (c52) नीचे सबसे आखिर में पूरी चौड़ाई पर चला गया है। *(T7.14, repeat 1: the ward bar is now beside the LGA bar, at half width; to make room the gender pie went to the bottom.)*
 
-At run time, scored on the board alone, that was 6/6. Reading every turn showed three things the board check missed.
+Scored on the dashboard alone, as the scorer did then, that was 6/6. Reading every turn showed three things the
+dashboard check missed.
 
-**1. The first move landed on the wrong row, every time.** `move_widget` with `place: "after:c49"` into the full row
-answered `applied: true` and put the ward bar on the next row down, still at full width. That isn't a no-op, so §11's new
-error doesn't fire. Haiku then worked it out by trial and error, sending the pie in the LGA row to the bottom: 9 to 22
-tool calls per turn, 15 seconds median, against 1 to 4 calls for most edits ([RESULTS.md](RESULTS.md#dashboard-edits-tool-calls-and-time)).
+**1. The first move landed on the wrong row, every time.** Moving the ward bar after the LGA bar, into the full row,
+answered `applied: true` and put the ward bar on the next row down, still at full width. That isn't a move with no
+effect, so §11's new error doesn't fire. Haiku then worked it out by trial and error, sending the pie in the LGA row
+to the bottom: 9 to 22 tool calls per turn, 15 seconds median, against 1 to 4 calls for most edits
+([RESULTS.md](RESULTS.md#dashboard-edits-tool-calls-and-time)).
 
-**2. Other charts changed.** Once the pie left the LGA row, the board's packing widened the zero-dose pie and the
+**2. Other charts changed.** Once the pie left the LGA row, packing widened the zero-dose pie and the
 planned-vs-actual line from half to full width and swapped their order, in five of six turns. In two turns Haiku
-switched the board's fill setting off to get the layout it wanted. One reply said so plainly:
+switched the dashboard's fill setting off to get the layout it wanted. One reply said so plainly:
 
 > Moving it pushed the other charts down and widened them … I tried to restore their half widths but the board kept them full, so they remain full width. *(T7.13, repeat 2)*
 
 **3. One turn ended in silence.** T7.13 repeat 1 used all 12 steps the chat allows a turn and sent no text. The person
 asking would see a changed dashboard and no reply.
 
-**Scorer change.** Both gaps are now in the scorer (lenspack `evals/suite` 686718d), for every edit question:
-- an edit that changes the board but sends no reply is **wrong**;
-- a right board with **collateral changes** is **partial**. That means the board's fill or density toggled, or a chart
-  outside the edited rows resized, slid or reordered. Charts sharing a row with the edited ones are exempt, because the
-  board's own packing legitimately resizes them (remove one KPI tile and its neighbour widens).
-- Each run page lists tool calls and latency per edit question, so a right board reached by trial and error shows up.
+**Scorer change.** Both gaps are now in the scorer, for every edit question:
+- an edit that changes the dashboard but sends no reply is **wrong**;
+- a right dashboard with **changes nobody asked for** is **partial**. That means the dashboard's fill or density
+  setting toggled, or a chart outside the edited rows resized, slid or reordered. Charts sharing a row with the edited
+  ones are exempt, because packing legitimately resizes them (remove one KPI tile and its neighbour widens).
+- Each run page lists tool calls and latency per edit question, so a right dashboard reached by trial and error shows
+  up.
 
 Rescored, the move run is 0/6: five partial (other charts resized; fill off once) and one wrong (no reply). Across all
-runs, about 300 other right edits had no collateral changes, so the rule doesn't fire on ordinary adds, removes,
+runs, about 300 other right edits had no unrequested changes, so the rule doesn't fire on ordinary adds, removes,
 retitles or filters.
 
-**Fixes in Lenspack** (planned after the first move run; both shipped in fix round 2, below):
-- A move into a full row will say so in the tool result: the row was full, where the widget went, and what to shrink or
-  move. It will also name any widgets that packing widened as a side effect.
-- A turn that reaches the step limit will still end with a short summary.
+**Fixes in Lenspack**, planned after the first move run and both shipped in the second round below:
+- A move into a full row says so in the tool result: the row was full, where the chart went, and what to shrink or
+  move. It also names any charts that packing widened as a side effect.
+- A turn that reaches the step limit still ends with a short summary.
 
-**Fix round 1** (Lenspack superset branch 701a644; [run](runs/2026-11-23T06-07-20.md), 3/6). A move `after:<id>` into a full row now
-makes room beside the anchor, and packing no longer widens untouched widgets. The first call landed right in every
-turn: LGA bar 3 | ward bar 6 | pie 3, with a note naming what was resized. Haiku then resized the LGA bar back to half,
+**First round of fixes** ([run](runs/2026-11-23T06-07-20.md), 3/6). A move into a full row now makes room beside the
+target, and packing no longer widens untouched charts. The first call landed right in every turn: LGA bar 3 | ward
+bar 6 | pie 3 (widths out of 12), with a note naming what was resized. Haiku then resized the LGA bar back to half,
 and that pushed the ward bar off the row; the note said only "also resized: c50 6→12", not that it had left the row.
-Haiku looped between move and resize (8–16 tool calls). Three of six replies said the board readings were inconsistent
-and the layout couldn't be confirmed, two of them on a right board. One turn reached the step limit and ended on a
-refusal message with the board scrambled.
+Haiku looped between move and resize (8–16 tool calls). Three of six replies said the dashboard readings were
+inconsistent and the layout couldn't be confirmed, two of them on a right dashboard. One turn reached the step limit
+and ended on a refusal message with the dashboard scrambled.
 
-**Fix round 2** (Lenspack superset branch d33dc24, lenspack#25, merged 2026-11-23; [run](runs/2026-11-23T06-31-41.md), **6/6** as run, 5/6 under the [second scoring change](RESULTS.md#when-the-scoring-rules-tightened)):
-- a resize in a full row narrows its row-mates, or refuses, and never pushes one off the row;
+**Second round of fixes** ([lenspack#25](https://github.com/theflywheel/lenspack/pull/25);
+[run](runs/2026-11-23T06-31-41.md), **6/6** as run, 5/6 under the
+[second scoring change](RESULTS.md#when-the-scoring-rules-tightened)):
+- a resize in a full row narrows the other charts in that row, or refuses, and never pushes one off the row;
 - notes name row changes, and say when a row is full and no resize is needed;
-- a turn that reaches the step limit ends with a description of the board;
-- a race in reading the board back was fixed (prompt v14).
+- a turn that reaches the step limit ends with a description of the dashboard;
+- a timing bug in reading the dashboard back was fixed.
 
 Five of six turns made the move in one call; the sixth also widened the LGA bar back to half and sent the pie to its
 own row, and said so. Mean tool calls fell from 12.3 to 1.7 (English) and 3.0 (Hindi), median latency from about 15 s to
@@ -370,10 +382,10 @@ about 4 s. No other row changed in any turn. The replies name what was narrowed 
 
 > The ward coverage chart now sits in row 3, beside the LGA coverage chart. To make room, the LGA chart was narrowed to 3/12 and the "Vaccinated children: gender" pie to 3/12, so I can widen either back if you want. *(T7.13, repeat 2)*
 
-Small slips remain in the wording: one reply calls 3/12 "a third", one Hindi reply says "first row" for row 3, and one
-Hindi reply opens by addressing the user by a name it made up ("ललित"), with no name anywhere in the turn.
+Small slips remained in the wording: one reply calls 3/12 "a third", one Hindi reply says "first row" for row 3, and
+one Hindi reply opens by addressing the user by a name it made up ("ललित"), with no name anywhere in the turn.
 
-**Latest check** ([prompt v15 run](runs/2026-11-23T07-37-21.md), Lenspack superset branch 2829038): row numbers and
-width words in the replies now come from the tool's notes, and replies never address the user by name. 5/6 pass: the
-English question 3/3, the Hindi one 2/3 (the miss was partial: the chart moved, but the model also sent the pie that
-shared the row to a row of its own at full width, and said so). 2 tool calls on average, about 4 to 6 s.
+**Latest check** ([run](runs/2026-11-23T07-37-21.md), after a prompt change): row numbers and width words in the
+replies now come from the tool's notes, and replies never address the user by name. 5/6 pass: the English question
+3/3, the Hindi one 2/3 (the miss was partial: the chart moved, but the model also sent the pie that shared the row to
+a row of its own at full width, and said so). 2 tool calls on average, about 4 to 6 s.

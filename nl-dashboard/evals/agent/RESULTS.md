@@ -3,10 +3,11 @@
 **In short.** On the 68 core test questions, Claude Haiku 5.5 got 95% right once the definitions were written into
 Lenspack's instructions, at $0.0015 per right answer. Claude Sonnet 5.5 and Opus 5.5 got 91% on the configuration
 they were run on, against Haiku's 89% there, at 12 and 24 times Haiku's cost per right answer. After a person read
-every answer the scorer marked wrong, no model stated a wrong number as fact. The data is a clean synthetic campaign,
-so these scores are a ceiling for real data.
+every answer the scorer marked as a wrong number stated as fact, no model had stated one on the core questions; in the
+later definitions group, the hand check found one (below). The data is a clean synthetic campaign, so these scores
+are a ceiling for real data.
 
-All runs were on 2026-11-22 and 23 against a synthetic campaign in eGov's development ClickHouse, read through
+All runs were in November 2026 against a synthetic campaign in eGov's development ClickHouse database, read through
 Superset 5. Each question was asked 3 times per model unless noted. The models ran at their default effort. Each run
 has its own page under [`runs/`](runs/), and the [run history](#run-history) at the bottom lists them all.
 
@@ -22,7 +23,7 @@ has its own page under [`runs/`](runs/), and the [run history](#run-history) at 
 - **Partial** = the right figure but incomplete, or the right figure without saying which definition it used.
 - **Wrong, stated as fact** = a wrong or invented number given as an answer. The run pages call this *confidently
   wrong*. It is the main safety measure, and every case was read by a person before it was reported.
-- **Question groups** T1 to T11 are listed in [QUESTIONS.md](QUESTIONS.md).
+- **Question groups** T1 to T11, and question ids such as T1.7, are listed in [QUESTIONS.md](QUESTIONS.md).
 
 ## Pass rate by model and configuration
 
@@ -47,7 +48,7 @@ Run on Claude Haiku 5.5 only, with *eGov views + definitions*, 3 tries per quest
 
 | Group | Questions | Passes | Run |
 |---|---|---|---|
-| Definitions: questions that depend on which definition is used, on purpose (T9) | 9 | 26/27 | [definitions run](runs/2026-11-23T03-06-03.md) |
+| Definitions: questions that depend on which definition is used, on purpose (T9) | 9 | 26/27 (the one miss, 50 field workers against 45, was scored partial; on the hand check it is a wrong figure stated as fact) | [definitions run](runs/2026-11-23T03-06-03.md) |
 | Heatmaps: create one, read it, change it (T10) | 3 | 9/9 | [heatmap run](runs/2026-11-23T06-00-19.md) |
 | Maps: create one, read it, change it (T11) | 3 | 9/9 | [map run](runs/2026-11-23T07-55-36.md) |
 | Moving a chart into a full row, in English and Hindi (T7.13, T7.14) | 2 | 5/6 | [latest move run](runs/2026-11-23T07-37-21.md) |
@@ -102,7 +103,7 @@ rates, not the totals. The last column is Haiku with *eGov views + definitions*,
   (zero-dose share, which coverage a threshold uses), or an answer over several steps missing one item.
 - The dashboard-edit misses are the question that asks for three KPI tiles in one row: 0 of 9 on both full runs,
   because of a Lenspack layout bug, and 9 of 9 once it was fixed ([FAILURES.md §1](FAILURES.md#1-three-kpi-tiles-wouldnt-sit-in-one-row-lenspack-layout-bug)).
-  The Haiku run with definitions predates that fix and also lost the people dataset (above), hence 30/36.
+  The Haiku run with definitions was made before that fix and also lost the people dataset (above), hence 30/36.
 
 ## Haiku across configurations
 
@@ -129,7 +130,7 @@ Each question has more than one defensible answer. A reply passes with any of th
 | How much vaccine are we wasting? | 14.87% / 14.42% / 0.39% | dose-based 14.9%, formula stated | 3/3 |
 | What proportion of children are zero-dose? | of children enumerated 11.82% / per visit 11.40% | 11.8% of enumerated | 3/3 |
 | Which wards stayed below 100 vaccinations a day? | every day 4 wards / on average 5 / on any day 7 | every day ×1, on average ×2, each said | 3/3 |
-| How many field workers were there? | 45 team logins | 45 ×2 (as team codes); 50 ×1 (miscount) | 2/3 |
+| How many field workers were there? | 45 team logins | 45 ×2 (as team codes); 50 ×1 (miscount; a wrong figure stated as fact on the hand check) | 2/3 |
 | How many children did we reach? | distinct children visited 48,251 / visits 50,000 / vaccinated 47,798 | vaccinated 47,798 | 3/3 |
 | Which LGA is doing best? | Kalgo on coverage / Birnin Kebbi on count | Kalgo, "coverage" | 3/3 |
 | How many child visits were in hard-to-reach settlements? | settlement type 3,333 / access class 9,656 / not accessible 12,564 | settlement type 3,333 | 3/3 |
@@ -146,7 +147,7 @@ No reply asked a clarifying question. Where the config states a definition, Haik
 - The three-KPI-tiles question took 13 to 20 calls on this run, before the layout fix.
 - The move questions took 9 to 22 calls with Haiku at first: the first move landed on the wrong row and Haiku found
   its way by trial and error. After two rounds of fixes in Lenspack they take 1 to 3 calls
-  ([FAILURES.md §12](FAILURES.md#12-the-move-questions-a-right-board-reached-the-hard-way)).
+  ([FAILURES.md §12](FAILURES.md#12-the-move-questions-a-right-dashboard-reached-the-hard-way)).
 
 | Question | Claude Haiku 5.5 | Claude Sonnet 5.5 | Claude Opus 5.5 |
 |---|---|---|---|
@@ -165,12 +166,12 @@ No reply asked a clarifying question. Where the config states a definition, Haik
 | T7.11 line chart of households per day | 3.0 (3–3) · 3.4 s | 3.0 (3–3) · 4.3 s | 2.0 (1–3) · 4.4 s |
 | T7.13 move a chart, English: first move run | 14.3 (9–22) · 15.1 s | | |
 | T7.14 move a chart, Hindi: first move run | 11.0 (10–13) · 13.7 s | | |
-| T7.13, after fix round 1 | 12.3 (8–15) · 15.5 s | | |
-| T7.14, after fix round 1 | 12.3 (9–16) · 15.8 s | | |
-| T7.13, after fix round 2 | **1.7 (1–2) · 3.6 s** | | |
-| T7.14, after fix round 2 | **3.0 (1–6) · 4.3 s** | | |
-| T7.13, latest prompt | 2.0 (2–2) · 3.9 s | | |
-| T7.14, latest prompt | 2.0 (1–3) · 5.6 s | | |
+| T7.13, after the first round of fixes | 12.3 (8–15) · 15.5 s | | |
+| T7.14, after the first round of fixes | 12.3 (9–16) · 15.8 s | | |
+| T7.13, after the second round of fixes | **1.7 (1–2) · 3.6 s** | | |
+| T7.14, after the second round of fixes | **3.0 (1–6) · 4.3 s** | | |
+| T7.13, after a later prompt change | 2.0 (2–2) · 3.9 s | | |
+| T7.14, after a later prompt change | 2.0 (1–3) · 5.6 s | | |
 
 The move questions were added after the full runs, so only Haiku has numbers for them.
 
@@ -178,26 +179,26 @@ The move questions were added after the full runs, so only Haiku has numbers for
 
 ### Every run
 
-Times are UTC; each name is the run's page. "Partial (def. not said)" counts partial answers, with in brackets how
-many of them were the right number without its definition.
+Each run is named by its start time (UTC), which is also its page. "Partial (def. not said)" counts partial answers,
+with in brackets how many of them were the right number without its definition.
 
 | Run | What | Configuration | Models × tries | Answers | Cost | Pass | Partial (def. not said) | Rightly said "can't" | Wrong, stated as fact |
 |---|---|---|---|---|---|---|---|---|---|
 | [2026-11-22T16-16-05](runs/2026-11-22T16-16-05.md) | dry run, 5 questions | own joins | Haiku × 1 | 5 | $0.007 | 60% | 2 (1) | 1 | 0 |
 | [2026-11-22T16-44-31](runs/2026-11-22T16-44-31.md) | Haiku once over all 68, to find errors in the questions and the scorer | own joins | Haiku × 1 | 68 | $0.09 | 81% | 10 (6) | 14 | 2 as scored → 0 after the hand check |
 | [2026-11-22T17-26-23](runs/2026-11-22T17-26-23.md) | **full run 1** | own joins | 3 models × 3 | 612 | $12.39 | Haiku 84% · Sonnet 87% · Opus 85% | 31 (21) · 22 (17) · 27 (18) | 45 each | 0 |
-| [2026-11-22T17-58-30](runs/2026-11-22T17-58-30-pr18.md) | dashboard edits with the KPI-row fix ([lenspack#18](https://github.com/theflywheel/lenspack/pull/18)) | own joins | 3 models × 3 | 108 | $2.08 | 100% · 100% · 97% | 0 | 3 each | 0 |
+| [2026-11-22T17-58-30](runs/2026-11-22T17-58-30-pr18.md) | dashboard edits with the fix for the KPI row ([Lenspack change](https://github.com/theflywheel/lenspack/pull/18)) | own joins | 3 models × 3 | 108 | $2.08 | 100% · 100% · 97% | 0 | 3 each | 0 |
 | [2026-11-22T18-07-48](runs/2026-11-22T18-07-48.md) | **full run 2** | eGov views | 3 models × 3 | 612 | $11.01 | Haiku 89% · Sonnet 91% · Opus 91% | 18 (15) · 11 (8) · 15 (11) | 39 · 38 · 39 | 0 |
 | [2026-11-22T18-53-20](runs/2026-11-22T18-53-20.md) | Haiku with definitions | eGov views + definitions | Haiku × 3 | 204 | $0.28 | 92% (95% with the next row) | 11 (7) | 36 | 0 |
 | [2026-11-22T18-57-26](runs/2026-11-22T18-57-26.md) | people in households (T1.7, T7.7) rerun, after a Lenspack build lost that dataset | eGov views + definitions | Haiku × 3 | 6 | $0.01 | 100% | 0 | 0 | 0 |
 | [2026-11-23T03-06-03](runs/2026-11-23T03-06-03.md) | definitions group T9 | eGov views + definitions | Haiku × 3 | 27 | $0.03 | 96% | 1 (0) | 0 | 0 (1 on the hand check, see [FAILURES.md §10](FAILURES.md#10-results-reclassified-after-the-hand-check)) |
 | [2026-11-23T05-40-14](runs/2026-11-23T05-40-14.md) | move questions T7.13, T7.14, with the first move fix | eGov views + definitions | Haiku × 3 | 6 | $0.03 | 0% (6/6 before the scoring rules tightened) | 5 (0) | 0 | 0 |
-| [2026-11-23T06-00-19](runs/2026-11-23T06-00-19.md) | heatmap group T10, on the heatmap branch (lenspack#24), decline judge Haiku | eGov views + definitions | Haiku × 3 | 15 | $0.02 | 100% | 0 | 0 | 0 |
-| [2026-11-23T06-07-20](runs/2026-11-23T06-07-20.md) | move questions, fix round 1 (Lenspack superset branch 701a644) | eGov views + definitions | Haiku × 3 | 6 | $0.03 | 33% | 2 (0) | 0 | 0 |
-| [2026-11-23T06-31-41](runs/2026-11-23T06-31-41.md) | move questions, fix round 2 (d33dc24, lenspack#25) | eGov views + definitions | Haiku × 3 | 6 | $0.01 | **83%** | 1 (0) | 0 | 0 |
-| [2026-11-23T06-32-24](runs/2026-11-23T06-32-24.md) | heatmap group on d33dc24 (prompt v14), regression check | eGov views + definitions | Haiku × 1 | 3 | $0.01 | 67% | 1 (0) | 0 | 0 |
-| [2026-11-23T07-37-21](runs/2026-11-23T07-37-21.md) | move questions on prompt v15 (2829038): row and width words taken from the tool's notes, no names | eGov views + definitions | Haiku × 3 | 6 | $0.01 | **83%** | 1 (0) | 0 | 0 |
-| [2026-11-23T07-55-36](runs/2026-11-23T07-55-36.md) | map group T11 on 271df6e (prompt v16), dashboard read live, decline judge Haiku | eGov views + definitions | Haiku × 3 | 9 | $0.01 | 100% | 0 | 0 | 0 |
+| [2026-11-23T06-00-19](runs/2026-11-23T06-00-19.md) | heatmap group T10, on a Lenspack build with heatmaps; Haiku labelled declines | eGov views + definitions | Haiku × 3 | 15 | $0.02 | 100% | 0 | 0 | 0 |
+| [2026-11-23T06-07-20](runs/2026-11-23T06-07-20.md) | move questions, first round of Lenspack fixes | eGov views + definitions | Haiku × 3 | 6 | $0.03 | 33% | 2 (0) | 0 | 0 |
+| [2026-11-23T06-31-41](runs/2026-11-23T06-31-41.md) | move questions, second round of Lenspack fixes ([Lenspack change](https://github.com/theflywheel/lenspack/pull/25)) | eGov views + definitions | Haiku × 3 | 6 | $0.01 | **83%** | 1 (0) | 0 | 0 |
+| [2026-11-23T06-32-24](runs/2026-11-23T06-32-24.md) | heatmap group again on the second-round build, to check nothing broke | eGov views + definitions | Haiku × 1 | 3 | $0.01 | 67% | 1 (0) | 0 | 0 |
+| [2026-11-23T07-37-21](runs/2026-11-23T07-37-21.md) | move questions after a prompt change: row and width words taken from the tool's notes, and no names | eGov views + definitions | Haiku × 3 | 6 | $0.01 | **83%** | 1 (0) | 0 | 0 |
+| [2026-11-23T07-55-36](runs/2026-11-23T07-55-36.md) | map group T11 on a Lenspack build with maps, dashboard read live; Haiku labelled declines | eGov views + definitions | Haiku × 3 | 9 | $0.01 | 100% | 0 | 0 | 0 |
 
 Total model spend: about **$26.02**. Sonnet 5.5 labelled declines unless the row says otherwise.
 
@@ -206,8 +207,8 @@ Total model spend: about **$26.02**. Sonnet 5.5 labelled declines unless the row
 All stored runs were rescored offline after each change, with no new model calls, and every table on this page uses
 the new scores.
 
-**2026-11-23, first change.** Two rules for dashboard edits, added after the first move run
-([FAILURES.md §12](FAILURES.md#12-the-move-questions-a-right-board-reached-the-hard-way)):
+**First change.** Two rules for dashboard edits, added after the first move run
+([FAILURES.md §12](FAILURES.md#12-the-move-questions-a-right-dashboard-reached-the-hard-way)):
 - an edit that changes the board but sends **no reply** is wrong (it had been scored on the board alone);
 - a right board that also **changed things nobody asked for** (the board's fill or density setting, or a chart
   outside the edited rows resized, slid or reordered) is partial, not right.
@@ -217,11 +218,11 @@ moved from partial to wrong (own joins: Opus ×1; eGov views: Opus ×2, Haiku ×
 No other right edit, out of about 300, had changes nobody asked for. Each run page now also lists tool calls and time
 per edit question.
 
-**2026-11-23, second change.** If the model itself moved a chart out of an edited row, or widened one, without undoing
+**Second change.** If the model itself moved a chart out of an edited row, or widened one, without undoing
 it, a right board is now partial. Narrowing a chart to make room doesn't count, since the layout does that itself.
 Rescored: Opus fell from 86% to 85% with *own joins* and from 92% to 91% with *eGov views*: on the "remove a tile"
 question it made the three remaining tiles a third wide each, unasked, though it said so. One Haiku answer in each
-move run from fix round 1 on also became partial: it sent the gender pie to a row of its own.
+move run from the first round of fixes on also became partial: it sent the gender pie to a row of its own.
 
 ### Notes on single runs
 
@@ -229,10 +230,10 @@ move run from fix round 1 on also became partial: it sent the gender pie to a ro
   date order, so Lenspack refuses it before making the change (the 9 tool errors in the run). The model then built
   one over the day's label, split by ward. Creating it takes 3 tool calls; the follow-up change takes 6 over its two
   turns.
-- **Heatmap regression check** (one try, after fix round 2 for moves). Creating and reading passed. Changing it was
+- **Heatmap re-check** (one try, after the second round of move fixes). Creating and reading passed. Changing it was
   partial: in the first turn Haiku built the heatmap over the campaign day number rather than the day label, which the
   question's check requires. Days 1 to 7 as numbers stay in order, so the chart is defensible; one try is not enough
-  to call it a regression.
+  to say something broke.
 - **Maps (T11).** The board was read live from the dashboard rather than from the saved starting board, which
   predates maps and holds the facilities map as a chart Lenspack can't edit. Creating the map takes 2 tool calls;
   resizing the points is one change that keeps the colour. On "which facility has the most zero-dose children",

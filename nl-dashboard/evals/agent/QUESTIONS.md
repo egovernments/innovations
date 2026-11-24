@@ -5,12 +5,15 @@ Hindi (T7.14). None are in French or Portuguese yet.
 
 - **Expect** says what a right reply does: *answer* (give the figure, list or series), *edit* (change the dashboard),
   or *decline* (say it can't, or give an open partial answer).
-- **Truth** is computed in SQL straight from ClickHouse (`truth/truth-post-v2.json`); the SQL is in the suite file.
-  `alt` lists other accepted definitions, accepted only when the reply says which one it used. "board diff" means the
-  check compares the dashboard before and after.
-- **Tags:** `ambiguous` = more than one defensible answer (see [DEFINITIONS.md](DEFINITIONS.md)). For the "can't"
-  questions, `why` gives the reason: *engine* (Lenspack can't express it), *pack* (the config doesn't expose data that
+- **Truth** is computed in SQL straight from ClickHouse (`truth/truth-post-v2.json`); the SQL is in the question
+  file. `alt` lists other accepted definitions, accepted only when the reply says which one it used. "board diff"
+  means the check compares the dashboard before and after.
+- **Tags:** `ambiguous` = more than one defensible answer (see [DEFINITIONS.md](DEFINITIONS.md)). `trap` =
+  averaging percentages instead of dividing totals gives a wrong answer. For the "can't" questions, `why` gives the
+  reason: *engine* (Lenspack can't express it), *pack* (the config doesn't expose data that
   exists), *data* (the data can't answer it), *scope* (outside this deployment).
+- **Ids:** questions starting with E were first written as expected fails. E3 turned out to be answerable and became
+  T6.5; E8, E10 and E11 became answerable with eGov's views and sit in T2.
 - **Source:** this is the current set (`suite/suite-post-v2.yaml`, for the *eGov views + definitions* config). It is
   generated from `suite/suite.yaml` by `make_post_suite.py v2`; only the measure names differ between configs.
 
@@ -31,7 +34,7 @@ Hindi (T7.14). None are in French or Portuguese yet.
 
 | # | Question | Expect | Tags | Truth |
 |---|---|---|---|---|
-| T2.1 | Break down the child visits by outcome. | answer |  | ABSENT 138; REFUSED 314; REVISIT 213; CLOSED_HOUSEHOLD 1,750 … · alt: SMC mart administration status ADMINISTRATION_SUCCESS 47,585; CLOSED_HOUSEHOLD 1,750; VISITED 213; ADMINISTRATION_FAILED 452 |
+| T2.1 | Break down the child visits by outcome. | answer |  | ABSENT 138; REFUSED 314; REVISIT 213; CLOSED_HOUSEHOLD 1,750 … · alt: administration status in eGov's analytics tables ADMINISTRATION_SUCCESS 47,585; CLOSED_HOUSEHOLD 1,750; VISITED 213; ADMINISTRATION_FAILED 452 |
 | T2.2 | How many children were vaccinated in Kalgo? | answer | ambiguous | 11,347 · alt: outcome VACCINATED only 11,299 |
 | T2.3 | How many vaccinated children were girls and how many were boys? | answer |  | MALE 23,829; FEMALE 23,969 |
 | T2.4 | Households registered in each LGA. | answer |  | Kalgo 5,661; Gwandu 8,753; Birnin Kebbi 9,547 |
@@ -52,7 +55,7 @@ Hindi (T7.14). None are in French or Portuguese yet.
 | T3.3 | How many households were registered each day? | answer |  | 2026-10-12 3,117; 2026-10-13 3,606; 2026-10-14 3,637; 2026-10-15 3,576 … |
 | T3.4 | Plot cumulative children vaccinated against the plan, as a share of target, by day. | edit |  | 2026-10-12 12.31%; 2026-10-13 26.53%; 2026-10-14 40.78%; 2026-10-15 54.68% … |
 | T3.5 | Child visits per day in Gwandu. | answer |  | 2026-10-12 2,431; 2026-10-13 2,784; 2026-10-14 2,779; 2026-10-15 2,677 … |
-| T3.6 | How many children were vaccinated in the last 30 days? | decline | why: data | The data ends 18 Oct 2026 and the eval clock is 22 Nov, so the window is empty. A good reply says so and offers the campaign's dates (or gives the campaign tota |
+| T3.6 | How many children were vaccinated in the last 30 days? | decline | why: data | The data ends 18 Oct 2026 and the eval clock is 22 Nov, so the window is empty. A good reply says so and offers the campaign's dates (or gives the campaign total, saying it's from 12–18 Oct). |
 
 ## T4. Ratios and coverage against targets (8)
 
@@ -114,14 +117,14 @@ Hindi (T7.14). None are in French or Portuguese yet.
 | # | Question | Expect | Tags | Truth |
 |---|---|---|---|---|
 | E1 | What is coverage for children 3–11 months versus 12–59 months? | decline | why: data | Targets have no age split. Good reply gives vaccinated by age band and says there is no denominator per band. |
-| E2 | Show the running total of children vaccinated for each LGA, day by day. | decline | why: engine | Windowed series per group (backlog |
+| E2 | Show the running total of children vaccinated for each LGA, day by day. | decline | why: engine | A running total per group over time; Lenspack can't compute one yet. |
 | E4 | How does this campaign compare with the Chad campaign? | decline | why: scope |  |
 | E5 | How many children completed all three cycles? | decline | why: data | There is one cycle in this field test. Saying so is the right answer. |
-| E6 | How does this week compare with last week? | decline | why: data | Nothing after 18 Oct 2026; the eval clock is 22 Nov, so this week and last week are both empty. A good reply says there is no data in either week and points to  |
+| E6 | How does this week compare with last week? | decline | why: data | Nothing after 18 Oct 2026; the eval clock is 22 Nov, so this week and last week are both empty. A good reply says there is no data in either week and points to 12–18 Oct; zero against zero stated with that explanation is a decline, not an answer. |
 | E7 | What is the average time between registering a household and vaccinating its children? | decline | why: engine |  |
 | E9 | What share of refusals were converted to vaccinations on a revisit? | decline | why: engine |  |
 | E12 | What is coverage for each vaccination team? | decline | why: pack | No team target, and team isn't exposed. |
-| E13 | Show doses administered and households registered side by side, broken down by outcome. | decline | why: engine | Households have no outcome; a cross-entity breakdown by a one-sided dimension has returned []. Good reply says households can't be split by outcome. |
+| E13 | Show doses administered and households registered side by side, broken down by outcome. | decline | why: engine | Households have no outcome, so splitting both by outcome returns nothing for households. Good reply says households can't be split by outcome. |
 | E14 | What is the average household size for female-headed households? | decline | why: data | No head-of-household gender in the household mart. |
 
 ## T9. Definitions: questions that hang on a definition, on purpose (9)
@@ -152,8 +155,8 @@ ward. *eGov views* configs only.
 ## T11. Maps (3)
 
 A map is a points query on an entity with a location (the facilities dataset's latitude and longitude); in Superset
-it is a `deck_scatter`. Dashboard 7 already has one (Health facilities). *eGov views* configs with the facility metrics,
-and a Lenspack with maps (superset branch 271df6e or later).
+it is a `deck_scatter` chart. The starting dashboard already has one (Health facilities). Needs an *eGov views* config
+with the facility measures, and a Lenspack build with maps (commit 271df6e or later).
 
 | # | Question | Expect | Tags | Truth |
 |---|---|---|---|---|

@@ -1,11 +1,12 @@
 # Evaluations
 
-We test two parts of the Superset + Lenspack stack. Both use data that is safe to publish.
+We test two parts of the Superset + Lenspack stack: the chat agent that answers questions and edits dashboards, and
+the speech-to-text model behind the chat's microphone. Both tests use data that is safe to publish.
 
 | What | Question it answers | Headline | Details |
 |---|---|---|---|
-| **The chat agent** | Does Lenspack answer questions about campaign data correctly, and edit dashboards the way it was asked? | Claude Haiku 5.5: 95% right on the 68 core questions, $0.0015 per right answer, no wrong figure stated as fact | [agent/](agent/README.md) |
-| **Speech to text for the mic** | Which model turns a spoken question into the right text in French, Hindi and Portuguese? | Mistral Voxtral Mini Transcribe 3.0 is the default: 2.3–9.1% word error rate, 0.67 s, $0.0032 per audio minute | [speech/](speech/README.md) |
+| **The chat agent** | Does Lenspack answer questions about campaign data correctly, and edit dashboards the way it was asked? | Claude Haiku 5.5: 95% right on the 68 core questions, $0.0015 per right answer, no wrong figure stated as fact on them | [agent/](agent/README.md) |
+| **Speech to text for the mic** | Which model turns a spoken question into the right text in French, Hindi and Portuguese? | Mistral Voxtral Mini Transcribe 3.0 is the default: 2.3–9.1% of words wrong, 0.67 s per request, $0.0032 per audio minute (speed and cost measured on the French and Hindi clips) | [speech/](speech/README.md) |
 
 ## The chat agent
 
@@ -27,9 +28,9 @@ honest "can't" when the data can't answer, and above all no wrong figure stated 
 The 68 *core questions* ran on all three models; the other 17 were added later and ran on Haiku only. Full list:
 [agent/QUESTIONS.md](agent/QUESTIONS.md).
 
-**The data.** A synthetic 7-day polio vaccination campaign (50,000 child visits in three LGAs of Kebbi, Nigeria),
-loaded in eGov's development ClickHouse as eGov's ready-made Superset views, and read through Superset as in
-production. No real campaign data. Three Lenspack configurations were compared: our own joins over eGov's analytics
+**The data.** A synthetic 7-day polio vaccination campaign: 50,000 child visits in three local government areas
+(LGAs, the district level below a Nigerian state) of Kebbi, Nigeria. It is loaded in eGov's development ClickHouse
+database as eGov's ready-made Superset views, and read through Superset as in production. No real campaign data. Three Lenspack configurations were compared: our own joins over eGov's analytics
 tables (*own joins*), eGov's views as they are (*eGov views*), and eGov's views with each ambiguous definition written
 into the instructions (*eGov views + definitions*).
 
@@ -61,9 +62,11 @@ figure stated as fact is read by a person before it is reported. [Scoring rules]
 | Claude Opus 5.5 | 85% · $0.046 | 91% · $0.038 | |
 | Run | [full run 1](agent/runs/2026-11-22T17-26-23.md) | [full run 2](agent/runs/2026-11-22T18-07-48.md) | [Haiku run](agent/runs/2026-11-22T18-53-20.md) + [rerun of 2 questions](agent/runs/2026-11-22T18-57-26.md) |
 
-Sonnet and Opus were not run with definitions, so those cells are blank. After the hand check, no run had a wrong
-figure stated as fact. Questions added later (Haiku, *eGov views + definitions*): definitions 26/27, heatmaps 9/9,
-maps 9/9, moving a chart 5/6.
+Sonnet and Opus were not run with definitions, so those cells are blank. After the hand check, no model stated a
+wrong figure as fact on the core questions. Questions added later (Haiku, *eGov views + definitions*): definitions
+26/27, heatmaps 9/9, maps 9/9, moving a chart 5/6. In the definitions group the hand check found one wrong figure
+stated as fact that the scorer had marked partial: 50 field workers instead of 45
+([details](agent/FAILURES.md#10-results-reclassified-after-the-hand-check)).
 
 | Language | Questions | Claude Haiku 5.5 | Claude Sonnet 5.5 | Claude Opus 5.5 |
 |---|---|---|---|---|
@@ -79,8 +82,9 @@ questions found Lenspack layout bugs, now fixed. Details: [agent/RESULTS.md](age
 
 ## Speech to text
 
-**What is tested.** 11 speech-to-text models on 315 clips of read speech from public datasets (about 31 minutes),
-each run told the language (*hint*) and not told, because the panel's Auto setting sends no hint.
+**What is tested.** 11 speech-to-text models on 315 clips of read speech from public datasets (about 31 minutes).
+Each model ran twice: once told the clip's language (the *hint*) and once not told, because the chat panel's Auto
+language setting sends no hint.
 
 **The data.**
 
@@ -105,10 +109,12 @@ each run told the language (*hint*) and not told, because the panel's Auto setti
 
 More, with clip ids: [speech/README.md](speech/README.md#example-sentences).
 
-**Results.** Word error rate (share of words wrong; lower is better), with the hint → without it. The Central Africa
-set ran with the hint only. Latency (median per request) and cost are from the French and Hindi run.
+**Results.** Word error rate (the share of words transcribed wrong; lower is better), with the hint → without it.
+The Central Africa set ran with the hint only. Latency (median time per request) and cost per audio minute were
+measured on the French and Hindi clips only (210 of the 315), with the hint. Portuguese-only latency and cost are in
+[speech/SPEECH.md](speech/SPEECH.md#portuguese); for Voxtral they are 0.49 s and $0.0032.
 
-| Model | Central Africa fr | Niger fr | FLEURS fr | FLEURS hi | CV Brazil pt | CV Portugal pt | FLEURS pt | Latency (s) | $ per audio min |
+| Model | Central Africa fr | Niger fr | FLEURS fr | FLEURS hi | CV Brazil pt | CV Portugal pt | FLEURS pt | Latency, fr + hi (s) | $ per audio min, fr + hi |
 |---|---|---|---|---|---|---|---|---|---|
 | AssemblyAI Universal-3.6 Pro | 6.6% | 8.5 → 13.9% | 3.9 → 4.1% | 9.4 → 9.3% | 8.9 → 9.8% | 14.1 → 22.6% | 2.7 → 2.7% | 0.37 | 0.0050 |
 | Deepgram Nova-3 | 5.1% | 8.6 → 97.1% | 7.5 → 96.0% | 14.0 → 100.3% | 3.0 → 95.7% | 6.0 → 93.6% | 7.2 → 99.8% | 0.65 | 0.0043 |
@@ -134,7 +140,9 @@ provider key. Details: [speech/README.md](speech/README.md), full report [speech
 
 ## Re-running
 
-**Chat agent** (from `agent/`; the runner is `pnpm eval:suite` in Lenspack's `evals/suite` branch):
+**Chat agent** (from `agent/`; the runner is `pnpm eval:suite` on the `evals/suite` branch of the Lenspack
+repository). The `*-post-v2*` files are the question set, truth and starting dashboard for the *eGov views +
+definitions* configuration:
 
 ```sh
 CHP=<read-only ClickHouse password> python3 suite/truth.py --suite suite-post-v2.yaml --check   # is the data unchanged?
