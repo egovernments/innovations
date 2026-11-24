@@ -2,7 +2,7 @@
 """Summary of one results/<run>.json : model x tier, confidently wrong,
 expected fails by reason, cost per right answer, consistency across repeats.
 
-  python3 lenspack-superset-eval/summarize.py results/<run>.json
+  python3 suite/summarize.py <run>.json   (from evals/agent; run records are kept with the lab, not here)
 """
 import collections
 import json

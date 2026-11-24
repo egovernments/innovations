@@ -1,8 +1,18 @@
 # Questions
 
-The current suite (`suite/suite-post-v2.yaml`, generated from `suite/suite.yaml` by `make_post_suite.py v2`), with each question's truth on the synthetic data. Truth values come from `truth/truth-post-v2.json`; the SQL behind each is in the suite file. `alt` lists the other accepted definitions (accepted only when the reply says which it used).
+Every test question, by group, with what counts as right on the synthetic data. 85 questions: 84 in English and 1 in
+Hindi (T7.14). None are in French or Portuguese yet.
 
-Tags: `ambiguous` = more than one defensible answer (see [DEFINITIONS.md](DEFINITIONS.md)); T8 `why` = the reason the right reply is "can't": engine (Lenspack can't express it), pack (config gap), data (the data can't answer it), scope (outside this deployment).
+- **Expect** says what a right reply does: *answer* (give the figure, list or series), *edit* (change the dashboard),
+  or *decline* (say it can't, or give an open partial answer).
+- **Truth** is computed in SQL straight from ClickHouse (`truth/truth-post-v2.json`); the SQL is in the suite file.
+  `alt` lists other accepted definitions, accepted only when the reply says which one it used. "board diff" means the
+  check compares the dashboard before and after.
+- **Tags:** `ambiguous` = more than one defensible answer (see [DEFINITIONS.md](DEFINITIONS.md)). For the "can't"
+  questions, `why` gives the reason: *engine* (Lenspack can't express it), *pack* (the config doesn't expose data that
+  exists), *data* (the data can't answer it), *scope* (outside this deployment).
+- **Source:** this is the current set (`suite/suite-post-v2.yaml`, for the *eGov views + definitions* config). It is
+  generated from `suite/suite.yaml` by `make_post_suite.py v2`; only the measure names differ between configs.
 
 ## T1. Totals (8)
 
@@ -29,9 +39,9 @@ Tags: `ambiguous` = more than one defensible answer (see [DEFINITIONS.md](DEFINI
 | T2.6 | Zero-dose children in each LGA. | answer |  | Kalgo 1,253; Gwandu 2,106; Birnin Kebbi 2,342 |
 | T2.7 | Which 5 wards in Birnin Kebbi vaccinated the most children? | answer |  | Kardi 3,773, Gulumbe 2,699, GwadonGwaji 2,282, Gawasu Damana 2,046, Makera 1,808 |
 | T2.8 | How many visits found the household closed? | answer |  | 1,750 |
-| E8 | Which field worker vaccinated the most children? | answer (pre-rebase: decline) | post-rebase | USR-318022 1,592 · alt: outcome VACCINATED only USR-318022 1,588 |
-| E10 | What are the top reasons caregivers refused? | answer (pre-rebase: decline) | post-rebase | RELIGIOUS_CULTURAL 79, NO_FELT_NEED 65, CHILD_SICK 39, VACCINE_NOT_SAFE 37, NO_CAREGIVER_CONSENT 25 … |
-| E11 | How many visits were in insecure or inaccessible settlements? | answer (pre-rebase: decline) | post-rebase, ambiguous | 2,908 · alt: inaccessible plus harder to reach 12,564 |
+| E8 | Which field worker vaccinated the most children? | answer (*own joins*: decline) | answerable with eGov views | USR-318022 1,592 · alt: outcome VACCINATED only USR-318022 1,588 |
+| E10 | What are the top reasons caregivers refused? | answer (*own joins*: decline) | answerable with eGov views | RELIGIOUS_CULTURAL 79, NO_FELT_NEED 65, CHILD_SICK 39, VACCINE_NOT_SAFE 37, NO_CAREGIVER_CONSENT 25 … |
+| E11 | How many visits were in insecure or inaccessible settlements? | answer (*own joins*: decline) | answerable with eGov views, ambiguous | 2,908 · alt: inaccessible plus harder to reach 12,564 |
 
 ## T3. Time series (6)
 
@@ -131,7 +141,7 @@ Tags: `ambiguous` = more than one defensible answer (see [DEFINITIONS.md](DEFINI
 ## T10. Heatmaps (3)
 
 Superset's heatmap cannot keep a time axis in order, so a ward-by-day heatmap is a breakdown over `day_label` split by
-ward. Post-rebase pack only.
+ward. *eGov views* configs only.
 
 | # | Question | Expect | Tags | Truth |
 |---|---|---|---|---|
@@ -142,8 +152,8 @@ ward. Post-rebase pack only.
 ## T11. Maps (3)
 
 A map is a points query on an entity with a location (the facilities dataset's latitude and longitude); in Superset
-it is a `deck_scatter`. Dashboard 7 already has one (Health facilities). Post-rebase pack with the facility metrics,
-and a Lenspack with maps (lenspack superset 271df6e).
+it is a `deck_scatter`. Dashboard 7 already has one (Health facilities). *eGov views* configs with the facility metrics,
+and a Lenspack with maps (superset branch 271df6e or later).
 
 | # | Question | Expect | Tags | Truth |
 |---|---|---|---|---|

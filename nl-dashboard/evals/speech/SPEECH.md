@@ -1,4 +1,6 @@
-# Speech-to-text evaluation
+# Speech-to-text evaluation: full report
+
+The one-page summary is [README.md](README.md). This page has the detail.
 
 The chat panel's mic turns speech into text before the question goes to the chat. This folder holds the evaluation
 behind its default model, `mistralai/voxtral-mini-transcribe-3-0`: the method, every result, each clip's transcript

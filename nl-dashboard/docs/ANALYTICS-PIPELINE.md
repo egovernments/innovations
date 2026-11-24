@@ -574,7 +574,7 @@ questions. See [Packs and boards](ARCHITECTURE.md#packs-and-boards).
 **Issues and how they were handled.**
 - **Ambiguous measures.** Where a quantity has two readings (children vaccinated with or without revisits, coverage
   against the microplan or against WorldPop), the guidance names the definition each measure uses, and replies say
-  which one they used. The register is [`../evals/DEFINITIONS.md`](../evals/DEFINITIONS.md).
+  which one they used. The register is [`../evals/agent/DEFINITIONS.md`](../evals/agent/DEFINITIONS.md).
 - **One home per quantity.** Two measures once shared one label, so each quantity now lives on one dataset, with one
   measure.
 - **Row-count measures.** Each dataset also gets an automatic `<entity>_rows` measure, which counts summary rows on

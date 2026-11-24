@@ -32,11 +32,11 @@ overlay into the tags, `extra` fields and settings above, and then the file can 
 
 ## What it does to the evals
 
-- **The pack must be frozen per run.** The eval configs (`evals/configs/*.yaml`) pin the pack by pinning its YAML.
+- **The pack must be frozen per run.** The eval configs (`evals/agent/configs/*.yaml`) pin the pack by pinning its YAML.
   Once the pack comes from Superset, a run must record what it ran against. The harness would fetch the derived pack
   (`GET /api/<pack>/pack` already returns it as YAML), store it with the results, and put its hash in the report.
   Comparing two runs means first comparing their pack hashes.
-- **The truth sets don't change.** The questions and expected answers live in `evals/truth/*.json`, and they depend on the
+- **The truth sets don't change.** The questions and expected answers live in `evals/agent/truth/*.json`, and they depend on the
   data and the measures, not on where the measure definitions are stored.
 - **Instructions change scores.** The heatmap instruction is one example: tier T10 depends on it. So moving the
   instructions onto a page anyone with admin rights can edit means an unreviewed edit can move the scores. Two

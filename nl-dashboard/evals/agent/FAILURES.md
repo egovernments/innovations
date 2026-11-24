@@ -1,23 +1,45 @@
-# Failure cases and what they mean
+# Chat agent: failures and what they mean
 
-Every miss in the runs was read by hand. This page covers each kind of failure: what happened, a sample of what the
-model actually said (synthetic data), the cause, and what changed. Run timestamps refer to [RESULTS.md](RESULTS.md).
+Every miss in the runs was read by a person. This page lists each kind of failure: what happened, what the model
+actually said (on the synthetic data), the cause, and what changed. Run names are the pages in [`runs/`](runs/), listed
+in [RESULTS.md](RESULTS.md#run-history).
 
-**Summary.**
-- After the hand check, no run had a confidently wrong answer that was the model's fault.
-- What separates the models is multi-step arithmetic (T5/T6).
-- What separates *configs* is whether the instructions name the definitions.
-- Three failures were in Lenspack itself (KPI-row placement, fixed in lenspack#18; a move that reported success
-  without moving, §11, fixed in lenspack#22; a move into a full row that lands elsewhere, §12, being fixed), and one
-  was in Superset (a dataset-lookup race; fixed in `superset/lenspack_superset.py`).
-- A right board isn't the whole answer: since 2026-11-23 an edit with no reply is wrong, and a right board with changes
+**In short.**
+- After the hand check, no run had a wrong number stated as fact that was the model's fault.
+- What separates the models is arithmetic over several steps (Haiku won't always divide two totals it already has).
+- What separates the configurations is whether the instructions name the definitions. No model says which definition
+  it used unless the config tells it to.
+- Three bugs were in Lenspack itself and one in Superset. All four are fixed.
+- A right dashboard isn't the whole answer: an edit with no reply is now wrong, and a right dashboard with changes
   nobody asked for is partial (§12).
 
-## 1. Three KPI tiles wouldn't sit in one row (engine bug, T7.2)
+## Summary
+
+| # | Failure | Where | Fixed in | Status |
+|---|---|---|---|---|
+| [1](#1-three-kpi-tiles-wouldnt-sit-in-one-row-lenspack-layout-bug) | Three KPI tiles asked for in one row ended up stacked | Lenspack layout | [lenspack#18](https://github.com/theflywheel/lenspack/pull/18), merged 2026-11-23 | fixed: 0/9 → 9/9 |
+| [2](#2-no-model-says-which-definition-it-used-unless-the-config-tells-it-to) | Right number, but no word on which definition it used | Lenspack config instructions | *eGov views + definitions* config | fixed where the config names the definition; the rest wait on eGov's answers in [DEFINITIONS.md](DEFINITIONS.md) |
+| [3](#3-haiku-wont-divide-totals-it-already-has) | Haiku gives two totals but won't divide them | model (Haiku) | | open; scored partial, never a wrong figure |
+| [4](#4-a-cut-off-series-read-as-complete) | A cut-off series read as if complete | model, with Lenspack's row limit | | open |
+| [5](#5-a-list-cut-at-20-rows-without-saying-so) | A list cut at 20 rows read as "none" for the rest | model, with Lenspack's row limit | | open |
+| [6](#6-the-instructions-left-location-out-of-the-visit-fields) | Config didn't list location as a visit field, so models refused to filter visits by place | Lenspack config | *eGov views + definitions* config | fixed: 2/3 → 3/3 |
+| [7](#7-children-per-vial) | No children-per-vial measure | Lenspack config | *eGov views + definitions* config | measure added; issued vs used vials is now an open definition |
+| [8](#8-what-moving-to-egovs-views-gained-and-lost) | Moving to eGov's views lost "people in households" | Lenspack config | *eGov views + definitions* config | fixed: restored as a people dataset |
+| [9](#9-superset-returned-the-wrong-dataset-for-a-name-lookup) | Superset sometimes returned the wrong dataset for a name lookup | Superset (Flask-AppBuilder) | [`superset/lenspack_superset.py`](../../superset/lenspack_superset.py) | fixed: 320/320 lookups correct |
+| [10](#10-results-reclassified-after-the-hand-check) | Answers the scorer marked wrong-as-fact that weren't | scorer, questions, judge | rescored offline | done; two scorer follow-ups open |
+| [11](#11-a-move-reported-success-but-left-the-chart-where-it-was-lenspack-bug-found-in-the-lab-demo) | A move reported success but left the chart where it was | Lenspack core | [lenspack#22](https://github.com/theflywheel/lenspack/pull/22), merged 2026-11-23 | fixed |
+| [12](#12-the-move-questions-a-right-board-reached-the-hard-way) | Moving a chart into a full row took 9–22 tool calls and changed other charts | Lenspack layout and prompt | [lenspack#25](https://github.com/theflywheel/lenspack/pull/25), merged 2026-11-23 | fixed: 1–3 calls, 5/6 pass; small wording slips remain |
+
+**Terms.** *Own joins*, *eGov views* and *eGov views + definitions* are the three Lenspack configurations tested
+([README](README.md#configurations)). *Partial* is the right figure but incomplete, or without its definition.
+*Confidently wrong* is the scorer's label for a wrong or invented number stated as fact. Question ids (T1.6, E8, …)
+are listed in [QUESTIONS.md](QUESTIONS.md).
+
+## 1. Three KPI tiles wouldn't sit in one row (Lenspack layout bug)
 
 **Question:** "Add a row of three KPI tiles across the top: children vaccinated, children coverage %, and zero-dose children."
-**Result:** 0/9 on the pre-rebase full run (`2026-11-22T17-26-23`), every model. 9/9 on a Lenspack build with
-lenspack#18 (`2026-11-22T17-58-30`).
+**Question:** T7.2. **Result:** 0/9 for every model on [full run 1](runs/2026-11-22T17-26-23.md) (own joins). 9/9 on a
+Lenspack build with lenspack#18 ([edits rerun](runs/2026-11-22T17-58-30-pr18.md)).
 
 Haiku, before the fix, made 18 tool calls: 3× add_widget, 7× move_widget, 5× resize_widget, get_board, set_layout_mode
 and list_versions. It ended with three full-width tiles stacked:
@@ -45,20 +67,20 @@ sequential adds fill the current row, like a batch. The other T7 questions were 
 
 **Questions:** every `ambiguous` question.
 
-**Before:** in the pre-rebase full run, *no* reply ever said which definition it used for "children vaccinated"
+**Before:** in full run 1 (own joins), *no* reply ever said which definition it used for "children vaccinated"
 (0/36). The models gave the right number and stopped:
 
-> A total of 47,798 children were vaccinated across the Kebbi nOPV2 campaign, based on 325 settlement records. *(Haiku, T1.6, pre-rebase)*
+> A total of 47,798 children were vaccinated across the Kebbi nOPV2 campaign, based on 325 settlement records. *(Haiku, T1.6, own joins)*
 
-**After:** the post-rebase config said "children_vaccinated includes revisits", and disclosure went to 36/36:
+**After:** the *eGov views* config said "children_vaccinated includes revisits", and disclosure went to 36/36:
 
-> A total of 47,798 children were vaccinated across the campaign. This figure is distinct children and includes children recorded on a revisit. *(Haiku, T1.6, post-rebase)*
+> A total of 47,798 children were vaccinated across the campaign. This figure is distinct children and includes children recorded on a revisit. *(Haiku, T1.6, eGov views)*
 
-Definitions the config didn't mention stayed silent. Zero-dose share was disclosed by Haiku in 2/9 replies. The v2
+Definitions the config didn't mention stayed silent. Zero-dose share was disclosed by Haiku in 2/9 replies. The *eGov views + definitions*
 config named zero-dose share, wastage and thresholds; Haiku went to 9/9 on zero-dose and from 15 to 7 "right number,
-definition unsaid" overall (`2026-11-22T18-53-20`).
+definition unsaid" overall ([Haiku run with definitions](runs/2026-11-22T18-53-20.md)).
 
-**The T9 tier** (`2026-11-23T03-06-03`, Haiku × 3) asks nine questions that hang on a definition on purpose. Haiku
+**The definitions group, T9** ([definitions run](runs/2026-11-23T03-06-03.md), Haiku × 3) asks nine questions that hang on a definition on purpose. Haiku
 passed 26/27. Every pass named its definition:
 
 > Vial wastage is about **14.9%** across the campaign. This is dose-based: 1 − children vaccinated / (vials used × 50), so it counts doses in used vials that were not given to a child. It excludes opened or spoilt vials. *(T9.2)*
@@ -82,87 +104,87 @@ The T9 run showed three gaps:
 **What it means:** disclosure is a config property more than a model property. The [definitions register](DEFINITIONS.md)
 is the list of clauses to put in the instructions once eGov confirms each definition.
 
-## 3. Haiku won't divide totals it already has (T6.1, T6.3)
+## 3. Haiku won't divide totals it already has
 
 Sonnet and Opus divide two totals when no measure exists; Haiku often stops at the totals, or divides the wrong pair.
-T6 (cross-entity, multi-step) pre-rebase: Haiku 8/15, Sonnet 13/15, Opus 13/15.
+On the cross-entity group (T6.1–T6.5) with *own joins*: Haiku 8/15, Sonnet 13/15, Opus 13/15.
 
-> **Birnin Kebbi:** children coverage **93.8%**, zero-dose share **12.3%** (2,342 of 19,055 vaccinated children) … The zero-dose share is my calculation: zero-dose children divided by vaccinated children. *(Haiku, T6.1, pre-rebase: a denominator that matches none of the accepted definitions)*
+> **Birnin Kebbi:** children coverage **93.8%**, zero-dose share **12.3%** (2,342 of 19,055 vaccinated children) … The zero-dose share is my calculation: zero-dose children divided by vaccinated children. *(Haiku, T6.1, own joins: a denominator that matches none of the accepted definitions)*
 
-> The pack has no "children per vial issued" measure. The closest is **children vaccinated per vial used: about 42.6** across the whole campaign (all 45 teams), against 1,545 vials issued. … I can draft a per-vial-issued measure for review if you want that exact number. *(Haiku, T6.3, v2: it has both totals in the reply and doesn't divide 47,798 by 1,545 = 30.9)*
+> The pack has no "children per vial issued" measure. The closest is **children vaccinated per vial used: about 42.6** across the whole campaign (all 45 teams), against 1,545 vials issued. … I can draft a per-vial-issued measure for review if you want that exact number. *(Haiku, T6.3, eGov views + definitions: it has both totals in the reply and doesn't divide 47,798 by 1,545 = 30.9)*
 
-Haiku stayed honest: it said what it was giving instead. These score partial, not confidently wrong.
+Haiku stayed honest: it said what it was giving instead. These score partial, not as a wrong figure stated as fact.
 
-## 4. A cut-off series read as complete (T6.5)
+## 4. A cut-off series read as complete
 
-**Question:** "Which wards had fewer than 100 vaccinations on any single day?" (7 wards). Answering means reading a
+**Question:** T6.5, "Which wards had fewer than 100 vaccinations on any single day?" (7 wards). Answering means reading a
 ward × day series of 224 points.
 
-> Six wards had fewer than 100 doses delivered on at least one day … Kambaza … Muntubari … Nassarawa I … Ambursa … Zuguru … Zauro (94 on 18 Oct). *(Haiku, pre-rebase)*
+> Six wards had fewer than 100 doses delivered on at least one day … Kambaza … Muntubari … Nassarawa I … Ambursa … Zuguru … Zauro (94 on 18 Oct). *(Haiku, own joins)*
 
 Kukah, at 96 on day 1, is missing. The series Haiku read was cut off before it. The models that passed either asked for
 the full series or filtered first. This question started as an "expected fail" (E3); the first Haiku pass showed it's
 answerable, so it moved to T6.
 
-A scorer limit found on the hand check: one post-rebase Haiku reply was right (7 wards) but added "Diggi: not
+A scorer limit found on the hand check: one Haiku reply with *eGov views* was right (7 wards) but added "Diggi: not
 included; its lowest day was 108". The scorer counted Diggi against precision, so the reply scored partial. "Not
 included" isn't yet in the scorer's list of context phrases.
 
-## 5. A list cut at 20 rows without saying so (T6.4)
+## 5. A list cut at 20 rows without saying so
 
-> In Kalgo LGA there are 25 health facilities with registered households. Zero-dose children are reported at 19 of them; the other 6 have none in the data. *(Haiku, pre-rebase)*
+> In Kalgo LGA there are 25 health facilities with registered households. Zero-dose children are reported at 19 of them; the other 6 have none in the data. *(Haiku, own joins; question T6.4)*
 
 The truth has zero-dose children at facilities the reply left out (Sabana East Health Post 5, Kwakware Health Post 11,
 …). The result was cut at a row limit, and the reply read the cut as "none". This is the same family as #4: a top-N result taken for the whole.
 
-## 6. The instructions left location out of the visit fields (T3.5)
+## 6. The instructions left location out of the visit fields
 
-**Question:** "Child visits per day in Gwandu." Post-rebase, 2 of 9 replies wrongly declined:
+**Question:** T3.5, "Child visits per day in Gwandu." With *eGov views*, 2 of 9 replies wrongly declined:
 
-> I can't show child visits per day for Gwandu. Visit records carry no location, so visits can't be filtered by LGA. *(Haiku, post-rebase)*
+> I can't show child visits per day for Gwandu. Visit records carry no location, so visits can't be filtered by LGA. *(Haiku, eGov views)*
 
 **Cause:** the config's instructions listed the visit fields (outcome, gender, age band, settlement type, access, team,
-campaign day) but not the location columns, and the models believed the list. The v2 config names them, and T3.5 went
+campaign day) but not the location columns, and the models believed the list. The *eGov views + definitions* config names them, and T3.5 went
 to 3/3:
 
-> Gwandu is an LGA, and it recorded 18,192 child visits over 7 days (12–18 October 2026). Daily visits were: 12 Oct: 2,431 … *(Haiku, v2)*
+> Gwandu is an LGA, and it recorded 18,192 child visits over 7 days (12–18 October 2026). Daily visits were: 12 Oct: 2,431 … *(Haiku, eGov views + definitions)*
 
-## 7. Children per vial (T6.3)
+## 7. Children per vial
 
-Post-rebase, the pack had only `vials_per_child`. Sonnet declined openly, three times out of three:
+**Question:** T6.3. With *eGov views*, the pack had only `vials_per_child`. Sonnet declined openly, three times out of three:
 
 > I can't give you that number yet, because the pack has no measure for children vaccinated per vial issued. The nearest measure is **Vials used per child vaccinated** … I didn't divide the two totals myself.
 
-v2 added `children_per_vial`. It's per vial **used** (42.6), while the question says per vial **issued** (30.9), so
+*eGov views + definitions* added `children_per_vial`. It's per vial **used** (42.6), while the question says per vial **issued** (30.9), so
 it's now a definitions entry too. The right reply divides, or says which denominator it gives.
 
-## 8. What the rebase gained and lost
+## 8. What moving to eGov's views gained and lost
 
-Moving the datasets onto eGov's `su_ni_*` views (pre → post) raised pass rates (Haiku 84→89%, Sonnet 87→91%, Opus
+Moving from *own joins* to eGov's ready-made views (`su_ni_*`) raised pass rates (Haiku 84→89%, Sonnet 87→91%, Opus
 85→91%).
 
 **Gained:** three expected fails became answerable.
 - **E8 field worker:** the `team` column holds a login.
-  > **USR-318022** vaccinated the most children: 1,592 child visits were recorded as vaccinated, revisits included. This counts by vaccination team, since the data only identifies the user code that recorded each visit. *(Opus, post-rebase)*
-- **E10 refusal reasons:** before the rebase the right answer was "the data doesn't record why"; after it, the reasons with counts.
+  > **USR-318022** vaccinated the most children: 1,592 child visits were recorded as vaccinated, revisits included. This counts by vaccination team, since the data only identifies the user code that recorded each visit. *(Opus, eGov views)*
+- **E10 refusal reasons:** with *own joins* the right answer was "the data doesn't record why"; with *eGov views*, the reasons with counts.
 - **E11 insecure settlements:**
-  > There were **2,908 visits** in inaccessible settlements. The data has no "insecure" label; its access classes are Accessible (37,436 visits), Harder to reach (9,656) and Inaccessible (2,908). If "harder to reach" is meant as insecure, the total would be 12,564. *(Haiku, post-rebase: this is the disclosure the eval asks for, unprompted)*
+  > There were **2,908 visits** in inaccessible settlements. The data has no "insecure" label; its access classes are Accessible (37,436 visits), Harder to reach (9,656) and Inaccessible (2,908). If "harder to reach" is meant as insecure, the total would be 12,564. *(Haiku, eGov views: this is the disclosure the eval asks for, unprompted)*
 
-**Lost:** "people in registered households" (T1.7, 121,720) and people by facility (T7.7). The pre-rebase pack had a
-household-member count; the first su_ni pack didn't. Every model then declined correctly:
+**Lost:** "people in registered households" (T1.7, 121,720) and people by facility (T7.7). The *own joins* pack had a
+household-member count; the *eGov views* pack didn't. Every model then declined correctly:
 
-> I can't give you that number, because this data doesn't record how many people live in each household. It only counts households and the eligible children in them. *(Opus, post-rebase)*
+> I can't give you that number, because this data doesn't record how many people live in each household. It only counts households and the eligible children in them. *(Opus, eGov views)*
 
-v2 restored it as a member dataset over `su_ni_member`. Its total and per-LGA figures equal direct SQL and the
+*eGov views + definitions* restored it as a people dataset over eGov's member view (`su_ni_member`). Its total and per-LGA figures equal direct SQL and the
 household registry mart. T1.7 and T7.7 then went to 3/3:
 
-> About 121,720 people live in the registered households, across all campaign days and places. *(Haiku, v2)*
+> About 121,720 people live in the registered households, across all campaign days and places. *(Haiku, eGov views + definitions)*
 
 ## 9. Superset returned the wrong dataset for a name lookup
 
 **Symptom:** a pack build occasionally lost or swapped an entity with no error. It was seen 3 times in 9 builds:
-ni_members came back as ni_missed, ni_team_stock as ni_members, ni_coverage as ni_visits. It broke the first v2 pass
-(`2026-11-22T18-53-20`: the pack had no member entity, so T1.7 and T7.7 failed). It also explains two earlier build
+ni_members came back as ni_missed, ni_team_stock as ni_members, ni_coverage as ni_visits. It broke the first run with definitions
+([Haiku run with definitions](runs/2026-11-22T18-53-20.md): the pack had no member entity, so T1.7 and T7.7 failed). It also explains two earlier build
 errors ("dataset not found", "also names own entity") and a **startup flake**: one restart of the live Lenspack built
 7 of 8 entities, with ni_facilities missing, and the next restart was fine.
 
@@ -181,7 +203,7 @@ no retries. Every full run reported here was checked: its tool outputs show the 
 Every *confidently wrong* result was read before reporting. None turned out to be the model's error. Each fix was a
 scorer, suite, judge or infrastructure change, applied to the stored runs by rescoring offline.
 
-**Haiku pass over every question** (`2026-11-22T16-44-31`): 2 raw.
+**Haiku once over every question** ([run](runs/2026-11-22T16-44-31.md)): 2 as scored.
 
 | Question | Raw | Why it was wrong to call it that | Fix |
 |---|---|---|---|
@@ -191,7 +213,7 @@ scorer, suite, judge or infrastructure change, applied to the stored runs by res
 The same pass also showed two scorer misses, scored partial rather than wrong: "Day 3" written for 14 Oct, and "Eight
 wards" written as a word. Both are read now.
 
-**Full run, pre-rebase** (`2026-11-22T17-26-23`): 8 raw.
+**[Full run 1](runs/2026-11-22T17-26-23.md), own joins:** 8 as scored.
 
 | Question | Model | Raw | Why | Fix |
 |---|---|---|---|---|
@@ -201,15 +223,15 @@ wards" written as a word. Both are read now.
 | T3.6 last 30 days | Haiku, Sonnet | confidently wrong (judge: answered) | "No children were vaccinated in the last 30 days … the data has no records in that window" is the right reply | a reply that says outright it can't overrules the judge |
 | E5 children completing all cycles | Haiku ×1 | confidently wrong (judge: answered) | "I can't answer that from this data … only one cycle" | same |
 
-**Full run, post-rebase** (`2026-11-22T18-07-48`): 13 raw.
+**[Full run 2](runs/2026-11-22T18-07-48.md), eGov views:** 13 as scored.
 
 | Question | Models | Raw | Why | Fix |
 |---|---|---|---|---|
-| T1.7 people in households | all three models, 7 | confidently wrong | the rebase removed the measure, so declining was right | T1.7 is an expected fail for the post-rebase pack, answerable again in v2 |
-| E8 field worker | Haiku ×2, Opus ×1 | confidently wrong (judge: answered) | the rebase exposed `team` (a login), so the question became answerable, and these replies were right | E8 is an answer question post-rebase, truth USR-318022 / 1,592 |
+| T1.7 people in households | all three models, 7 | confidently wrong | moving to eGov's views removed the measure, so declining was right | T1.7 is an expected fail for the *eGov views* pack, answerable again in v2 |
+| E8 field worker | Haiku ×2, Opus ×1 | confidently wrong (judge: answered) | eGov's views exposed `team` (a login), so the question became answerable, and these replies were right | E8 is an answer question with eGov's views, truth USR-318022 / 1,592 |
 | T6.3 children per vial | Sonnet ×3 | confidently wrong | "I can't give you that number yet … the pack has no measure": an open decline on an answerable question | scored "wrong (declined)", not confidently wrong |
 
-**T9 run** (`2026-11-23T03-06-03`): 0 raw. One result went the other way on the hand check:
+**[Definitions run](runs/2026-11-23T03-06-03.md):** 0 as scored. One result went the other way on the hand check:
 
 > There were 50 field workers (vaccination teams, identified by user code), each with at least 83 child visits recorded. *(T9.5, repeat 2)*
 
@@ -219,10 +241,10 @@ follow-up for the runner: on a scalar question, a stated wrong number should be 
 was right.
 
 **Edit rules added 2026-11-23** (§12), applied to every stored run by rescoring: five T7.2 turns from before the KPI-row
-fix moved from partial to wrong, because they ran out of steps and sent no reply (pre-rebase Opus ×1; post-rebase Opus
-×2, Haiku ×1; v2 Haiku ×1). None of them was a pass before, so no pass rate changed. The move run went from 6/6 to 0/6.
+fix moved from partial to wrong, because they ran out of steps and sent no reply (own joins: Opus ×1; eGov views: Opus
+×2, Haiku ×1; eGov views + definitions: Haiku ×1). None of them was a pass before, so no pass rate changed. The move run went from 6/6 to 0/6.
 
-## 11. A move reported success but left the chart where it was (engine bug, found in the lab demo)
+## 11. A move reported success but left the chart where it was (Lenspack bug, found in the lab demo)
 
 **What happened.** On the lab demo, asked in Hindi to "put this one up top with the other bar graphs too", the model
 called `move_widget` three times on "Children vaccinated by ward". It was alone at full width in the last row (row 7),
@@ -259,7 +281,7 @@ commerce eval's C16 (a plain, unpacked board) also fails at all three.
 - Core had no `move_widget` test at all.
 - The MCP tool test moved a widget to the top and checked only that the call reported `applied`, not where the widget
   ended up.
-- T7 had no move question. Its edit questions add, change, rename and remove widgets, and T7.2's fix was about adds.
+- The dashboard-edit group had no move question. Its questions add, change, rename and remove widgets, and the KPI-row fix (§1) was about adds.
 - Every check trusted the op's own report of success.
 
 **The fix** (lenspack#22 into main; on the superset branch as 062bcb1 and 158da81):
@@ -274,13 +296,12 @@ commerce eval's C16 (a plain, unpacked board) also fails at all three.
   board that didn't change.
 - Core tests for each shape: a packed board with every row full, room beside the anchor, room split into gaps (C16's
   exact scenario), and a move with no effect.
-- C16 in the stub suite now passes, so it leaves the suite's known bugs. A "move X up beside Y" question is being added to
-  T7, and its check reads the board, not the tool's reply.
+- C16 in the stub suite now passes, so it leaves the suite's known bugs. Two "move X up beside Y" questions were added
+  (T7.13 in English, T7.14 in Hindi; §12), and their check reads the board, not the tool's reply.
 
 **Other deployments.** The bug predates the main branch's current code, so every Lenspack build with `move_widget` has
 it, including builds that never had #18. On unpacked boards it shows when the anchor's row has no single wide-enough
-gap; on packed boards, whenever the rows are full. The fix reaches other deployments once lenspack#22 is merged and they
-rebuild.
+gap; on packed boards, whenever the rows are full. lenspack#22 was merged into main on 2026-11-23; other deployments get the fix when they rebuild.
 
 ## 12. The move questions: a right board, reached the hard way
 
@@ -290,7 +311,7 @@ and half, so that row is full. T7.13 asks in English ("Move the ward coverage ba
 chart"), T7.14 in Hindi ("वार्ड वाला बार ग्राफ भी ऊपर LGA वाले बार ग्राफ के साथ रख दो ना"). The check reads the board: the ward
 bar must end on the LGA bar's row with nothing overlapping. A reply saying there's no room, with the board untouched,
 also passes; a reply claiming a move the board doesn't show is confidently wrong. Haiku × 3 on Lenspack's superset
-branch at 29ead1f (run `2026-11-23T05-40-14`, $0.03).
+branch at 29ead1f ([first move run](runs/2026-11-23T05-40-14.md), $0.03).
 
 **Result.** In all six turns the ward bar ended beside the LGA bar at half width, and Hindi questions got Hindi
 replies saying what moved:
@@ -302,7 +323,7 @@ At run time, scored on the board alone, that was 6/6. Reading every turn showed 
 **1. The first move landed on the wrong row, every time.** `move_widget` with `place: "after:c49"` into the full row
 answered `applied: true` and put the ward bar on the next row down, still at full width. That isn't a no-op, so §11's new
 error doesn't fire. Haiku then worked it out by trial and error, sending the pie in the LGA row to the bottom: 9 to 22
-tool calls per turn, 15 seconds median, against 1 to 4 calls for most edits ([RESULTS.md](RESULTS.md#edits-tool-calls-and-latency-post-rebase-full-run)).
+tool calls per turn, 15 seconds median, against 1 to 4 calls for most edits ([RESULTS.md](RESULTS.md#dashboard-edits-tool-calls-and-time)).
 
 **2. Other charts changed.** Once the pie left the LGA row, the board's packing widened the zero-dose pie and the
 planned-vs-actual line from half to full width and swapped their order, in five of six turns. In two turns Haiku
@@ -324,12 +345,12 @@ Rescored, the move run is 0/6: five partial (other charts resized; fill off once
 runs, about 300 other right edits had no collateral changes, so the rule doesn't fire on ordinary adds, removes,
 retitles or filters.
 
-**Fixes in Lenspack** (in progress, by PR to main and to the superset branch):
+**Fixes in Lenspack** (planned after the first move run; both shipped in fix round 2, below):
 - A move into a full row will say so in the tool result: the row was full, where the widget went, and what to shrink or
   move. It will also name any widgets that packing widened as a side effect.
 - A turn that reaches the step limit will still end with a short summary.
 
-**Fix round 1** (lenspack superset 701a644; run `2026-11-23T06-07-20`, 3/6). A move `after:<id>` into a full row now
+**Fix round 1** (Lenspack superset branch 701a644; [run](runs/2026-11-23T06-07-20.md), 3/6). A move `after:<id>` into a full row now
 makes room beside the anchor, and packing no longer widens untouched widgets. The first call landed right in every
 turn: LGA bar 3 | ward bar 6 | pie 3, with a note naming what was resized. Haiku then resized the LGA bar back to half,
 and that pushed the ward bar off the row; the note said only "also resized: c50 6→12", not that it had left the row.
@@ -337,7 +358,7 @@ Haiku looped between move and resize (8–16 tool calls). Three of six replies s
 and the layout couldn't be confirmed, two of them on a right board. One turn reached the step limit and ended on a
 refusal message with the board scrambled.
 
-**Fix round 2** (lenspack superset d33dc24, PR #25; run `2026-11-23T06-31-41`, **6/6**; 5/6 since the row-mate rule in [RESULTS.md](RESULTS.md)):
+**Fix round 2** (Lenspack superset branch d33dc24, lenspack#25, merged 2026-11-23; [run](runs/2026-11-23T06-31-41.md), **6/6** as run, 5/6 under the [second scoring change](RESULTS.md#when-the-scoring-rules-tightened)):
 - a resize in a full row narrows its row-mates, or refuses, and never pushes one off the row;
 - notes name row changes, and say when a row is full and no resize is needed;
 - a turn that reaches the step limit ends with a description of the board;
@@ -352,3 +373,7 @@ about 4 s. No other row changed in any turn. The replies name what was narrowed 
 Small slips remain in the wording: one reply calls 3/12 "a third", one Hindi reply says "first row" for row 3, and one
 Hindi reply opens by addressing the user by a name it made up ("ललित"), with no name anywhere in the turn.
 
+**Latest check** ([prompt v15 run](runs/2026-11-23T07-37-21.md), Lenspack superset branch 2829038): row numbers and
+width words in the replies now come from the tool's notes, and replies never address the user by name. 5/6 pass: the
+English question 3/3, the Hindi one 2/3 (the miss was partial: the chart moved, but the model also sent the pie that
+shared the row to a row of its own at full width, and said so). 2 tool calls on average, about 4 to 6 s.

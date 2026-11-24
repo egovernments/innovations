@@ -28,5 +28,8 @@ Documentation for the Superset + Lenspack natural-language dashboard (use case 3
 
 ## Evaluations
 
-- [../evals/README.md](../evals/README.md): the accuracy suite: method, questions, definitions register, results and
-  failure analyses.
+- [../evals/README.md](../evals/README.md): what we test and the results, on one page: the chat agent (questions,
+  scoring, results by model and language) and the mic's speech-to-text.
+  - [../evals/agent/](../evals/agent/README.md): the chat agent's questions, scoring, definitions, every run and the
+    failure write-ups.
+  - [../evals/speech/](../evals/speech/README.md): the speech-to-text comparison behind the mic's default model.

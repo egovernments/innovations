@@ -175,7 +175,7 @@ record: the usage figures on the settings page reset on restart. Rotation, reten
 | [`lenspack/`](../lenspack/) | The Lenspack image (pinned commit) and its configs |
 | [`setup/setup.mts`](../setup/setup.mts) | One-off: data sources, datasets with saved metrics and descriptions, starter dashboards |
 | [`docker-compose.yml`](../docker-compose.yml), [`k8s/`](../k8s/) | The stack on one host, and on Kubernetes |
-| [`evals/`](../evals/) | The accuracy suite, definitions register, results and failure analyses |
+| [`evals/`](../evals/) | What we test and the results: the chat agent ([`agent/`](../evals/agent/)) and speech-to-text for the mic ([`speech/`](../evals/speech/)) |
 | [`docs/`](README.md) | These docs, grouped by reader |
 
 ## Setup and prerequisites

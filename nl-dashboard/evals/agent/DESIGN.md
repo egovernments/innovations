@@ -1,9 +1,10 @@
-# Lenspack accuracy eval on Superset + ClickHouse: design
+# Chat agent eval: design
 
 This eval measures how often the chat in this stack gives the right number, the right chart, or an honest "can't".
-It runs against eGov's **unified-dev ClickHouse**, on the Superset-ready views `default.su_ni_*`. Those views hold a
-**synthetic** field test, a 7-day nOPV2 campaign (12–18 Oct 2026) in three LGAs with 50,000 child visits. Every figure
-in this folder comes from that synthetic data.
+It runs against eGov's development ClickHouse (the unified-dev cluster), on eGov's ready-made Superset views
+(`default.su_ni_*`). Those views hold a **synthetic** field test: a 7-day nOPV2 polio vaccination campaign (12–18 Oct
+2026) in three LGAs of Kebbi, Nigeria, with 50,000 child visits. Every figure in this folder comes from that synthetic
+data.
 
 ## What it measures
 
@@ -12,18 +13,20 @@ Every question gets one Lenspack chat turn on a fresh board. The turn is scored 
 
 - **Right:** the right number, list or chart.
 - **Declined ok:** for a question Lenspack can't answer today, it says so or degrades openly instead of inventing a figure.
-- **Confidently wrong:** a wrong number stated as fact, or an invented one. This is the headline safety metric.
+- **Confidently wrong:** a wrong number stated as fact, or an invented one. This is the headline safety measure.
 - **Partial:** the right query but an incomplete answer, or the right number without saying which definition it used.
 - **Cost:** USD, latency, steps and tool errors per question, and cost per right answer.
 
 ## What it runs against
 
 - **The deployment config** in `configs/`: the same Lenspack config file the server loads. The harness builds the
-  pack, catalogue, system prompt and tools from it, exactly as production does.
-  - `pre-rebase.yaml`: 9 Superset datasets (hand-joined `ch_*` datasets over `analytics.dm_*`, plus five over `su_ni_*`).
-  - `post-rebase.yaml`: 7 datasets straight on eGov's `su_ni_*` views (the "rebase", 2026-11-22).
-  - `post-rebase-v2.yaml`: the rebase plus a member dataset (people in registered households), `children_per_vial`,
-    and instructions that state the definitions the eval found ambiguous.
+  pack, catalogue, system prompt and tools from it, exactly as production does. Three were tested:
+  - *Own joins* (`pre-rebase.yaml`): 9 Superset datasets, four of them our own joins over eGov's analytics tables
+    (`ch_*` datasets over `analytics.dm_*`) and five over eGov's views.
+  - *eGov views* (`post-rebase.yaml`): 7 datasets read straight from eGov's views. Moving to these on 2026-11-22 is
+    what the file names call the "rebase".
+  - *eGov views + definitions* (`post-rebase-v2.yaml`): the same, plus a people dataset (people in registered
+    households), a `children_per_vial` measure, and instructions that state the definitions the eval found ambiguous.
 - **Queries** go through Superset's `/api/v1/chart/data`, as in chat, so the Superset connector path is under test.
 - **Boards:** each question starts on an in-memory copy of a real dashboard (`configs/board-seed-*.json`). Nothing is
   written back to Superset.
@@ -31,13 +34,13 @@ Every question gets one Lenspack chat turn on a fresh board. The turn is scored 
 
 ## Questions
 
-79 questions in nine tiers. The full list with truth values is in [QUESTIONS.md](QUESTIONS.md); the YAML with SQL is
-`suite/suite.yaml`.
+85 questions in eleven groups (tiers): 84 in English and 1 in Hindi. The full list with truth values is in
+[QUESTIONS.md](QUESTIONS.md); the YAML with SQL is `suite/suite.yaml`.
 
 | Tier | What | n |
 |---|---|---|
 | T1 | Totals: one number from one dataset | 8 |
-| T2 | Filtered and grouped (8 pre-rebase; E8, E10, E11 join after it) | 8–11 |
+| T2 | Filtered and grouped (8 with *own joins*; E8, E10, E11 join with *eGov views*) | 8–11 |
 | T3 | Time series | 6 |
 | T4 | Ratios and coverage against targets | 8 |
 | T5 | Ranking, thresholds, multi-step | 8 |
@@ -45,11 +48,14 @@ Every question gets one Lenspack chat turn on a fresh board. The turn is scored 
 | T7 | Dashboard edits (board diff + the new widget's data against truth; T7.13–T7.14 move a chart into a full row, in English and Hindi) | 14 |
 | T8 | Expected fails: the right reply is "can't", or an open degrade | 10–13 |
 | T9 | Definitions: questions that hang on a definition, on purpose (added 2026-11-23) | 9 |
+| T10 | Heatmaps: create one, read it, change it (added 2026-11-23; *eGov views* configs only) | 3 |
+| T11 | Maps: create one, read it, change it (added 2026-11-23; *eGov views* configs only) | 3 |
 
 Questions are written in a campaign manager's words. Only each question's "accepted measures" list names pack keys,
-so after a rebase the suite is regenerated (`suite/make_post_suite.py`) and the same questions rerun. A few questions
-change type across the rebase, because the rebase closed or opened a gap: E8 field worker, E10 refusal reasons and E11
-insecure settlements become answerable; T1.7 people in households was lost and then restored in v2.
+so when the config changes the suite is regenerated (`suite/make_post_suite.py`) and the same questions rerun. A few
+questions change type between configs, because the move to eGov's views closed or opened a gap: E8 field worker, E10
+refusal reasons and E11 insecure settlements become answerable; T1.7 people in households was lost with *eGov views*
+and restored with *eGov views + definitions*.
 
 Every question carries tags: `ambiguous` (more than one defensible answer), `multi-step`, and for T8 the reason it
 fails: `engine` (Lenspack can't express it), `pack` (config gap; the data is there), `data` (the data can't answer it)
@@ -102,7 +108,8 @@ The runner is generic and lives in the Lenspack repo (`evals/suite-run.ts`, bran
 suite file, frozen truth, a spending cap (`--max-usd`), repeats, models interleaved per question, offline `--rescore`.
 It hosts the real chat endpoint in process and parses its event stream, so the prompt and tools are production's.
 Before trusting a pack build it checks that every Superset dataset came back under its own name (see the dataset-lookup
-race in [FAILURES.md](FAILURES.md#9-superset-returned-the-wrong-dataset-for-a-name-lookup)).
+race in [FAILURES.md](FAILURES.md#9-superset-returned-the-wrong-dataset-for-a-name-lookup)). The runner was merged
+into Lenspack's `evals/suite` branch in [lenspack#20](https://github.com/theflywheel/lenspack/pull/20).
 
 Models: Claude Haiku, Sonnet and Opus 5.5 at their default effort.
 
@@ -112,7 +119,8 @@ Models: Claude Haiku, Sonnet and Opus 5.5 at their default effort.
   no outliers, no case variants. Scores here are a ceiling. Real campaign data has duplicates, placeholder targets,
   spelling variants, skewed attribution and broken joins, each of which makes a confident wrong answer more likely.
   A real-data tier, with each question tagged by the complication it probes, is the next step.
-- One turn per question (one two-turn edit). No write-through to Superset yet (the design for it uses a throwaway
+- One turn per question (a few edits take two turns).
+- Questions are in English, with one in Hindi. None are in French or Portuguese yet, though the chat panel offers both. No write-through to Superset yet (the design for it uses a throwaway
   copy of a dashboard).
 - Scores depend on the config's instructions as much as on the model: see the definitions findings in
   [FAILURES.md](FAILURES.md).

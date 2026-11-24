@@ -1,6 +1,11 @@
 # Definitions register
 
-Terms with more than one defensible reading in this data. For each: the competing definitions and their values on the synthetic data, what the Lenspack config (`configs/post-rebase-v2.yaml`) now tells the model, the questions that probe it, and the open question for eGov. The machine-readable version, with SQL, is [`definitions.yaml`](definitions.yaml).
+**In short.** Fourteen terms a campaign manager uses have more than one defensible reading in this data, and the
+readings give different numbers ("children vaccinated" is 47,798 with revisits, 47,585 without). The eval accepts any
+reading the reply names. Six are *stated* in the config but not yet confirmed by eGov, six are *open*, and two are
+*settled*. Each row ends with the question eGov needs to answer.
+
+For each term: the competing definitions and their values on the synthetic data, the competing definitions and their values on the synthetic data, what the Lenspack config (*eGov views + definitions*, `configs/post-rebase-v2.yaml`) now tells the model, the questions that probe it, and the open question for eGov. The machine-readable version, with SQL, is [`definitions.yaml`](definitions.yaml).
 
 **Status:** *open* = nothing states a reading; *stated* = the config states one, eGov hasn't confirmed it; *settled* = the readings agree here, or one is plainly wrong.
 
@@ -20,5 +25,5 @@ Terms with more than one defensible reading in this data. For each: the competin
 | **average coverage** | stated | overall (sum over sum) (**93.77%**)<br>plain mean of settlement percentages (**94.20%**) | Superset computes every % from sums: never add or average percentages | T4.1, T5.1, T9.9 | none |
 | **people in registered households** | settled | people_registered (ni_members over su_ni_member) (**121,720**) | member (one row per person in a registered household) gives people_registered | T1.7, T7.7 | none |
 | **children per vial** | open | children vaccinated per vial issued (**30.94**)<br>children vaccinated per vial used (the pack's children_per_vial) (**42.56**)<br>vials per child (the inverse, vials_per_child) (**0.0235 vials**) | children_per_vial and vials_per_child are inverses (both per vial used) | T6.3 | Which denominator does eGov use for doses or children per vial: issued or used? |
-| **households registered, targets** | settled | households_registered (coverage) vs households (pre-rebase household dataset) (**equal on this data**)<br>target_children vs planned_target (**50,975 both**) | nothing needed | T1.1, T4.1 | Watch item: flag if the two sources ever diverge. |
+| **households registered, targets** | settled | households_registered (coverage) vs households (the *own joins* household dataset) (**equal on this data**)<br>target_children vs planned_target (**50,975 both**) | nothing needed | T1.1, T4.1 | Watch item: flag if the two sources ever diverge. |
 | **time windows** | stated | campaign days 1–7 (12–18 Oct 2026)<br>relative windows ("last 30 days", "this week") against today's date (**empty**) | the campaign lasted 7 days: 'last 30 days' is empty, so say so and use campaign days | E6, T3.x | none |
