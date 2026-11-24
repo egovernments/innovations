@@ -51,17 +51,20 @@ The method, every run and each failure analysis are in [`evals/`](../evals/).
 
 ## Where it stands
 
-- **Running now** on eGov's HCM lab VM over HTTPS, against unified-dev data, with voice input.
+- **Running now** on eGov's HCM lab VM over HTTPS, with voice input. Since unified-dev ran out of disk it answers on a
+  masked copy of a real campaign's data, run through eGov's own analytics pipeline
+  ([how the data is built](ANALYTICS-PIPELINE.md)).
 - **Open source:** [Lenspack](https://github.com/theflywheel/lenspack) and this deployment
-  ([innovations#3](https://github.com/egovernments/innovations/pull/3)).
+  ([`nl-dashboard/`](https://github.com/egovernments/innovations/tree/master/nl-dashboard) in this repository).
 - **Known limits:** row-level security doesn't yet follow the person asking (chart data runs as one service account);
-  seven chart types are editable (KPI, pie, line, area, bar, table, heatmap), and maps and others can be moved but not changed.
+  eight chart types are editable (KPI, pie, line, area, bar, table, heatmap and point maps), and others can be moved but
+  not changed.
 
 ## Next steps
 
 1. **Pilot with one campaign team** on real (masked) data, measuring time from question to answer.
 2. **Per-user row-level security**, so each person sees only their own geography.
-3. **A map widget** for facility-level views.
+3. **Shaded-area maps** for wards and LGAs (point maps are done; shading needs boundary shapes in a dataset).
 4. **Build the vocabulary from Superset alone**, so a new deployment needs no hand-written configuration.
 
 Technical detail: [ARCHITECTURE.md](ARCHITECTURE.md).

@@ -20,7 +20,7 @@ The pods request about 1 CPU and 2.3 Gi in total, with limits of 5 CPU and 8 Gi.
   `*.hcm-lab.digit.org` already resolves to the VM. Elsewhere, change the host and issuer in `ingress.yaml`.
 - **Images.** `kustomization.yaml` uses the public images in `ghcr.io/theflywheel/lenspack`:
   `superset5-<sha>` is this folder's Superset image, built at innovations commit `<sha>`, and `superset-<sha>` is
-  Lenspack's `superset` branch at that commit (the same as `LENSPACK_REF` in `lenspack/Dockerfile`). To build your own
+  Lenspack at that commit of its `main` branch (the same as `LENSPACK_REF` in `lenspack/Dockerfile`). To build your own
   from `nl-dashboard/`:
   ```sh
   docker build -t <registry>/nl-dashboard-superset:<tag> superset

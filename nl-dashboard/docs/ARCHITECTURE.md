@@ -1,9 +1,10 @@
 # Architecture: Superset + Lenspack
 
 How the natural-language dashboard assistant is built, deployed and secured. This page describes the setup as it is
-in this folder: Lenspack from the `superset` branch of
-[theflywheel/lenspack](https://github.com/theflywheel/lenspack/tree/superset/packages/superset), pinned in
-[`lenspack/Dockerfile`](../lenspack/Dockerfile), and stock Apache Superset 5.0.
+in this folder: Lenspack's Superset connector from the `main` branch of
+[theflywheel/lenspack](https://github.com/theflywheel/lenspack/tree/main/packages/superset), pinned in
+[`lenspack/Dockerfile`](../lenspack/Dockerfile), and stock Apache Superset 5.0. Where the data comes from is in
+[ANALYTICS-PIPELINE.md](ANALYTICS-PIPELINE.md).
 
 For the hands-on steps, see [the README](../README.md) (this folder's Compose stack),
 [`k8s/README.md`](../k8s/README.md) (Kubernetes) and [Add Lenspack to an existing Superset](ADD-TO-EXISTING-SUPERSET.md).
@@ -73,34 +74,27 @@ On every forwarded request, Superset adds the header `x-lenspack-identity`. Its 
 
 The header is `base64url(JSON) "." HMAC-SHA256`.
 
-- **The key** is derived from Superset's `SECRET_KEY` (`lenspack-identity-v1`). Lenspack fetches it at start through
-  an endpoint open only to admins and to Lenspack's own account. There is no second shared secret, and rotating
+- **The key** is derived from Superset's `SECRET_KEY` (`lenspack-identity-v1`). Lenspack fetches it at start from
+  `GET /api/v1/lenspack/identity-key`, open only to admins and to Lenspack's own account. There is no second shared secret, and rotating
   `SECRET_KEY` rotates the key (restart Lenspack).
 - **Lenspack keeps no users.** A request without a valid signature less than 5 minutes old counts as signed out
-  (401). See [`src/identity.ts`](https://github.com/theflywheel/lenspack/blob/superset/packages/superset/src/identity.ts).
+  (401). See [`src/identity.ts`](https://github.com/theflywheel/lenspack/blob/main/packages/superset/src/identity.ts).
 
 ### Edit policy
 
-| Action | Who may | Decided by |
-|---|---|---|
-| Open the chat and ask about a dashboard | anyone who can view it | Superset, per request |
-| Change the dashboard through the chat | `LENSPACK_EDIT_POLICY=superset` (default): its owners with `can_write` on Dashboard, and admins. `signed-in`: anyone signed in | Superset, per request |
-| Change Lenspack's settings, read the audit log | Superset admins | Superset |
-
-Someone without edit rights who asks for a change gets a plain answer ("you can view this dashboard but not edit it
-in Superset…"). Nothing changes, and the refusal is logged.
+Anyone who can view a dashboard can ask about it. Who may change it through the chat is decided by Superset on every
+request: by default (`LENSPACK_EDIT_POLICY=superset`) its owners with `can_write` on Dashboard, and admins. Settings
+and the audit log are for admins. Someone without edit rights who asks for a change gets a plain answer, nothing
+changes, and the refusal is logged. The full table and examples are in
+[Who may do what](ADD-TO-EXISTING-SUPERSET-REFERENCE.md#who-may-do-what).
 
 ### Lenspack's Superset account
 
 Lenspack reads datasets, runs chart data and saves charts and layouts as its own Superset user, `lenspack`, with the
-Admin role, because it edits dashboards it doesn't own.
-
-- **First start:** Lenspack signs in once with a Superset admin's password, and calls a bootstrap endpoint that
-  creates the account with a random password. It keeps that password in `/data/superset-account.json` (mode 600).
-  The admin password can then be removed.
-- **Managing the account yourself:** set `LENSPACK_SUPERSET_PASSWORD` instead. Lenspack then never creates or resets
-  the account.
-- **Row-level security** on the configured datasets applies to this account, not to the person asking.
+Admin role, because it edits dashboards it doesn't own. It creates the account on its first start from an admin's
+password and keeps the account's password in `/data`, or uses an account you manage (`LENSPACK_SUPERSET_PASSWORD`).
+Row-level security on the configured datasets applies to this account, not to the person asking. Details:
+[Lenspack's Superset account](ADD-TO-EXISTING-SUPERSET-REFERENCE.md#lenspacks-superset-account).
 
 ### Settings
 
@@ -128,8 +122,8 @@ on Superset's **Settings → Manage → AI assistant** page (`/ai-assistant/`).
   - placement, as the dashboard's layout.
 
   Each change is a version that can be listed and restored ("undo that", "back to the original"). Lenspack edits
-  KPI, pie, line, area, bar, table and heatmap charts. Others stay as Superset's: it can move, resize or remove them,
-  but not change their contents.
+  KPI, pie, line, area, bar, table, heatmap and point-map (`deck_scatter`, see [MAPS.md](MAPS.md)) charts. Others stay
+  as Superset's: it can move, resize or remove them, but not change their contents.
 - **Layout edits** go through core operations (`packages/core/src/ops.ts`):
   - adding to a row fills it before wrapping;
   - moving or resizing within a full row narrows its neighbours proportionally, or refuses with options;
@@ -160,24 +154,16 @@ language. Without the key, the microphone is hidden.
 
 ### Audit
 
-Lenspack appends one JSON line to `/data/audit.jsonl` for:
-- every board change;
-- every refused change or request;
-- every chat turn;
-- every settings change.
-
-Each line carries the Superset user and the dashboard.
-
-- **Rotation and retention:** the file rotates monthly (`audit-YYYY-MM.jsonl`), and months older than 90 days are
-  deleted (`LENSPACK_AUDIT_RETENTION_DAYS`).
-- **Reading it:** admins read it on the AI assistant page or at `/lenspack/_superset/audit`.
-- **It's the durable record:** the usage and spend figures on the settings page are in memory and reset on restart.
+Lenspack appends one JSON line to `/data/audit.jsonl`, with the Superset user and the dashboard, for every board
+change, refused change or request, chat turn and settings change. It rotates monthly, keeps 90 days, and is the durable
+record: the usage figures on the settings page reset on restart. Rotation, retention and how to read it:
+[The audit log](ADD-TO-EXISTING-SUPERSET-REFERENCE.md#the-audit-log).
 
 ## Structure
 
 | Where | What |
 |---|---|
-| [theflywheel/lenspack](https://github.com/theflywheel/lenspack), branch `superset` | Lenspack itself (public) |
+| [theflywheel/lenspack](https://github.com/theflywheel/lenspack), branch `main` | Lenspack itself (public) |
 | `packages/core` | Board model and layout operations (`ops.ts`), board summaries |
 | `packages/mcp` | The chat's tools: board reads and edits, queries, versions |
 | `packages/serve` | The chat server: model calls, step cap, reviewer, budget and usage, speech to text, prompt |
@@ -190,6 +176,7 @@ Each line carries the Superset user and the dashboard.
 | [`setup/setup.mts`](../setup/setup.mts) | One-off: data sources, datasets with saved metrics and descriptions, starter dashboards |
 | [`docker-compose.yml`](../docker-compose.yml), [`k8s/`](../k8s/) | The stack on one host, and on Kubernetes |
 | [`evals/`](../evals/) | The accuracy suite, definitions register, results and failure analyses |
+| [`docs/`](README.md) | These docs, grouped by reader |
 
 ## Setup and prerequisites
 
@@ -223,9 +210,11 @@ survive.
 4. **An edit** becomes Superset API writes: a chart, then the dashboard layout. The panel refreshes the dashboard in
    place, and the reply streams back through Superset.
 
-**ClickHouse in the demo.** The demo reads eGov's unified-dev ClickHouse, which holds synthetic campaign data.
-Superset connects to it through a `kubectl port-forward` run as a small service, using a read-only kubeconfig and a
-read-only ClickHouse user:
+**ClickHouse in the demo.** Two data paths are in use, both described in
+[ANALYTICS-PIPELINE.md](ANALYTICS-PIPELINE.md): eGov's unified-dev ClickHouse, which holds synthetic campaign data, and
+a lab ClickHouse holding a masked extract of a real campaign, run through the same eGov pipeline. Superset reaches
+unified-dev through a `kubectl port-forward` run as a small service, using a read-only kubeconfig and a read-only
+ClickHouse user:
 - on one host: the `clickhouse-tunnel` Compose service;
 - on Kubernetes: a one-replica Deployment with a TCP liveness probe and a ClusterIP Service.
 

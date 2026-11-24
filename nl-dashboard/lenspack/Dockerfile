@@ -6,7 +6,7 @@ FROM node:24-bookworm-slim
 RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates \
  && rm -rf /var/lib/apt/lists/* && corepack enable
 
-# A commit on the lenspack "superset" branch (until packages/superset reaches main).
+# A commit on lenspack main (packages/superset).
 ARG LENSPACK_REF=3f6916caf4bf4ae20d2b370fc59491af5f13cd1c
 WORKDIR /app
 RUN git init -q . && git remote add origin https://github.com/theflywheel/lenspack.git \

@@ -9,7 +9,7 @@ model actually said (synthetic data), the cause, and what changed. Run timestamp
 - What separates *configs* is whether the instructions name the definitions.
 - Three failures were in Lenspack itself (KPI-row placement, fixed in lenspack#18; a move that reported success
   without moving, §11, fixed in lenspack#22; a move into a full row that lands elsewhere, §12, being fixed), and one
-  was in Superset (a dataset-lookup race; fixed in this PR).
+  was in Superset (a dataset-lookup race; fixed in `superset/lenspack_superset.py`).
 - A right board isn't the whole answer: since 2026-11-23 an edit with no reply is wrong, and a right board with changes
   nobody asked for is partial (§12).
 
@@ -171,8 +171,8 @@ across gunicorn threads. Two concurrent `GET /api/v1/dataset/?q=(filters:…)` c
 other's dataset (21 of 320 concurrent lookups in a test loop). Chart data is built per request and was never affected:
 0 mismatches across about 1,350 stored eval queries and 88 concurrent calls.
 
-**Fix:** `superset/superset_config.py` builds list filters per request (commit 1dea630 in this PR; 320/320 correct
-after it). Lenspack's Superset client also looks datasets up one at a time and keeps only an exact name match. The
+**Fix:** list filters are built per request (first in `superset/superset_config.py`, commit 1dea630, now in
+`superset/lenspack_superset.py`; 320/320 correct after it). Lenspack's Superset client also looks datasets up one at a time and keeps only an exact name match. The
 eval harness checks every dataset name before it trusts a pack. After the fix, 15 of 15 pack builds were clean with
 no retries. Every full run reported here was checked: its tool outputs show the expected entities.
 

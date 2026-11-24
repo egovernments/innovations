@@ -43,7 +43,7 @@ installed.
 | You need | Tested with | Notes |
 |---|---|---|
 | Superset 5.0 | `apache/superset:5.0.0` (Flask-AppBuilder 4.5.5) | Superset 6 is untested. |
-| The Lenspack image | `ghcr.io/theflywheel/lenspack:superset-3f6916c` | Public. This tag is built from Lenspack's `superset` branch until the Superset support reaches `main`; after that, use a `main` tag. |
+| The Lenspack image | `ghcr.io/theflywheel/lenspack:superset-3f6916c` | Public. Built from Lenspack commit `3f6916c`, which is on `main` ([`packages/superset`](https://github.com/theflywheel/lenspack/tree/main/packages/superset)). |
 | A Superset admin's password | | Used once, on Lenspack's first start, to create its own account. |
 | An LLM API key | Anthropic (Claude Sonnet, Opus and Haiku 5.5) | Or any OpenAI-compatible API through `LENSPACK_LLM_PROVIDERS`. |
 | Your data in Superset | ClickHouse, through `clickhouse-connect` | The stock image has no ClickHouse driver: [adding it](#the-clickhouse-driver). |
@@ -58,22 +58,16 @@ browser ──► Superset ──/lenspack/…──► Lenspack ──API (its 
              signs who is asking        reads datasets, runs chart data, saves dashboards
 ```
 
-- **One address.** Browsers only ever talk to Superset. `lenspack_superset.py` adds a route, `/lenspack/…`, which
-  Superset's own server forwards to the Lenspack container. Anyone not signed in gets 401. The overlay script,
-  its API calls and Superset's session are all same-origin, so CORS isn't needed and Superset's CSP stays on: the
-  overlay's script tag carries the page's nonce.
-- **Who is asking.** For each forwarded request Superset adds a header, `x-lenspack-identity`, which carries:
-  - the username;
-  - whether they are an admin;
-  - if the request is about a dashboard, whether Superset lets them view and edit it.
+- **One address.** Browsers only ever talk to Superset, which forwards `/lenspack/…` to the Lenspack container for
+  signed-in users (anyone else gets 401). Everything is same-origin, so CORS isn't needed and Superset's CSP stays on.
+- **Who is asking.** Superset signs a header, `x-lenspack-identity`, on each forwarded request: the user, whether they
+  are an admin, and whether they may view and edit the dashboard in question. Lenspack accepts nothing else, so its
+  port never needs to be published.
+- **No second secret.** The signing key is derived from Superset's `SECRET_KEY`. Rotating `SECRET_KEY` rotates it;
+  restart Lenspack afterwards.
 
-  The header is signed (HMAC-SHA256) and valid for five minutes. Lenspack accepts nothing else, so its port never
-  needs to be published.
-- **The key.** The signing key is derived from Superset's `SECRET_KEY`. Lenspack fetches it at start
-  (`GET /api/v1/lenspack/identity-key`, allowed for admins and Lenspack's own account), so there is no second
-  secret to configure or keep in sync. Rotating `SECRET_KEY` rotates it; restart Lenspack afterwards.
-- **Streaming.** Chat replies stream through Superset unbuffered. The route sends `X-Accel-Buffering: no` and skips
-  compression.
+How the route, the signed header, the key and streaming work:
+[ARCHITECTURE.md](ARCHITECTURE.md#the-proxy-through-superset).
 
 ## Get the files
 

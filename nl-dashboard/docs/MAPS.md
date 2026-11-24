@@ -1,9 +1,13 @@
 # Superset maps: what Superset 5.0 does, and what Lenspack needs
 
-Notes from studying the stock Superset 5.0 in `superset-demo/` and its `deck_scatter` chart, done before
-adding maps to Lenspack. The method was read-only: a saved chart's params, a headless browser's network log
-while the chart renders, the data endpoints called directly, and Superset's own source (`superset/viz.py`, the
-frontend bundle). Every value in this note is a placeholder.
+Notes from studying a stock Superset 5.0 and its `deck_scatter` chart, done before adding maps to Lenspack.
+The method was read-only: a saved chart's params, a headless browser's network log while the chart renders, the
+data endpoints called directly, and Superset's own source (`superset/viz.py`, the frontend bundle). Every value in
+this note is a placeholder.
+
+**Status:** maps v1 (points, [section 7](#7-what-lenspack-does-with-this-v1-points)) is built and is in Lenspack's
+`main` ([`packages/superset`](https://github.com/theflywheel/lenspack/tree/main/packages/superset)). Section 6
+describes Lenspack before it. Shaded-area maps (choropleths, section 4) are not built.
 
 ## 1. A scatter map's form data (`deck_scatter`)
 

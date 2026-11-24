@@ -6,7 +6,7 @@ and get it as ordinary Superset charts on an ordinary Superset dashboard. Goal, 
 
 - **Superset is not forked.** We use the stock `apache/superset:5.0.0` image plus two database drivers, a config file,
   and one Python file (`lenspack_superset.py`) that the config imports.
-- **[Lenspack](https://github.com/theflywheel/lenspack/tree/superset/packages/superset) adds the chat.**
+- **[Lenspack](https://github.com/theflywheel/lenspack/tree/main/packages/superset) adds the chat.**
   - It reads Superset's datasets and saved metrics as its vocabulary.
   - It gets every number from Superset (`/api/v1/chart/data`).
   - It writes changes back as Superset charts and dashboard layout.
@@ -15,8 +15,10 @@ and get it as ordinary Superset charts on an ordinary Superset dashboard. Goal, 
 - **Admins get a settings page** in Superset: Settings → Manage → **AI assistant**.
 - **Already running Superset 5?** [Add Lenspack to an existing Superset](docs/ADD-TO-EXISTING-SUPERSET.md) on the stock
   image, with Docker Compose or the official Helm chart, without this folder's Superset image.
-- **How it's built:** [ARCHITECTURE.md](docs/ARCHITECTURE.md) (design, data flow, security, capacity). **In one page,
-  for decision makers:** [ONE-PAGER.md](docs/ONE-PAGER.md).
+- **How it's built:** [ARCHITECTURE.md](docs/ARCHITECTURE.md) (design, data flow, security, capacity). **Where the
+  data comes from:** [ANALYTICS-PIPELINE.md](docs/ANALYTICS-PIPELINE.md) (HCM records to ClickHouse tables to Superset
+  datasets, step by step). **In one page, for decision makers:** [ONE-PAGER.md](docs/ONE-PAGER.md).
+- **All the docs,** grouped by reader: [docs/README.md](docs/README.md).
 
 ## How it fits together
 
@@ -33,6 +35,8 @@ browser ──► Superset 5 (:8088) ──────────────�
   derived from `SUPERSET_SECRET_KEY`, so there is no second secret.
 - **Same origin,** so the overlay needs no CORS, and Superset's security headers (Talisman's CSP) stay on.
 - **Lenspack's own account** is created on its first start from the admin password, and its password is kept in Lenspack's volume.
+
+The design in full: [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## What's here
 
@@ -140,6 +144,7 @@ Not secrets, and in the files themselves:
     | `ni_coverage` | `su_ni_cov`, `dm_targets_base`, `su_ni_days` | settlement × campaign day | children vaccinated, households registered, targets, zero-dose and enumerated children, coverage and zero-dose %, cumulative actual vs planned % |
     | `ni_status` | `su_ni_cov`, `dm_targets_base` | settlement × group × status | reached vs remaining, for coverage pies |
     | `ni_visits` | `su_ni_task` | child visit | outcome, refusal and absence reasons, gender, age band, settlement type, access, team (no names, ids or locations) |
+    | `ni_members` | `su_ni_member` | household member | place, registration day, gender, age band (no names, ids or locations) |
     | `ni_missed` | `su_ni_missed` | settlement × campaign day | children missed, children outstanding |
     | `ni_team_stock` | `su_ni_team_stock` | team | vials issued, returned, spoilt, used; wastage (50 doses per vial), vials per child |
     | `ni_facilities` | `su_ni_zd_facility` | health facility | location and zero-dose band, for the map |
@@ -159,6 +164,8 @@ Not secrets, and in the files themselves:
   - It also creates two dashboards: "nOPV2 field test overview (ClickHouse)" (slug `ni-smc`) and a national view
     (slug `ni-national`).
   - `lenspack/lenspack-superset.clickhouse.yaml` is the Lenspack config for these datasets (pack `hcm_clickhouse`).
+  - How these views and marts are built from HCM's records, and what each step drops:
+    [ANALYTICS-PIPELINE.md](docs/ANALYTICS-PIPELINE.md).
   - `clickhouse-tunnel` (profile `clickhouse`) reaches ClickHouse inside a Kubernetes cluster with a read kubeconfig,
     using `kubectl port-forward`. Set `CLICKHOUSE_HOST`/`CLICKHOUSE_PORT` instead when ClickHouse is reachable directly.
   - Steps:
@@ -184,10 +191,11 @@ Everything below is added without forking Superset.
 | **Data connections** | Superset → **Settings** → Data → **Database Connections** | Admins | Superset's own page. `setup` adds "HCM (masked)" for the sample and "HCM analytics (ClickHouse)". |
 
 Known limits of these pages:
-- **The page reloads** after a change, and the chat is restored from the browser's session storage. Tracked in
-  [theflywheel/lenspack#15](https://github.com/theflywheel/lenspack/issues/15), with where chat history should live.
+- **After a change** the dashboard re-renders in place, or reloads if that takes too long. Chat history is kept in the
+  browser's session storage; where it should live is tracked in
+  [theflywheel/lenspack#15](https://github.com/theflywheel/lenspack/issues/15).
 - **Use the chat with the dashboard in view mode.** In Superset's edit mode, unsaved edits are lost when Lenspack
-  reloads the page, and saving them afterwards overwrites what Lenspack saved.
+  refreshes the dashboard, and saving them afterwards overwrites what Lenspack saved.
 - **Who did what** is in Lenspack's audit log (`/data/audit.jsonl`, 90 days): every change, refusal, chat turn and
   settings change, with the Superset user. The usage figures on the settings page reset when Lenspack restarts; the log doesn't.
 
@@ -197,9 +205,10 @@ Most of these are covered in [issue #1](https://github.com/egovernments/innovati
 - **Service account:** Lenspack reads and writes as one Superset account, `lenspack`, with the Admin role (it edits
   dashboards it doesn't own). Who may edit through the chat is checked per person against Superset's rights, but chart
   data runs as that account, so row-level security applies to it, not to the person asking.
-- **Chart types:** only KPI, pie, line, area, bar, table and heatmap charts can be edited. Other chart types are kept as
-  Superset's.
-- **Lenspack version:** the image pins a commit on Lenspack's `superset` branch. The package isn't on Lenspack's `main`
-  yet ([theflywheel/lenspack#16](https://github.com/theflywheel/lenspack/pull/16), draft).
+- **Chart types:** only KPI, pie, line, area, bar, table, heatmap and point-map (`deck_scatter`) charts can be edited.
+  Other chart types are kept as Superset's.
+- **Lenspack version:** the image pins a commit of Lenspack's `main` (`LENSPACK_REF` in
+  [`lenspack/Dockerfile`](lenspack/Dockerfile)); the Superset connector is
+  [`packages/superset`](https://github.com/theflywheel/lenspack/tree/main/packages/superset).
 - **No beside page:** the earlier page with the chat beside a framed dashboard, on a port of its own, is no longer part
   of this setup; the chat is on Superset's own dashboard page.
