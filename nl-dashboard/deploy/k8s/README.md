@@ -1,7 +1,8 @@
 # nl-dashboard on Kubernetes
 
-This is the Compose stack from [`../../README.md`](../../README.md) on Kubernetes. It's written for the HCM lab VM, which runs
-minikube on AWS, in namespace `lenspack`, and should fit any cluster that has ingress-nginx and cert-manager.
+This is the Compose stack from [`../../README.md`](../../README.md) on Kubernetes. It's written for eGov's HCM lab
+server, a single AWS virtual machine running minikube, in namespace `lenspack`, and should fit any cluster that has
+ingress-nginx and cert-manager.
 
 | File | What it makes |
 |---|---|
@@ -16,8 +17,8 @@ The pods request about 1 CPU and 2.3 Gi in total, with limits of 5 CPU and 8 Gi.
 
 ## Before you start
 
-- **ingress-nginx and cert-manager.** On the lab VM the ClusterIssuer is `letsencrypt-prod`, and
-  `*.hcm-lab.digit.org` already resolves to the VM. Elsewhere, change the host and issuer in `ingress.yaml`.
+- **ingress-nginx and cert-manager.** On the lab server the ClusterIssuer is `letsencrypt-prod`, and
+  `*.hcm-lab.digit.org` already resolves to it. Elsewhere, change the host and issuer in `ingress.yaml`.
 - **Images.** `kustomization.yaml` uses public images from `ghcr.io/theflywheel/lenspack`. Lenspack runs its
   own image, built from its `main` branch and tagged with the commit (for example `4e8b56d`). Superset runs this
   folder's image, `superset5-<sha>`, built at commit `<sha>` of this repository; it copies Lenspack's Superset
@@ -99,9 +100,10 @@ Open https://superset.hcm-lab.digit.org and sign in as `admin`.
   ```
   The Postgres volume (`data-nl-dashboard-db-0`) stays until you delete it.
 
-## On the lab VM
+## On the lab server
 
-- **Hours:** the VM is off from 00:00 to 08:00 IST and at weekends. Pods come back when it starts again.
+- **Hours:** the server is off from 00:00 to 08:00 IST and at weekends. Pods come back when it starts again.
 - **Neighbours:** namespace `lenspack` also runs the Elasticsearch-based Lenspack (`lens.hcm-lab.digit.org`) and
   ClickHouse (`svc/clickhouse`, ports 8123/9000), which the setup Job uses as `clickhouse:8123`. The ClickHouse datasets
-  read eGov's `analytics` marts (`dm_*` tables and the boundary localisation table), so check they exist there first.
+  read eGov's analytics summary tables (the `analytics.dm_*` marts and the boundary-name table), so check they exist
+  there first.

@@ -18,8 +18,8 @@ Documentation for the Superset + Lenspack natural-language dashboard (use case 3
 
 ## For engineers
 
-- [ARCHITECTURE.md](ARCHITECTURE.md): how the assistant is built: the proxy through Superset, signed identity, packs
-  and boards, the chat turn, security and capacity.
+- [ARCHITECTURE.md](ARCHITECTURE.md): how the assistant is built: the proxy through Superset, signed identity,
+  Lenspack's vocabulary (the *pack*) and how it reads and edits dashboards, one chat turn, security and capacity.
 - [ANALYTICS-PIPELINE.md](ANALYTICS-PIPELINE.md): how HCM campaign data becomes the ClickHouse tables and Superset
   datasets the assistant reads, stage by stage, with what each step drops and the known gaps.
 - [PACK-FROM-SUPERSET.md](PACK-FROM-SUPERSET.md): design (not built) for building Lenspack's vocabulary from Superset
@@ -29,7 +29,7 @@ Documentation for the Superset + Lenspack natural-language dashboard (use case 3
 ## Evaluations
 
 - [../evals/README.md](../evals/README.md): what we test and the results, on one page: the chat agent (questions,
-  scoring, results by model and language) and the mic's speech-to-text.
+  scoring, results by model and language) and the speech-to-text behind the chat's microphone.
   - [../evals/agent/](../evals/agent/README.md): the chat agent's questions, scoring, definitions, every run and the
     failure write-ups.
   - [../evals/speech/](../evals/speech/README.md): the speech-to-text comparison behind the mic's default model.
