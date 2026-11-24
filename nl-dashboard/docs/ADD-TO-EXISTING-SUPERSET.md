@@ -15,7 +15,7 @@ Compose was tested by following these steps literally on `apache/superset:5.0.0`
 
 - Superset 5.0 that already reads your data. For ClickHouse that means the `clickhouse-connect` driver ([adding it](ADD-TO-EXISTING-SUPERSET-REFERENCE.md#the-clickhouse-driver)).
 - The password of a Superset admin, used once on Lenspack's first start.
-- The image `ghcr.io/theflywheel/lenspack:superset-eae58a5` (public).
+- The image `ghcr.io/theflywheel/lenspack:superset-3f6916c` (public).
 - An Anthropic API key.
 
 ## Get the files
@@ -60,7 +60,7 @@ docker compose exec superset python -c "import lenspack_superset; print('ok')"
 
 ```yaml
   lenspack:
-    image: ghcr.io/theflywheel/lenspack:superset-eae58a5
+    image: ghcr.io/theflywheel/lenspack:superset-3f6916c
     environment:
       SUPERSET_URL: http://superset:8088                    # Superset itself, from inside the Compose network
       SUPERSET_ADMIN_PASSWORD: ${SUPERSET_ADMIN_PASSWORD}    # first start only (user "admin"; else set SUPERSET_ADMIN_USERNAME)
