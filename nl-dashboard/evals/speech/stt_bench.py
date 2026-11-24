@@ -60,9 +60,10 @@ def main():
     ap.add_argument("manifest")
     ap.add_argument("--systems", required=True)
     ap.add_argument("--limit", type=int)
+    ap.add_argument("--sets", help="only these sets (comma-separated), e.g. fleurs-pt,cv-pt-pt,cv-pt-br")
     ap.add_argument("--nohint", action="store_true", help="omit the language hint (auto-detect); results go to <system>__nohint.jsonl")
     a = ap.parse_args()
-    clips = [json.loads(l) for l in open(a.manifest)][: a.limit]
+    clips = [c for c in map(json.loads, open(a.manifest, encoding="utf-8")) if not a.sets or c["set"] in a.sets.split(",")][: a.limit]
     out = HERE / "results"
     out.mkdir(exist_ok=True)
     for sysname in a.systems.split(","):

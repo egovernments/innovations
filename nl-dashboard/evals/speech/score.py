@@ -9,6 +9,8 @@ import jiwer
 HERE = Path(__file__).resolve().parent
 man = {c["id"]: c for c in map(json.loads, open(sys.argv[1] if len(sys.argv) > 1 else HERE / "data/manifest.jsonl", encoding="utf-8"))}
 
+# Portuguese: the masculine form (um, dois), so "1" against "uma" still counts as an error.
+NUM_PT = {"0": "zero", "1": "um", "2": "dois", "3": "três", "4": "quatro", "5": "cinco", "6": "seis", "7": "sete", "8": "oito", "9": "nove", "10": "dez"}
 NUM_FR = {"0": "zéro", "1": "un", "2": "deux", "3": "trois", "4": "quatre", "5": "cinq", "6": "six", "7": "sept", "8": "huit", "9": "neuf", "10": "dix"}
 
 
@@ -21,6 +23,8 @@ def norm(s, lang):
     words = s.split()
     if lang == "fr":
         words = [NUM_FR.get(w, w) for w in words]
+    elif lang == "pt":
+        words = [NUM_PT.get(w, w) for w in words]
     return " ".join(words)
 
 
@@ -40,7 +44,7 @@ for f in sorted((HERE / "results").glob("*.jsonl")):
         b["lat"].append(r["latency"])
         b["sec"] += c.get("seconds", 0)
 
-sets = sorted({c["set"] for c in man.values()}, key=lambda x: (not x.startswith("slr57"), x))
+sets = sorted({c["set"] for c in man.values()}, key=lambda x: ("-pt" in x or x.endswith("pt"), not x.startswith("slr57"), x))
 print("| system | " + " | ".join(f"{s} WER" for s in sets) + " | median latency (s) | RTF | errors |")
 print("|---|" + "---|" * (len(sets) + 3))
 for name, by in sorted(rows.items()):
