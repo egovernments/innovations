@@ -18,15 +18,9 @@ SQL: the right number, the right chart, or an honest "can't". The data is the **
 - **What separates the models** is multi-step arithmetic: Haiku won't always divide two totals it already has.
 - **What separates the configs** is whether the instructions name the definitions. No model says which definition
   it used unless the config tells it to.
-- **Two bugs came out of the eval**, neither of them in a model:
-  - KPI tiles wouldn't sit in a row, a Lenspack placement bug fixed in theflywheel/lenspack#18 (T7.2 went from 0/9
-    to 9/9).
-  - Superset sometimes returned the wrong dataset for a name lookup, a Flask-AppBuilder race fixed in this PR
-    (1dea630).
-- **A third bug came from the lab demo:** a chart move that reported success and left the chart where it was
-  (theflywheel/lenspack#22). The eval now has move questions (T7.13–T7.14, English and Hindi). With the fix the moves
-  land, but by trial and error and with other charts resized, so since 2026-11-23 the scorer marks a right board with
-  collateral changes as partial and a silent edit as wrong ([FAILURES.md §11–12](FAILURES.md#11-a-move-reported-success-but-left-the-chart-where-it-was-engine-bug-found-in-the-lab-demo)).
+- **Moves are scored strictly:** since 2026-11-23 the scorer marks a right board with collateral changes (other charts
+  resized) as partial and a silent edit as wrong. The move questions are T7.13–T7.14, in English and Hindi.
+- Bugs found along the way, all fixed, are written up in [FAILURES.md](FAILURES.md).
 - **This data is clean and synthetic**, so treat the scores as a ceiling.
 - **Speech-to-text** is evaluated separately ([speech/SPEECH.md](speech/SPEECH.md)): Voxtral Mini Transcribe is the mic's
   default (6.4 / 9.1 / 3.5 / 8.2% WER on Central African French, Niger French, FLEURS French and Hindi; 0.67 s), with
