@@ -12,6 +12,7 @@ OpenRouter reported it. There is no audio and no key in this folder.
 - [Method](#method)
 - [Results with the language hint](#results-with-the-language-hint)
 - [Results without the hint](#results-without-the-hint)
+- [Portuguese](#portuguese)
 - [Failures](#failures)
 - [Decision: why Voxtral is the default](#decision-why-voxtral-is-the-default)
 - [In the live app, 2026-11-23](#in-the-live-app-2026-11-23)
@@ -28,11 +29,20 @@ OpenRouter reported it. There is no audio and no key in this folder.
 | Central Africa (`slr57-central`) | SLR57 test split, CA16 recordings: Gabon 40, Cameroon 24, Chad 8, Congo 8 | Apache 2.0 | 80 | 3.5 min |
 | FLEURS fr (`fleurs-fr`) | [Google FLEURS](https://huggingface.co/datasets/google/fleurs) `fr_fr`, test split | CC BY 4.0 | 25 | 4.7 min |
 | FLEURS hi (`fleurs-hi`) | FLEURS `hi_in`, test split | CC BY 4.0 | 25 | 5.3 min |
+| FLEURS pt (`fleurs-pt`) | FLEURS `pt_br` (Brazilian Portuguese), test split | CC BY 4.0 | 25 | 5.7 min |
+| Common Voice, Portugal (`cv-pt-pt`) | [Mozilla Common Voice](https://commonvoice.mozilla.org/) 22.0 Portuguese, test split, speakers who chose the "Portuguese (Portugal)" variant or named Lisbon or Porto as their accent | CC0 1.0 | 40, from 37 speakers | 3.4 min |
+| Common Voice, Brazil (`cv-pt-br`) | Common Voice 22.0 Portuguese, test split, the "Portuguese (Brasil)" variant | CC0 1.0 | 40, from 40 speakers | 3.5 min |
 
-- All four sets are **read speech**.
-- **Sampling:** the SLR57 clips are taken round-robin across speakers. The FLEURS clips are the first 25 in each
-  test archive.
-- **[`data/manifest.jsonl`](data/manifest.jsonl)** lists all 210 clips. Each line has:
+- All seven sets are **read speech**.
+- **Sampling:** the SLR57 and Common Voice clips are taken round-robin across speakers (Common Voice speakers in a
+  fixed order, by a hash of their id; [`pick_pt.py`](pick_pt.py)). The FLEURS clips are the first 25 in each test
+  archive.
+- **No African Portuguese set.** Common Voice has no speakers labelled as Mozambican or Angolan (none in the test,
+  dev or train accent labels), and no other open set with such labels was found. European Portuguese stands in for
+  the European-pattern Portuguese spoken in Mozambique and Angola; the accent itself is not covered (see
+  [Not verified yet](#not-verified-yet)).
+- **Common Voice audio is mp3**, kept as distributed: compressed, closer to what a browser sends than FLEURS' WAV.
+- **[`data/manifest.jsonl`](data/manifest.jsonl)** lists all 315 clips (210 French and Hindi, 105 Portuguese). Each line has:
   - the clip id and set, which identify the source utterance (SLR57 file name; FLEURS utterance id);
   - the language;
   - the speaker (SLR57);
@@ -54,12 +64,15 @@ OpenRouter reported it. There is no audio and no key in this folder.
      space. That removes punctuation.
   4. Apostrophes are split into spaces, so `c'est` scores as `c est` on both sides.
   5. The danda and double danda (। ॥) become spaces.
-  6. For French only, a digit written alone from 0 to 10 becomes its word (`3` → `trois`, `10` → `dix`). Larger
-     numbers aren't converted, and Hindi numbers aren't normalised at all.
+  6. For French and Portuguese, a digit written alone from 0 to 10 becomes its word (`3` → `trois` / `três`). For
+     Portuguese the masculine form is used (`1` → `um`, `2` → `dois`), so `1` against a spoken *uma* still counts as
+     an error. Larger numbers aren't converted, and Hindi numbers aren't normalised at all.
 - **Output language without the hint.** OpenRouter returns no detected-language field, so
   [`score_detect.py`](score_detect.py) reads it off the text:
   - Devanagari is Hindi, and Arabic script is Urdu.
-  - For Latin script, French, English and romanised-Hindi function words decide.
+  - For Latin script, French, English, romanised-Hindi, Portuguese and Spanish function words decide. The
+    Portuguese and Spanish lists hold only words the others don't share (Spanish is there to catch Portuguese
+    transcribed as Spanish).
   - A clip too short to tell (one or two words) counts as unknown.
 - **Latency** is the wall-clock time of one request from the test server: the median per model, and RTF (total
   request time ÷ total audio length).
@@ -103,12 +116,23 @@ column, `?` means too short to classify, `ur` means Arabic script, and `hi-latn`
 | universal-3-6-pro | 8.5 → **13.9%** | 3.9 → 4.1% | 9.4 → 9.3% | 0.39 | 68/80 fr, 8 ?, 3 en, 1 ur · 25/25 fr · 25/25 hi |
 | gpt-4o-mini-transcribe | 14.6 → 16.2% | 4.2 → 4.6% | 13.6 → 11.9% | 0.87 | 67/80 fr, 12 ?, 1 hi-latn · 25/25 fr · 25/25 hi |
 | nemotron-3.5-asr 0.6b | 11.1 → 11.9% | 12.1 → 11.7% | 13.3 → 15.3% | 1.39 | 71/80 fr, 8 ?, 1 hi · 25/25 fr · 25/25 hi |
-| whisper-large-v3-turbo | 13.9 → 17.4% | 7.9 → 16.4% | 61.9 → **75.0%** | 1.29 | 66/80 fr, 9 ?, 4 en, 1 hi-latn · 23/25 fr, 2 en · **12/25 hi**, 7 ?, 5 ur, 1 en |
+| whisper-large-v3-turbo | 13.9 → 17.4% | 7.9 → 16.4% | 61.9 → **75.0%** | 1.29 | 66/80 fr, 8 ?, 4 en, 1 pt, 1 hi-latn · 23/25 fr, 2 en · **12/25 hi**, 7 ?, 5 ur, 1 en |
 | nova-3 | 8.6 → **97.1%** | 7.5 → **96.0%** | 14.0 → **100.3%** | 0.55 | 6/80 fr, 63 ?, 10 en, 1 hi-latn · 5/24 fr, 18 ?, 1 en · 0/25 hi, 22 ?, 2 hi-latn, 1 en |
 
-Nova-3's FLEURS fr count is out of 24 because one request timed out and was not rerun. With the hint, no model
+Nova-3's FLEURS fr count is out of 24 because one request timed out and was not rerun. One Whisper Niger clip,
+counted as `?` before Portuguese was added to the detector, is Portuguese ("poderiam ser usados em um" for *je
+pourrais été utilisé dans un*). With the hint, no model
 returned a French clip in a non-Latin script (0 of 185 each). Without it, four models each returned 1 of their 105
 French clips in one: Arabic script for Voxtral and AssemblyAI, Devanagari for Scribe and Nemotron.
+
+## Portuguese
+
+Added 2026-11-24, when the panel gained Portuguese (theflywheel/lenspack#39). The three sets are under
+[Data](#data): Brazilian (FLEURS, Common Voice) and European Portuguese (Common Voice), 105 clips, 12.6 min.
+
+**Results: not run yet.** The OpenRouter key available for evaluation had no credits (every request answered
+402), so no transcript has been produced; the error rows were discarded. The run is ready: all 11 models, with and
+without the hint, about $1.2 at the measured prices. The tables go here once it has run.
 
 ## Failures
 
@@ -183,7 +207,9 @@ reproduce there. Another tab or origin is the likely source.
   - code-switching.
 
   WER will be higher. Colleagues are recording 10–20 short notes of real dashboard questions this week (week of
-  2026-11-23), in African-accented French and in Hindi. They will be scored the same way, with
+  2026-11-23), in African-accented French and in Hindi.
+- **African Portuguese.** No open set labels Mozambican or Angolan speakers, so the Portuguese numbers cover
+  Brazil and Portugal only. A few voice notes from Mozambique or Angola, scored the same way, would close this. They will be scored the same way, with
   [`folder_manifest.py`](folder_manifest.py), as an own-domain set.
 - **End to end with a real key.** The server's `POST /api/_stt` is tested against a stub provider. Real clips through
   the deployed mic → server → provider path wait for a production speech-to-text key.
@@ -198,8 +224,9 @@ reproduce there. Another tab or origin is the likely source.
 | [`score.py`](score.py) | the WER and latency table, with the normalisation rules (`norm()`) |
 | [`score_detect.py`](score_detect.py) | hint vs no hint, and the output language read off the text |
 | [`per_clip.py`](per_clip.py) | builds `results/per_clip.csv` with `score.py`'s normalisation |
-| [`stt_bench.py`](stt_bench.py) | runs models over a manifest (resumable; stops after five errors in a row) |
-| [`fetch_audio.py`](fetch_audio.py) | streams the two archives, keeps only the manifest's clips, converts float WAV to 16-bit PCM; `--delete` removes them |
+| [`stt_bench.py`](stt_bench.py) | runs models over a manifest, optionally only some `--sets` (resumable; stops after five errors in a row) |
+| [`fetch_audio.py`](fetch_audio.py) | streams the source archives, keeps only the manifest's clips (`--sets` for some sets), converts float WAV to 16-bit PCM; `--delete` removes them |
+| [`pick_pt.py`](pick_pt.py) | picks the Portuguese clips (FLEURS pt_br, Common Voice Portugal and Brazil) and prints their manifest lines |
 | [`folder_manifest.py`](folder_manifest.py) | turns a folder of your own clips plus a `refs.tsv` into a manifest |
 | [`data/LICENSE-SLR57-Apache-2.0.txt`](data/LICENSE-SLR57-Apache-2.0.txt) | the licence the SLR57 reference texts are distributed under |
 
@@ -223,6 +250,13 @@ OPENROUTER_API_KEY=... .venv/bin/python -I stt_bench.py data/manifest.jsonl --sy
 .venv/bin/python -I score_detect.py data/manifest.jsonl # hint vs no hint, and the output language
 .venv/bin/python -I per_clip.py .                       # results/per_clip.csv
 .venv/bin/python -I fetch_audio.py --delete
+```
+
+Only the Portuguese sets:
+
+```sh
+.venv/bin/python -I fetch_audio.py --sets fleurs-pt,cv-pt-pt,cv-pt-br
+OPENROUTER_API_KEY=... .venv/bin/python -I stt_bench.py data/manifest.jsonl --sets fleurs-pt,cv-pt-pt,cv-pt-br --systems or:mistralai/voxtral-mini-transcribe-3-0
 ```
 
 `--systems local:large-v3-turbo` runs faster-whisper on the CPU instead; uncomment it in `requirements.txt`.
@@ -254,10 +288,17 @@ licence, for evaluation. No audio is included.
 - **FLEURS** (Conneau et al., 2022, "FLEURS: Few-shot Learning Evaluation of Universal Representations of Speech"),
   https://huggingface.co/datasets/google/fleurs.
   - Licence: Creative Commons Attribution 4.0 International, https://creativecommons.org/licenses/by/4.0/.
-  - Used for the `fleurs-fr` and `fleurs-hi` sets.
-  - **Changes:** the manifest keeps 25 utterances per language from the test split, with their transcription text as
+  - Used for the `fleurs-fr`, `fleurs-hi` and `fleurs-pt` sets.
+  - **Changes:** the manifest keeps 25 utterances per language from the test split (`pt_br` uses the raw
+    transcription column), with their transcription text as
     distributed. For scoring, `score.py` normalises both the reference and the transcript (see [Method](#method)); the
     stored reference text itself is unchanged.
+
+- **Mozilla Common Voice 22.0, Portuguese**, https://commonvoice.mozilla.org/, read from the mirror at
+  https://huggingface.co/datasets/fsicoli/common_voice_22_0.
+  - Licence: CC0 1.0 (public domain dedication).
+  - Used for the `cv-pt-pt` and `cv-pt-br` sets. The sentences are copied unchanged. The manifest keeps a short hash
+    of each speaker id rather than the id itself.
 
 The model transcripts in `results/` were produced by the providers named in each file, through OpenRouter, from that
 audio.
