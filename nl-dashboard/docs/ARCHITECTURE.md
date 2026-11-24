@@ -42,7 +42,7 @@ flowchart LR
 
 ## Design
 
-### Inside mode
+### The chat on the dashboard page
 
 The chat lives on Superset's own dashboard page. Superset's documented template hook `tail_js_custom_extra.html` adds
 one small inline script carrying the page's CSP nonce, so Superset's security headers (Talisman) stay on. It loads
@@ -52,8 +52,8 @@ saying it is reconnecting, an open panel shows a banner and waits, and an answer
 chat changes the dashboard, the panel asks Superset's single-page app to re-render the dashboard in place. It falls
 back to a full reload if that takes too long.
 
-The panel speaks the language picked in its menu (English, French or Hindi, or "Auto": follow Superset's interface
-language). The suggested questions, the labels and the replies follow it.
+The panel speaks the language picked in its menu (English, French, Hindi or Portuguese, or "Auto": follow Superset's
+interface language). The suggested questions, the labels and the replies follow it.
 
 ### The proxy through Superset
 
@@ -114,7 +114,7 @@ on Superset's **Settings → Manage → AI assistant** page (`/ai-assistant/`).
   - which datasets to use and what each row means;
   - display names;
   - the model's guidance, including which definition each ambiguous measure uses;
-  - suggested questions in English, French and Hindi.
+  - suggested questions in English, French, Hindi and Portuguese.
 
   Every percentage is a Superset saved metric (`sum ÷ sum`), so it is right for any grouping. A design for building
   the pack from Superset alone is in [PACK-FROM-SUPERSET.md](PACK-FROM-SUPERSET.md) (not built).
@@ -237,8 +237,8 @@ Superset stores the ClickHouse password encrypted in its metadata database. Lens
   after 5 minutes. Requests sent straight to Lenspack without a valid header are signed out.
 - **Settings and the audit log** are open to Superset admins only. Others get 403.
 - **Lenspack's port** should be reachable only from Superset: on one host, don't publish it; on Kubernetes, use a
-  ClusterIP Service. A NetworkPolicy is a good extra fence, but not every CNI enforces one (minikube's default doesn't),
-  so check yours.
+  ClusterIP Service. A NetworkPolicy is a good extra fence, but not every cluster network plugin (CNI) enforces one
+  (minikube's default doesn't), so check yours.
 - **The port-forward service** exposes the source database to anything that can reach its Service. Limit it the same
   way, and scope its ClickHouse user to the views the demo needs.
 - **`ENABLE_PROXY_FIX`:** turn it on only when Superset sits behind a gateway you control, and let only that gateway

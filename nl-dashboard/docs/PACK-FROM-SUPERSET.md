@@ -1,6 +1,7 @@
 # Design: the pack from Superset alone
 
-**Status: design, not built.** Today the pack has two parts. Lenspack derives the measures and dimensions from Superset's
+**Status: design, not built.** The *pack* is Lenspack's vocabulary: the measures, dimensions and guidance the model
+works with. Today it has two parts. Lenspack derives the measures and dimensions from Superset's
 datasets: saved metrics, groupable columns, descriptions. Everything else comes from the `overlay` in
 `lenspack-superset.yaml`: which datasets, entity names, hierarchies, hints, instructions and examples. That file is the
 last piece of Lenspack configuration a Superset admin has to edit by hand and mount. This page proposes where each part
@@ -36,19 +37,19 @@ overlay into the tags, `extra` fields and settings above, and then the file can 
   Once the pack comes from Superset, a run must record what it ran against. The harness would fetch the derived pack
   (`GET /api/<pack>/pack` already returns it as YAML), store it with the results, and put its hash in the report.
   Comparing two runs means first comparing their pack hashes.
-- **The truth sets don't change.** The questions and expected answers live in `evals/agent/truth/*.json`, and they depend on the
-  data and the measures, not on where the measure definitions are stored.
-- **Instructions change scores.** The heatmap instruction is one example: tier T10 depends on it. So moving the
-  instructions onto a page anyone with admin rights can edit means an unreviewed edit can move the scores. Two
+- **The questions and expected answers don't change.** They live in `evals/agent/suite/*.yaml` and
+  `evals/agent/truth/*.json`, and depend on the data and the measures, not on where the measure definitions are stored.
+- **Instructions change scores.** The heatmap instruction is one example: the heatmap questions depend on it. So
+  moving the instructions onto a page anyone with admin rights can edit means an unreviewed edit can move the scores. Two
   mitigations, both cheap:
   - the audit log records each instructions change, with who made it and the old and new text;
   - the harness can run against an exported pack instead of the live one (`--pack exported.yaml`), so evals stay
     reproducible whatever is edited in Superset.
 - **The 2,000-character limit on the instructions** stays. The page would show the count, since today's ClickHouse
   config already uses 1,918 characters.
-- **Re-baseline once.** After `export-overlay`, re-run the current tiers once against the Superset-derived pack, and check
-  that it is byte-identical to the YAML-derived one. The comparison is mechanical, so no model calls are needed. Any
-  difference is a bug in the export, not a model change.
+- **Check the switch once.** After `export-overlay`, build the pack from Superset and check that it is byte-identical
+  to the one built from the YAML. The comparison is mechanical, so no model calls are needed. Any difference is a bug
+  in the export, not a model change.
 
 ## Not covered
 

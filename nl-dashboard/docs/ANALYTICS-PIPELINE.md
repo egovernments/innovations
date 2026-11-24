@@ -5,14 +5,17 @@ runs at each step, what each step transforms and drops, the problems we hit, and
 
 There are two paths through the same pipeline:
 
-- **eGov's path (unified-dev).** HCM services write to Postgres. Debezium and Kafka carry every change to ClickHouse,
-  and eGov's [Kafka-Postgres-Health-Analytics](https://github.com/prerna-egov/Kafka-Postgres-Health-Analytics)
-  SQL and Airflow DAGs build raw, bronze, silver and mart tables. On top of these, eGov's Superset-ready views
-  (`default.su_ni_*`) serve the Superset datasets that [`demo-data/setup/setup.mts`](../demo-data/setup/setup.mts) creates. The data in
-  unified-dev is synthetic.
-- **Our lab path.** A masked extract of one state's 2025 SMC campaign runs through the same eGov SQL and DAGs,
-  unchanged, on a ClickHouse of our own. Lenspack-facing tables (`lens.*`) are built from silver, and the lab's Superset
-  datasets read those. The steps are in our lab runbook. No data from it is in this repository.
+- **eGov's path (unified-dev, eGov's development cluster).** HCM services write to Postgres. Debezium and Kafka carry
+  every change to ClickHouse, and eGov's
+  [Kafka-Postgres-Health-Analytics](https://github.com/prerna-egov/Kafka-Postgres-Health-Analytics) SQL and Airflow
+  DAGs (scheduled jobs) build raw, bronze, silver and mart tables: from a copy of each event, to a typed copy of each
+  table, to one flat row per record, to summaries for dashboards. On top of these, eGov's Superset-ready views
+  (`default.su_ni_*`) serve the Superset datasets that [`demo-data/setup/setup.mts`](../demo-data/setup/setup.mts)
+  creates. The data in unified-dev is synthetic.
+- **Our lab path.** A masked extract of one state's 2025 seasonal malaria chemoprevention (SMC) campaign runs through
+  the same eGov SQL and DAGs, unchanged, on a ClickHouse of our own. Flat tables for Lenspack (`lens.*`) are built
+  from silver, and the lab's Superset datasets read those. The step-by-step commands are in our lab notes, which are
+  not public, and no lab data is in this repository.
 
 All eGov file links below point at commit
 [`109cf4d`](https://github.com/prerna-egov/Kafka-Postgres-Health-Analytics/tree/109cf4dd1a8315eac8f23d7692f57d588195c6a3)
@@ -98,7 +101,7 @@ flowchart TD
 | KPI queries | [`13_kpi_queries.sql`](https://github.com/prerna-egov/Kafka-Postgres-Health-Analytics/blob/109cf4dd1a8315eac8f23d7692f57d588195c6a3/ClickHouse_ddl/13_kpi_queries.sql) | Read-only example queries over the marts | Not DDL; nothing to run |
 | Downstream Postgres | [`ddl/01_transformed_data_tables.sql`](https://github.com/prerna-egov/Kafka-Postgres-Health-Analytics/blob/109cf4dd1a8315eac8f23d7692f57d588195c6a3/ddl/01_transformed_data_tables.sql) | Enriched tables in a separate reporting Postgres | Not used by either path here |
 | Superset-ready views | not public | `default.su_ni_*` on unified-dev | eGov |
-| Lab tables | our lab runbook | `lens.*` from silver | One SQL script, after the marts |
+| Lab tables | our lab notes (not public) | `lens.*` from silver | One SQL script, after the marts |
 | Superset datasets | [`demo-data/setup/setup.mts`](../demo-data/setup/setup.mts) (unified-dev); the lab's are made the same way through Superset's API | Virtual datasets with saved metrics | One-off, safe to re-run |
 
 The mart refresh order (dependencies first) that both the lab and the repo's comments imply:
@@ -458,12 +461,12 @@ their SQL is not in the public repo.
 - **Two "children vaccinated" definitions.** `su_ni_cov` counts distinct children vaccinated including revisits;
   counting `VACCINATED` visits in `su_ni_task` gives a smaller number. The datasets use one definition (with revisits),
   documented in the dataset and the pack, and switchable in `setup.mts` (`CHILDREN_VACCINATED`).
-- **Unified-dev ran out of disk** on 2026-11-23 and the views stopped answering. The lab demo moved to the
+- **Unified-dev ran out of disk** on 2026-11-23 and the views stopped answering. The demo moved to the
   [lab path](#10-our-lab-tables-lens); the unified-dev datasets are kept for switching back.
 
 ## 10. Our lab tables: `lens.*`
 
-**What they are.** Denormalised tables in a `lens` database, built from silver by one SQL script in our lab runbook,
+**What they are.** Denormalised tables in a `lens` database, built from silver by one SQL script in our lab notes,
 in about ten seconds. The data is a static extract, so they are plain `MergeTree` tables rebuilt by the script, not
 views.
 
@@ -575,8 +578,8 @@ questions. See [Packs and boards](ARCHITECTURE.md#packs-and-boards).
 - **Ambiguous measures.** Where a quantity has two readings (children vaccinated with or without revisits, coverage
   against the microplan or against WorldPop), the guidance names the definition each measure uses, and replies say
   which one they used. The register is [`../evals/agent/DEFINITIONS.md`](../evals/agent/DEFINITIONS.md).
-- **One home per quantity.** Two measures once shared one label, so each quantity now lives on one dataset, with one
-  measure.
+- **One home per quantity.** Each quantity lives on one dataset, as one measure, so two measures never share a
+  label.
 - **Row-count measures.** Each dataset also gets an automatic `<entity>_rows` measure, which counts summary rows on
   pre-aggregated datasets; it is labelled and hinted not to be used.
 

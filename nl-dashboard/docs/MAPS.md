@@ -1,17 +1,18 @@
 # Superset maps: what Superset 5.0 does, and what Lenspack needs
 
-Notes from studying a stock Superset 5.0 and its `deck_scatter` chart, done before adding maps to Lenspack.
+Notes from studying a stock Superset 5.0 and its point-map chart (`deck_scatter`), done before adding maps to Lenspack.
 The method was read-only: a saved chart's params, a headless browser's network log while the chart renders, the
 data endpoints called directly, and Superset's own source (`superset/viz.py`, the frontend bundle). Every value in
 this note is a placeholder.
 
-**Status:** maps v1 (points, [section 7](#7-what-lenspack-does-with-this-v1-points)) is built and is in Lenspack's
+**Status:** point maps ([section 7](#7-what-lenspack-does-with-this-point-maps)) are built and are in Lenspack's
 `main` ([`packages/superset`](https://github.com/theflywheel/lenspack/tree/main/packages/superset)). Section 6
-describes Lenspack before it. Shaded-area maps (choropleths, section 4) are not built.
+describes Lenspack before them. Shaded-area maps (choropleths, section 4) are not built.
 
 ## 1. A scatter map's form data (`deck_scatter`)
 
-This is a saved chart's `params` after the chart was made in Explore. The `query_context` is empty.
+This is a saved chart's `params` after the chart was made in Explore (Superset's chart builder). The
+`query_context` is empty.
 
 ```json
 {
@@ -137,17 +138,17 @@ The join key is the hard part: ward names are spelled differently across sources
   elsewhere would also need a CSP change.
 - Without a key, the points still draw, on a blank background.
 
-## 6. Lenspack today
+## 6. Lenspack before maps
 
-- The pack drops coordinates. Lenspack builds dimensions from the dataset's columns with `groupby: true`, and
+- The pack dropped coordinates. Lenspack builds dimensions from the dataset's columns with `groupby: true`, and
   in the facilities dataset `latitude`, `longitude`, `zero_dose_children` and `children_enumerated` are
-  `groupby: false`. The facility entity in the pack has one dimension (the band) and one measure (a count),
-  and nothing tells the model there are coordinates. That is why it answered "the data has no coordinates".
-- A `deck_scatter` chart becomes a placeholder (`lenspack has no deck_scatter chart`).
-- The existing `rows` query (`entity`, `columns`, `limit`, `orderBy`, `filters`) is the right base: it reads
-  through `/api/v1/chart/data` in raw mode. Today its columns must be dimensions, which lat/lon are not.
+  `groupby: false`. The facility entity in the pack had one dimension (the band) and one measure (a count),
+  and nothing told the model there were coordinates. That is why it answered "the data has no coordinates".
+- A `deck_scatter` chart became a placeholder (`lenspack has no deck_scatter chart`).
+- The existing `rows` query (`entity`, `columns`, `limit`, `orderBy`, `filters`) was the right base: it reads
+  through `/api/v1/chart/data` in raw mode. Its columns had to be dimensions, which lat/lon are not.
 
-## 7. What Lenspack does with this (v1, points)
+## 7. What Lenspack does with this: point maps
 
 - **Pack:** an entity may have `geo: {lat, lon}` naming its coordinate columns. It is detected from columns
   named `latitude`/`longitude` (or `lat`/`lon`/`lng`) and can be set in the deployment yaml. The catalogue

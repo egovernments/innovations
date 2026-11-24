@@ -193,7 +193,7 @@ Then restart Superset. The chat follows the language each user picks in Superset
 
 Either create them with `setup.mts`, or import them from another Superset.
 
-**With `setup.mts`** (the quickstart's step 8). This creates the ClickHouse connection in Superset, the `ni_*` datasets
+**With `setup.mts`** (the quickstart's step 5). This creates the ClickHouse connection in Superset, the `ni_*` datasets
 with their metrics and descriptions, and two starter dashboards. It's safe to run again: the connection and datasets
 are updated, and dashboards that already exist are left as they are. It runs on the Lenspack image.
 
@@ -216,7 +216,8 @@ datasets (`<schema>.<table name>`).
 | Change Lenspack's settings, read the audit log | Superset admins | Superset |
 
 The policy is set on the Lenspack container (`LENSPACK_EDIT_POLICY`, or `editPolicy` in its config), and the AI
-assistant page shows which one is on. Under the default:
+assistant page shows which one is on. Under the default, with Superset's built-in roles (Alpha users can create and
+edit content; Gamma users have limited access, usually for viewing):
 - an Alpha who owns a dashboard can edit it through the chat;
 - an Alpha who doesn't own it, and a Gamma viewer, can ask but not edit.
 
@@ -416,9 +417,10 @@ Lenspack needs nothing from your proxy. A few existing settings affect it:
 - **CSP.** If you've tightened `TALISMAN_CONFIG`, keep `'self'` in `script-src` and `connect-src`.
 - **Cookies and paths.** The chat route is part of Superset, so if Superset works, the session reaches it.
 
-Earlier versions served Lenspack through a proxy rule with an `auth_request` sign-in check, and had a "beside" page
-on a port of its own. Both are gone: remove the `/lenspack/` proxy locations or Ingress, and any
-`LENSPACK_BESIDE_*`, `LENSPACK_URL` or `LENSPACK_SETTINGS_TOKEN` variables, when you upgrade.
+**Upgrading from an older setup.** Earlier versions served Lenspack through a proxy rule with an `auth_request`
+sign-in check, and had a separate page with the chat beside the dashboard, on a port of its own. Both are gone: when
+you upgrade, remove the `/lenspack/` proxy locations or Ingress, and any `LENSPACK_BESIDE_*`, `LENSPACK_URL` or
+`LENSPACK_SETTINGS_TOKEN` variables.
 
 ## What needs a restart
 
