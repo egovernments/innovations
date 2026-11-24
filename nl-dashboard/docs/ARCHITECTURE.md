@@ -2,12 +2,13 @@
 
 How the natural-language dashboard assistant is built, deployed and secured. This page describes the setup as it is
 in this folder: Lenspack's Superset connector from the `main` branch of
-[theflywheel/lenspack](https://github.com/theflywheel/lenspack/tree/main/packages/superset), pinned in
-[`lenspack/Dockerfile`](../lenspack/Dockerfile), and stock Apache Superset 5.0. Where the data comes from is in
+[theflywheel/lenspack](https://github.com/theflywheel/lenspack/tree/main/packages/superset), run from Lenspack's
+published image at a pinned commit ([`deploy/docker-compose.yml`](../deploy/docker-compose.yml)), and stock Apache
+Superset 5.0. Where the data comes from is in
 [ANALYTICS-PIPELINE.md](ANALYTICS-PIPELINE.md).
 
 For the hands-on steps, see [the README](../README.md) (this folder's Compose stack),
-[`k8s/README.md`](../k8s/README.md) (Kubernetes) and [Add Lenspack to an existing Superset](ADD-TO-EXISTING-SUPERSET.md).
+[`deploy/k8s/README.md`](../deploy/k8s/README.md) (Kubernetes) and [Add Lenspack to an existing Superset](ADD-TO-EXISTING-SUPERSET.md).
 
 ## Contents
 
@@ -56,7 +57,7 @@ language). The suggested questions, the labels and the replies follow it.
 
 ### The proxy through Superset
 
-[`superset/lenspack_superset.py`](../superset/lenspack_superset.py) registers a `/lenspack/<path>` route on Superset
+[`lenspack_superset.py`](https://github.com/theflywheel/lenspack/blob/main/packages/superset/plugin/lenspack_superset.py) registers a `/lenspack/<path>` route on Superset
 itself. For a signed-in user it forwards the request to the Lenspack container (`LENSPACK_INTERNAL_URL`) and streams
 the reply back unbuffered, with `X-Accel-Buffering: no` and no compression. For anyone else it answers 401.
 
@@ -109,7 +110,7 @@ on Superset's **Settings → Manage → AI assistant** page (`/ai-assistant/`).
 ### Packs and boards
 
 - **The pack** is Lenspack's vocabulary. Lenspack builds it at start from Superset's own datasets and saved metrics,
-  plus the config file ([`lenspack/lenspack-superset.clickhouse.yaml`](../lenspack/lenspack-superset.clickhouse.yaml)):
+  plus the config file ([`deploy/lenspack/lenspack-superset.clickhouse.yaml`](../deploy/lenspack/lenspack-superset.clickhouse.yaml)):
   - which datasets to use and what each row means;
   - display names;
   - the model's guidance, including which definition each ambiguous measure uses;
@@ -169,12 +170,12 @@ record: the usage figures on the settings page reset on restart. Rotation, reten
 | `packages/serve` | The chat server: model calls, step cap, reviewer, budget and usage, speech to text, prompt |
 | `packages/superset` | The Superset connector: `bin/serve.ts` (the server), `src/catalogue.ts` (pack from datasets), `src/dashboard.ts` and `src/store.ts` (boards as dashboards), `src/identity.ts`, `src/bootstrap.ts`, `src/audit.ts`, `src/settings.ts`, and `web/overlay.js` / `web/chat.js` (the panel) |
 | [egovernments/innovations](https://github.com/egovernments/innovations), `nl-dashboard/` | This deployment |
-| [`superset/lenspack_superset.py`](../superset/lenspack_superset.py) | Everything Lenspack adds to Superset, in one file: the `/lenspack/` route and signing, the script tag, the AI assistant page, the bootstrap and key endpoints, and the [list-filter fix](ADD-TO-EXISTING-SUPERSET-REFERENCE.md#the-list-filter-fix) |
-| [`superset/superset_config.py`](../superset/superset_config.py) | Superset settings from environment variables; imports the file above |
-| [`superset/Dockerfile`](../superset/Dockerfile) | Stock `apache/superset:5.0.0` plus database drivers and French labels |
-| [`lenspack/`](../lenspack/) | The Lenspack image (pinned commit) and its configs |
-| [`setup/setup.mts`](../setup/setup.mts) | One-off: data sources, datasets with saved metrics and descriptions, starter dashboards |
-| [`docker-compose.yml`](../docker-compose.yml), [`k8s/`](../k8s/) | The stack on one host, and on Kubernetes |
+| [`packages/superset/plugin/lenspack_superset.py`](https://github.com/theflywheel/lenspack/blob/main/packages/superset/plugin/lenspack_superset.py) (in Lenspack) | Everything Lenspack adds to Superset, in one file: the `/lenspack/` route and signing, the script tag, the AI assistant page, the bootstrap and key endpoints, and the [list-filter fix](ADD-TO-EXISTING-SUPERSET-REFERENCE.md#the-list-filter-fix) |
+| [`deploy/superset/superset_config.py`](../deploy/superset/superset_config.py) | Superset settings from environment variables; imports the file above |
+| [`deploy/superset/Dockerfile`](../deploy/superset/Dockerfile) | Stock `apache/superset:5.0.0` plus database drivers and French labels, and `lenspack_superset.py` copied from the Lenspack image |
+| [`deploy/lenspack/`](../deploy/lenspack/) | The Lenspack configs; Lenspack itself runs its published image, `ghcr.io/theflywheel/lenspack:<commit>` |
+| [`demo-data/setup/setup.mts`](../demo-data/setup/setup.mts) | One-off: data sources, datasets with saved metrics and descriptions, starter dashboards |
+| [`deploy/docker-compose.yml`](../deploy/docker-compose.yml), [`deploy/k8s/`](../deploy/k8s/) | The stack on one host, and on Kubernetes |
 | [`evals/`](../evals/) | What we test and the results: the chat agent ([`agent/`](../evals/agent/)) and speech-to-text for the mic ([`speech/`](../evals/speech/)) |
 | [`docs/`](README.md) | These docs, grouped by reader |
 
@@ -186,7 +187,7 @@ record: the usage figures on the settings page reset on restart. Rotation, reten
   `OPENROUTER_API_KEY`.
 - **HTTPS** in front of Superset for anything beyond one machine. Browsers allow the microphone only on https, and
   Superset's login form sends passwords as typed.
-- **Datasets with saved metrics.** `setup/setup.mts` creates them for the HCM analytics views; for other data, define
+- **Datasets with saved metrics.** `demo-data/setup/setup.mts` creates them for the HCM analytics views; for other data, define
   them in Superset and list them in the Lenspack config.
 
 ## Deployment
@@ -194,7 +195,7 @@ record: the usage figures on the settings page reset on restart. Rotation, reten
 | Path | Where it's described | Notes |
 |---|---|---|
 | **Compose on one host** | [README](../README.md#run-it-with-docker-compose) | Postgres, Superset (this folder's image), Lenspack, a one-off `setup`, and optionally `clickhouse-tunnel`. Superset listens on `BIND_ADDRESS:PORT`. Behind a TLS gateway, set `ENABLE_PROXY_FIX=true`. |
-| **Kubernetes** | [k8s/README.md](../k8s/README.md) | The same stack with kustomize: Postgres StatefulSet, Superset and Lenspack Deployments, one Ingress (cert-manager for TLS), and a setup Job. A demo runs this way on a lab VM with minikube, with images from `ghcr.io/theflywheel/lenspack` (`superset-<lenspack sha>` and `superset5-<sha>`). |
+| **Kubernetes** | [deploy/k8s/README.md](../deploy/k8s/README.md) | The same stack with kustomize: Postgres StatefulSet, Superset and Lenspack Deployments, one Ingress (cert-manager for TLS), and a setup Job. A demo runs this way on a lab VM with minikube, with images from `ghcr.io/theflywheel/lenspack`: Lenspack's own (`<lenspack commit>`) and this folder's Superset image (`superset5-<commit>`). |
 | **An existing Superset** | [ADD-TO-EXISTING-SUPERSET.md](ADD-TO-EXISTING-SUPERSET.md) | Stock Superset image, Compose or the official Helm chart. One mounted file plus the import line, and the Lenspack container. No proxy or ingress change. |
 
 Whichever path you use, Lenspack needs a volume at `/data` for settings, its account, board bookkeeping and the audit

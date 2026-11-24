@@ -20,15 +20,17 @@ spec:
       securityContext: { fsGroup: 1000 }
       containers:
         - name: lenspack
-          image: nl-dashboard-lenspack
+          image: nl-dashboard-lenspack           # Lenspack's published image (kustomization.yaml pins the commit)
+          args: [superset, --config, /config/lenspack-superset.yaml]
           env:
-            - { name: SUPERSET_URL, value: "http://nl-dashboard-superset:8088" }
+            - { name: LENSPACK_SUPERSET_URL, value: "http://nl-dashboard-superset:8088" }
             # Lenspack makes its own Superset account with this on first start and keeps the password in /data.
             # With /data on an emptyDir (below) it is made again on every start, so keep this set; with a
             # PersistentVolume it can be removed after the first start.
             - { name: SUPERSET_ADMIN_PASSWORD, valueFrom: { secretKeyRef: { name: nl-dashboard, key: SUPERSET_ADMIN_PASSWORD, optional: true } } }
             # superset (default): edits follow Superset's dashboard rights; signed-in: anyone signed in may edit.
             - { name: LENSPACK_EDIT_POLICY, value: superset }
+            # With only this key set, the chat offers Claude Sonnet (the default), Opus and Haiku 5.5.
             - { name: ANTHROPIC_API_KEY, valueFrom: { secretKeyRef: { name: nl-dashboard, key: ANTHROPIC_API_KEY } } }
           ports: [{ containerPort: 8795 }]
           # Up once Superset answers and the datasets exist (setup); it restarts until then.

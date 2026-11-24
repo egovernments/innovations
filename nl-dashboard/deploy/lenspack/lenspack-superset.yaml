@@ -1,9 +1,9 @@
 # Lenspack over Superset. Used as is by docker-compose.yml and by k8s/ (as a ConfigMap).
 # A string "env:NAME" reads the environment variable NAME.
-superset:
-  url: env:SUPERSET_URL                 # how Lenspack reaches Superset's API (compose: http://superset:8088)
-  # Lenspack makes its own Superset account ("lenspack") on first start from SUPERSET_ADMIN_PASSWORD and keeps
-  # its password in the state directory. To use an account you manage instead: username plus LENSPACK_SUPERSET_PASSWORD.
+# Where Lenspack reaches Superset's API comes from LENSPACK_SUPERSET_URL (compose: http://superset:8088).
+# Lenspack makes its own Superset account ("lenspack") on first start from SUPERSET_ADMIN_PASSWORD and keeps
+# its password in the state directory. To use an account you manage instead: superset: { username: ... } here,
+# plus LENSPACK_SUPERSET_PASSWORD.
 
 # Browsers reach Lenspack through Superset itself, at this path (lenspack_superset.py forwards it).
 publicPath: /lenspack

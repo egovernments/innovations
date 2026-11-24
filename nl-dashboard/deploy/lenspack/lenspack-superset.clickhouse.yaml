@@ -1,9 +1,8 @@
-# Lenspack over Superset, on HCM analytics in ClickHouse: the ni_* datasets setup/setup.mts makes when
-# CLICKHOUSE_PASSWORD is set, over eGov's own Superset-ready views (default.su_ni_*) plus the targets and
-# referrals marts. Select it with LENSPACK_CONFIG. Lenspack never connects to ClickHouse: it asks Superset,
-# which runs the SQL. A string "env:NAME" reads the environment variable NAME.
-superset:
-  url: env:SUPERSET_URL
+# Lenspack over Superset, on HCM analytics in ClickHouse: the ni_* datasets ../../demo-data/setup/setup.mts
+# makes when CLICKHOUSE_PASSWORD is set, over eGov's own Superset-ready views (default.su_ni_*) plus the targets
+# and referrals marts. Select it with LENSPACK_CONFIG. Lenspack never connects to ClickHouse: it asks Superset,
+# which runs the SQL. A string "env:NAME" reads the environment variable NAME. Where Lenspack reaches Superset's
+# API comes from LENSPACK_SUPERSET_URL.
 
 publicPath: /lenspack
 host: 0.0.0.0

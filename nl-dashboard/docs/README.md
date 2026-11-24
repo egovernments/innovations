@@ -14,7 +14,7 @@ Documentation for the Superset + Lenspack natural-language dashboard (use case 3
   on the stock image, with Docker Compose or the official Helm chart.
 - [ADD-TO-EXISTING-SUPERSET-REFERENCE.md](ADD-TO-EXISTING-SUPERSET-REFERENCE.md): the detail behind each quickstart
   step, options, permissions, the audit log, capacity, the full Helm setup and troubleshooting.
-- [Kubernetes](../k8s/README.md): this folder's stack on Kubernetes.
+- [Kubernetes](../deploy/k8s/README.md): this folder's stack on Kubernetes.
 
 ## For engineers
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Resilience test for the nl-dashboard compose stack (Superset + Lenspack + ClickHouse tunnel).
 #
-#   NLD=/path/to/deployed/nl-dashboard nl-dashboard/test/resilience.sh [scenario ...]
+#   NLD=/path/to/deployed/nl-dashboard/deploy nl-dashboard/deploy/test/resilience.sh [scenario ...]
 #   scenarios: restart crash upgrade superset-down both-restart tunnel ui readonly full chaos  (default: all but chaos)
 #   CHAOS_ROUNDS=6 ... resilience.sh chaos      random stops and starts, health checked after each (a nightly job)
 #   RESTORE=always|on-failure|never             put /data back from the backup at the end (default on-failure)

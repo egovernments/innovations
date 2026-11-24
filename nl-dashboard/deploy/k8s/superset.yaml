@@ -1,4 +1,4 @@
-# Superset: a one-off Job for the schema and the admin (superset/init.sh), then the web server, which also
+# Superset: a one-off Job for the schema and the admin (../superset/init.sh), then the web server, which also
 # serves /lenspack/ (lenspack_superset.py forwards it to the Lenspack Service for signed-in users).
 apiVersion: batch/v1
 kind: Job

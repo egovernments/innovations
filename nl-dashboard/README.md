@@ -42,28 +42,31 @@ The design in full: [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 | Path | What it is |
 |---|---|
-| [`superset/Dockerfile`](superset/Dockerfile) | `apache/superset:5.0.0` + `psycopg2-binary` + `clickhouse-connect` + French labels, with the files below baked in |
-| [`superset/superset_config.py`](superset/superset_config.py) | Superset settings, all from environment variables (documented at the top of the file) |
-| [`superset/lenspack_superset.py`](superset/lenspack_superset.py) | Lenspack's additions as one file, imported at the end of `superset_config.py`. It adds the `/lenspack/` route with the signed identity, the "Ask Lenspack" script tag (Superset's overridable `tail_js_custom_extra.html`), the AI assistant page, the endpoints Lenspack calls at start, and the Flask-AppBuilder list-filter fix. |
-| [`superset/init.sh`](superset/init.sh) | One-off: schema, `admin` user, roles |
-| [`lenspack/Dockerfile`](lenspack/Dockerfile) | The Lenspack server, built from a pinned commit of the public repo (`LENSPACK_REF`) |
-| [`lenspack/start.sh`](lenspack/start.sh) | Entrypoint; turns `ANTHROPIC_API_KEY` into the provider list |
-| [`lenspack/lenspack-superset.yaml`](lenspack/lenspack-superset.yaml) | Lenspack config for the sample data: datasets, names, hierarchy, guidance and examples for the model; `env:NAME` reads the environment |
-| [`lenspack/lenspack-superset.clickhouse.yaml`](lenspack/lenspack-superset.clickhouse.yaml) | The same for the ClickHouse datasets; pick one with `LENSPACK_CONFIG` |
-| [`docker-compose.yml`](docker-compose.yml) | Postgres, Superset (with an init step), Lenspack, a one-off `setup`, and `clickhouse-tunnel` (profile `clickhouse`) |
-| [`.env.example`](.env.example) | Every variable, explained; copy it to `.env` |
-| [`setup/setup.mts`](setup/setup.mts) | One-off: data sources in Superset (sample Postgres and/or ClickHouse), datasets with metrics and descriptions, and a starter dashboard for each |
-| [`sample-data/`](sample-data/) | Loads three HCM indices (tasks, households, stock) from Elasticsearch into Postgres, with no IDs or coordinates |
-| [`k8s/`](k8s/) | The same stack on Kubernetes, with [its own README](k8s/README.md) |
+| [`docs/`](docs/) | How it works, how to add Lenspack to a Superset you already run, and a one-page summary |
+| [`evals/`](evals/) | How often the chat gives the right answer, and the speech-to-text comparison |
+| [`deploy/`](deploy/) | Everything needed to run it: Docker Compose, the Superset image, the Lenspack config, Kubernetes |
+| [`deploy/docker-compose.yml`](deploy/docker-compose.yml) | Postgres, Superset (with an init step), Lenspack, a one-off `setup`, and `clickhouse-tunnel` (profile `clickhouse`) |
+| [`deploy/.env.example`](deploy/.env.example) | Every variable, explained; copy it to `deploy/.env` |
+| [`deploy/superset/`](deploy/superset/) | The Superset image: `apache/superset:5.0.0` + `psycopg2-binary` + `clickhouse-connect` + French labels, our settings ([`superset_config.py`](deploy/superset/superset_config.py), all from environment variables) and the one-off [`init.sh`](deploy/superset/init.sh) (schema, `admin` user, roles). The image also carries Lenspack's Superset side, [`lenspack_superset.py`](https://github.com/theflywheel/lenspack/blob/main/packages/superset/plugin/lenspack_superset.py), copied from the Lenspack image of the same version. |
+| [`deploy/lenspack/`](deploy/lenspack/) | Lenspack's config: [`lenspack-superset.yaml`](deploy/lenspack/lenspack-superset.yaml) for the sample data, [`lenspack-superset.clickhouse.yaml`](deploy/lenspack/lenspack-superset.clickhouse.yaml) for ClickHouse (pick one with `LENSPACK_CONFIG`): datasets, names, hierarchy, guidance and examples for the model. Lenspack itself runs its published image, `ghcr.io/theflywheel/lenspack:<commit>`. |
+| [`deploy/k8s/`](deploy/k8s/) | The same stack on Kubernetes, with [its own README](deploy/k8s/README.md) |
+| [`deploy/test/`](deploy/test/) | A resilience test that restarts and breaks parts of a running stack and checks it recovers |
+| [`demo-data/setup/setup.mts`](demo-data/setup/setup.mts) | One-off: data sources in Superset (sample Postgres and/or ClickHouse), datasets with metrics and descriptions, and a starter dashboard for each |
+| [`demo-data/sample-data/`](demo-data/sample-data/) | Loads three HCM indices (tasks, households, stock) from Elasticsearch into Postgres, with no IDs or coordinates |
+
+**Lenspack's Superset side** is one file, `lenspack_superset.py`, imported at the end of `superset_config.py`. It
+adds the `/lenspack/` route with the signed identity, the "Ask Lenspack" script tag (Superset's overridable
+`tail_js_custom_extra.html`), the AI assistant page, the endpoints Lenspack calls at start, and the
+Flask-AppBuilder list-filter fix. It lives in the Lenspack repository, next to the server it talks to.
 
 ## Run it with Docker Compose
 
 ```sh
-cd nl-dashboard
+cd nl-dashboard/deploy
 cp .env.example .env        # fill in the secrets (openssl rand -base64 42)
 docker compose up -d --build
 # Sample data: three HCM indices from an Elasticsearch you can reach (a masked copy; see below)
-ES_URL=http://127.0.0.1:9200 sample-data/load.sh
+ES_URL=http://127.0.0.1:9200 ../demo-data/sample-data/load.sh
 docker compose run --rm setup
 ```
 
@@ -73,6 +76,8 @@ Then open http://127.0.0.1:8088 and sign in as `admin` (`SUPERSET_ADMIN_PASSWORD
   [Custom pages](#custom-pages-and-where-to-find-them).
 
 The `lenspack` container restarts until `setup` has created its datasets, then stays up. `setup` is safe to run again.
+The Lenspack image is pulled from `ghcr.io/theflywheel/lenspack`; `LENSPACK_IMAGE` in `.env` picks another version
+(both containers use it, so Superset's side and the server always match).
 
 Superset listens only on this machine (`BIND_ADDRESS=127.0.0.1`). Before opening it to a network, put TLS in front:
 Superset's login form sends passwords as typed.
@@ -102,7 +107,7 @@ trusts the `X-Forwarded-*` headers it receives.
 | `PG_PASSWORD` | Postgres, Superset | yes | | Postgres password (metadata db `superset`, sample db `hcm`) |
 | `SUPERSET_ADMIN_PASSWORD` | init, setup, Lenspack | yes | | Superset's `admin` user. Lenspack uses it once, on its first start, to create its own account `lenspack`, whose password stays in Lenspack's volume |
 | `LENSPACK_SUPERSET_PASSWORD` | Lenspack | no | | An existing `lenspack` account's password, used as is: no account is made or reset. For stacks where other tools sign in as `lenspack` (the eval harness) |
-| `ANTHROPIC_API_KEY` | Lenspack | for the chat | | Claude Sonnet, Opus and Haiku 5.5. Read by the Anthropic adapter, never logged. |
+| `ANTHROPIC_API_KEY` | Lenspack | for the chat | | With only this key set, the chat offers Claude Sonnet (the default), Opus and Haiku 5.5. Never logged. |
 | `LENSPACK_LLM_PROVIDERS` | Lenspack | for the chat | | Any other models, as Lenspack's JSON provider list (wins over `ANTHROPIC_API_KEY`) |
 | `DATA_SQLALCHEMY_URI` | setup | no | the sample `hcm` db | The data, as Superset connects to it |
 | `TALISMAN_ENABLED` | Superset | no | `true` | Superset's security headers |
@@ -112,30 +117,32 @@ trusts the `X-Forwarded-*` headers it receives.
 | `MAPBOX_API_KEY` | superset | Mapbox public token (`pk.…`) for the basemap under deck.gl map charts. Empty: points on a blank background. |
 | `LENSPACK_INTERNAL_URL` | Superset | no | `http://lenspack:8795` | How Superset's server reaches Lenspack (the `/lenspack/` route and the AI assistant page) |
 | `BIND_ADDRESS`, `PORT` | Superset | no | `127.0.0.1`, `8088` | Where Superset listens |
-| `LENSPACK_CONFIG` | compose | no | `lenspack-superset.yaml` | Which Lenspack config: the sample one or `lenspack-superset.clickhouse.yaml` |
+| `LENSPACK_CONFIG` | compose | no | `lenspack-superset.yaml` | Which Lenspack config in `deploy/lenspack/`: the sample one or `lenspack-superset.clickhouse.yaml` |
+| `LENSPACK_IMAGE` | compose | no | `ghcr.io/theflywheel/lenspack:4e8b56d` | The Lenspack image (a commit of Lenspack's `main`). Superset's image copies `lenspack_superset.py` from it, so rebuild with `docker compose up -d --build` after changing it |
 | `CLICKHOUSE_USER`, `CLICKHOUSE_PASSWORD` | setup | for ClickHouse | | Read-only ClickHouse user. Pass the password with `-e` to the setup run; Superset stores it encrypted |
 | `CLICKHOUSE_HOST`, `CLICKHOUSE_PORT`, `CLICKHOUSE_DATABASE` | setup | no | `clickhouse-tunnel`, `8123`, `analytics` | Where Superset reaches ClickHouse |
 | `CLICKHOUSE_TENANT` | setup | no | `ng` | Tenant for the targets and referrals marts (the `su_ni_*` views are eGov's views for the ng field test) |
 | `CLICKHOUSE_KUBECONFIG`, `CLICKHOUSE_KUBE_CONTEXT`, `CLICKHOUSE_KUBE_NAMESPACE`, `CLICKHOUSE_KUBE_SERVICE` | clickhouse-tunnel | for the tunnel | `-`, current, `clickhouse`, `svc/clickhouse` | The read kubeconfig and the ClickHouse service to port-forward to |
-| `SUPERSET_URL` | Lenspack, setup | set by compose/k8s | | How Lenspack reaches Superset's API |
+| `LENSPACK_SUPERSET_URL` | Lenspack | set by compose/k8s | | How Lenspack reaches Superset's API |
+| `SUPERSET_URL` | setup | set by compose/k8s | | How the setup step reaches Superset's API |
 
 Not secrets, and in the files themselves:
-- `lenspack/lenspack-superset.yaml`: the datasets, the model's guidance, and the daily LLM budget (`budget.usdPerDay`).
-- `superset/superset_config.py`: session and CSRF settings, and the Settings → Manage → **AI assistant** page
+- `deploy/lenspack/lenspack-superset.yaml`: the datasets, the model's guidance, and the daily LLM budget (`budget.usdPerDay`).
+- `deploy/superset/superset_config.py`: session and CSRF settings, and the Settings → Manage → **AI assistant** page
   (admins only, `/ai-assistant/`): Lenspack's datasets, models, where the LLM key comes from (never the key),
   budget and today's spend, and Superset's data connections with passwords masked.
 
 ## Data
 
-- **Sample (Postgres):** `sample-data/export.py` flattens `project-task-index-v1`, `household-index-v1` and
+- **Sample (Postgres):** `demo-data/sample-data/export.py` flattens `project-task-index-v1`, `household-index-v1` and
   `stock-index-v1` into `hcm_task`, `hcm_household` and `hcm_stock`.
   - Only campaign fields are copied: boundaries, dates, product, outcome, dose and cycle.
   - It copies no individual, household or beneficiary IDs, no names, and no coordinates.
   - `field_worker` is the worker's user name, so run the export against a masked copy of the indices.
-  - `setup/setup.mts` defines the datasets' metrics in Postgres SQL.
+  - `demo-data/setup/setup.mts` defines the datasets' metrics in Postgres SQL.
 - **HCM analytics (ClickHouse):** the Superset image includes `clickhouse-connect`. Lenspack never connects to
   ClickHouse; Superset runs the SQL.
-  - `setup/setup.mts` runs its ClickHouse part when `CLICKHOUSE_PASSWORD` is set. It creates the database
+  - `demo-data/setup/setup.mts` runs its ClickHouse part when `CLICKHOUSE_PASSWORD` is set. It creates the database
     "HCM analytics (ClickHouse)" and virtual datasets over **eGov's own Superset-ready views** (`default.su_ni_*`,
     which already carry boundary names), plus two analytics marts the views lack (targets, referrals):
 
@@ -158,12 +165,12 @@ Not secrets, and in the files themselves:
       over places; coverage % is for the whole campaign, and progress by day uses the cumulative % metrics.
     - "Children vaccinated" follows eGov's coverage view: distinct children vaccinated, including children
       recorded on a revisit. Counting visits with outcome `VACCINATED` gives a smaller number. Switch with
-      `CHILDREN_VACCINATED` in `setup/setup.mts`.
+      `CHILDREN_VACCINATED` in `demo-data/setup/setup.mts`.
     - The `su_ni_*` views are eGov's views for the ng field-test campaign. `CLICKHOUSE_TENANT` scopes only the
       targets and referrals marts.
   - It also creates two dashboards: "nOPV2 field test overview (ClickHouse)" (slug `ni-smc`) and a national view
     (slug `ni-national`).
-  - `lenspack/lenspack-superset.clickhouse.yaml` is the Lenspack config for these datasets (pack `hcm_clickhouse`).
+  - `deploy/lenspack/lenspack-superset.clickhouse.yaml` is the Lenspack config for these datasets (pack `hcm_clickhouse`).
   - How these views and marts are built from HCM's records, and what each step drops:
     [ANALYTICS-PIPELINE.md](docs/ANALYTICS-PIPELINE.md).
   - `clickhouse-tunnel` (profile `clickhouse`) reaches ClickHouse inside a Kubernetes cluster with a read kubeconfig,
@@ -207,8 +214,8 @@ Most of these are covered in [issue #1](https://github.com/egovernments/innovati
   data runs as that account, so row-level security applies to it, not to the person asking.
 - **Chart types:** only KPI, pie, line, area, bar, table, heatmap and point-map (`deck_scatter`) charts can be edited.
   Other chart types are kept as Superset's.
-- **Lenspack version:** the image pins a commit of Lenspack's `main` (`LENSPACK_REF` in
-  [`lenspack/Dockerfile`](lenspack/Dockerfile)); the Superset connector is
+- **Lenspack version:** compose and Kubernetes pin a commit of Lenspack's `main` (the image tag in
+  [`deploy/docker-compose.yml`](deploy/docker-compose.yml) and [`deploy/k8s/kustomization.yaml`](deploy/k8s/kustomization.yaml)); the Superset connector is
   [`packages/superset`](https://github.com/theflywheel/lenspack/tree/main/packages/superset).
 - **No beside page:** the earlier page with the chat beside a framed dashboard, on a port of its own, is no longer part
   of this setup; the chat is on Superset's own dashboard page.

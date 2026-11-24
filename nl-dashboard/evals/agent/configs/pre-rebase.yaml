@@ -1,4 +1,4 @@
-# Lenspack over Superset, on HCM analytics in ClickHouse (the datasets setup/setup.mts makes when
+# Lenspack over Superset, on HCM analytics in ClickHouse (the datasets demo-data/setup/setup.mts makes when
 # CLICKHOUSE_PASSWORD is set). Select it with LENSPACK_CONFIG=lenspack-superset.clickhouse.yaml.
 # Lenspack never connects to ClickHouse: it asks Superset, which runs the SQL.
 # A string "env:NAME" reads the environment variable NAME.

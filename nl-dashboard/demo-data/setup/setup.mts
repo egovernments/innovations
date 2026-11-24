@@ -2,15 +2,15 @@
 // metrics and descriptions, and a dashboard built from ordinary Superset charts.
 // Safe to run again: databases and datasets are updated, each dashboard is made once.
 //
-//   docker compose run --rm setup
+//   docker compose run --rm setup        (from nl-dashboard/deploy; compose mounts this folder at /setup)
 //
 // Two independent parts, each run when its settings are there:
-//   - Sample (Postgres): DATA_SQLALCHEMY_URI points at the sample tables from sample-data/.
+//   - Sample (Postgres): DATA_SQLALCHEMY_URI points at the sample tables from ../sample-data/.
 //     Three datasets and "HCM campaign overview" (one heatmap on purpose: Lenspack keeps it as Superset's).
 //   - HCM analytics (ClickHouse): CLICKHOUSE_USER and CLICKHOUSE_PASSWORD (plus CLICKHOUSE_HOST, _PORT,
 //     _DATABASE). Virtual datasets over eGov's Superset-ready views (default.su_ni_*) and two analytics marts,
 //     and two dashboards: "nOPV2 field test overview (ClickHouse)" (slug ni-smc) and "Kebbi nOPV2 campaign: national view" (ni-national).
-// Always: SUPERSET_URL, SUPERSET_ADMIN_PASSWORD.
+// Always: SUPERSET_URL (or LENSPACK_SUPERSET_URL), SUPERSET_ADMIN_PASSWORD.
 
 import { supersetClient } from "/app/packages/superset/src/client.ts";
 
@@ -19,8 +19,9 @@ const env = (name: string) => {
   if (!v) throw new Error(`${name} is not set`);
   return v;
 };
-// Any Superset admin account (SUPERSET_ADMIN_USERNAME, default "admin").
-const client = supersetClient({ url: env("SUPERSET_URL"), username: process.env.SUPERSET_ADMIN_USERNAME || "admin", password: env("SUPERSET_ADMIN_PASSWORD") });
+// Any Superset admin account (SUPERSET_ADMIN_USERNAME, default "admin"). SUPERSET_URL, or the Lenspack service's
+// LENSPACK_SUPERSET_URL when this runs in that service.
+const client = supersetClient({ url: process.env.SUPERSET_URL || env("LENSPACK_SUPERSET_URL"), username: process.env.SUPERSET_ADMIN_USERNAME || "admin", password: env("SUPERSET_ADMIN_PASSWORD") });
 
 type Metric = { metric_name: string; verbose_name: string; expression: string; description?: string; d3format?: string };
 

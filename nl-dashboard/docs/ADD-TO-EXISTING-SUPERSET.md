@@ -15,19 +15,22 @@ Compose was tested by following these steps literally on `apache/superset:5.0.0`
 
 - Superset 5.0 that already reads your data. For ClickHouse that means the `clickhouse-connect` driver ([adding it](ADD-TO-EXISTING-SUPERSET-REFERENCE.md#the-clickhouse-driver)).
 - The password of a Superset admin, used once on Lenspack's first start.
-- The image `ghcr.io/theflywheel/lenspack:superset-3f6916c` (public).
+- The image `ghcr.io/theflywheel/lenspack:4e8b56d` (public; the tag is a commit of Lenspack's `main`).
 - An Anthropic API key.
 
 ## Get the files
 
 ```sh
-REF=nl-dashboard/superset-lenspack
-BASE=https://raw.githubusercontent.com/egovernments/innovations/$REF/nl-dashboard
+# Superset's side comes from the Lenspack repository, at the same commit as the image.
+LENSPACK=https://raw.githubusercontent.com/theflywheel/lenspack/4e8b56d26902de01311ab0c8e5a222a00741cefc
+BASE=https://raw.githubusercontent.com/egovernments/innovations/nl-dashboard/superset-lenspack/nl-dashboard
 mkdir -p lenspack
-curl -fsSL -o lenspack/lenspack_superset.py   $BASE/superset/lenspack_superset.py
-curl -fsSL -o lenspack/lenspack-superset.yaml $BASE/lenspack/lenspack-superset.clickhouse.yaml
-curl -fsSL -o lenspack/setup.mts              $BASE/setup/setup.mts
+curl -fsSL -o lenspack/lenspack_superset.py   $LENSPACK/packages/superset/plugin/lenspack_superset.py
+curl -fsSL -o lenspack/lenspack-superset.yaml $BASE/deploy/lenspack/lenspack-superset.clickhouse.yaml
+curl -fsSL -o lenspack/setup.mts              $BASE/demo-data/setup/setup.mts
 ```
+
+When you move to a newer Lenspack image, download `lenspack_superset.py` again at that commit.
 
 For your own datasets, edit `lenspack/lenspack-superset.yaml` ([how](ADD-TO-EXISTING-SUPERSET-REFERENCE.md#get-the-files)).
 
@@ -60,9 +63,10 @@ docker compose exec superset python -c "import lenspack_superset; print('ok')"
 
 ```yaml
   lenspack:
-    image: ghcr.io/theflywheel/lenspack:superset-3f6916c
+    image: ghcr.io/theflywheel/lenspack:4e8b56d
+    command: ["superset", "--config", "/config/lenspack-superset.yaml"]
     environment:
-      SUPERSET_URL: http://superset:8088                    # Superset itself, from inside the Compose network
+      LENSPACK_SUPERSET_URL: http://superset:8088           # Superset itself, from inside the Compose network
       SUPERSET_ADMIN_PASSWORD: ${SUPERSET_ADMIN_PASSWORD}    # first start only (user "admin"; else set SUPERSET_ADMIN_USERNAME)
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
     volumes:

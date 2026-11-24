@@ -8,7 +8,7 @@ There are two paths through the same pipeline:
 - **eGov's path (unified-dev).** HCM services write to Postgres. Debezium and Kafka carry every change to ClickHouse,
   and eGov's [Kafka-Postgres-Health-Analytics](https://github.com/prerna-egov/Kafka-Postgres-Health-Analytics)
   SQL and Airflow DAGs build raw, bronze, silver and mart tables. On top of these, eGov's Superset-ready views
-  (`default.su_ni_*`) serve the Superset datasets that [`setup/setup.mts`](../setup/setup.mts) creates. The data in
+  (`default.su_ni_*`) serve the Superset datasets that [`demo-data/setup/setup.mts`](../demo-data/setup/setup.mts) creates. The data in
   unified-dev is synthetic.
 - **Our lab path.** A masked extract of one state's 2025 SMC campaign runs through the same eGov SQL and DAGs,
   unchanged, on a ClickHouse of our own. Lenspack-facing tables (`lens.*`) are built from silver, and the lab's Superset
@@ -99,7 +99,7 @@ flowchart TD
 | Downstream Postgres | [`ddl/01_transformed_data_tables.sql`](https://github.com/prerna-egov/Kafka-Postgres-Health-Analytics/blob/109cf4dd1a8315eac8f23d7692f57d588195c6a3/ddl/01_transformed_data_tables.sql) | Enriched tables in a separate reporting Postgres | Not used by either path here |
 | Superset-ready views | not public | `default.su_ni_*` on unified-dev | eGov |
 | Lab tables | our lab runbook | `lens.*` from silver | One SQL script, after the marts |
-| Superset datasets | [`setup/setup.mts`](../setup/setup.mts) (unified-dev); the lab's are made the same way through Superset's API | Virtual datasets with saved metrics | One-off, safe to re-run |
+| Superset datasets | [`demo-data/setup/setup.mts`](../demo-data/setup/setup.mts) (unified-dev); the lab's are made the same way through Superset's API | Virtual datasets with saved metrics | One-off, safe to re-run |
 
 The mart refresh order (dependencies first) that both the lab and the repo's comments imply:
 
@@ -534,7 +534,7 @@ SETTINGS join_use_nulls = 1;
 Superset runs every query; Lenspack never connects to ClickHouse. Each dataset is a **virtual dataset** (a SQL query
 saved in Superset) with saved metrics and descriptions.
 
-**Unified-dev path.** [`setup/setup.mts`](../setup/setup.mts) creates the `ni_*` datasets over the `su_ni_*` views,
+**Unified-dev path.** [`demo-data/setup/setup.mts`](../demo-data/setup/setup.mts) creates the `ni_*` datasets over the `su_ni_*` views,
 plus targets from `dm_targets_base` (settlement level, by target type) and referrals from `dm_referral_summary` with
 names from `boundary_hierarchy_localization_dim`. The dataset list and the rules they follow are in
 [the README's Data section](../README.md#data).

@@ -1,5 +1,10 @@
 # Stock Apache Superset 5.0 with our settings baked in. Not a fork: drivers, a
 # config file and one template that Superset documents as overridable.
+# Lenspack's Superset side (lenspack_superset.py) comes from the Lenspack image of the same version as the
+# server, so the two always match. Pass a different one with --build-arg LENSPACK_IMAGE=...
+ARG LENSPACK_IMAGE=ghcr.io/theflywheel/lenspack:4e8b56d
+FROM ${LENSPACK_IMAGE} AS lenspack
+
 FROM apache/superset:5.0.0
 
 USER root
@@ -15,7 +20,7 @@ RUN /app/.venv/bin/python /tmp/build_translations.py fr && rm /tmp/build_transla
 
 COPY superset_config.py /app/superset_config.py
 # Lenspack's additions, imported by superset_config.py. On PYTHONPATH (/app/pythonpath) for the CLI and the server.
-COPY lenspack_superset.py /app/pythonpath/lenspack_superset.py
+COPY --from=lenspack /app/packages/superset/plugin/lenspack_superset.py /app/pythonpath/lenspack_superset.py
 COPY init.sh /app/nl-dashboard-init.sh
 RUN chmod 0755 /app/nl-dashboard-init.sh
 ENV SUPERSET_CONFIG_PATH=/app/superset_config.py

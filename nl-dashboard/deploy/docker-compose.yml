@@ -2,7 +2,7 @@
 #   http://<host>:8088/   Superset, with the "Ask Lenspack" chat on dashboard pages
 # Superset itself forwards /lenspack/ to the lenspack container for signed-in users (lenspack_superset.py),
 # so there is no proxy in front and Lenspack's port is not published.
-# Variables: .env (copy .env.example). Steps: README.md.
+# Variables: .env next to this file (copy .env.example). Steps: ../README.md.
 name: nl-dashboard
 
 x-superset-env: &superset-env
@@ -25,7 +25,7 @@ services:
     volumes:
       - pg:/var/lib/postgresql/data
       # Creates the "hcm" database for the sample data on first start.
-      - ./sample-data/create-db.sql:/docker-entrypoint-initdb.d/01-hcm.sql:ro
+      - ../demo-data/sample-data/create-db.sql:/docker-entrypoint-initdb.d/01-hcm.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U superset"]
       interval: 5s
@@ -34,7 +34,10 @@ services:
 
   superset-init:
     image: nl-dashboard-superset:5.0.0
-    build: ./superset
+    build:
+      context: ./superset
+      # lenspack_superset.py is copied from this Lenspack image, so Superset's side and the server always match.
+      args: { LENSPACK_IMAGE: "${LENSPACK_IMAGE:-ghcr.io/theflywheel/lenspack:4e8b56d}" }
     command: ["/app/nl-dashboard-init.sh"]
     environment:
       <<: *superset-env
@@ -60,10 +63,11 @@ services:
     restart: unless-stopped
 
   lenspack:
-    image: nl-dashboard-lenspack:latest
-    build: ./lenspack
+    # Lenspack's published image, built from its main branch; the tag is a commit of github.com/theflywheel/lenspack.
+    image: ${LENSPACK_IMAGE:-ghcr.io/theflywheel/lenspack:4e8b56d}
+    command: ["superset", "--config", "/config/lenspack-superset.yaml"]
     environment:
-      SUPERSET_URL: http://superset:8088
+      LENSPACK_SUPERSET_URL: http://superset:8088
       # First start only: Lenspack signs in as the admin once to make its own Superset account, and keeps
       # that account's password in /data. Remove it afterwards if you like.
       SUPERSET_ADMIN_PASSWORD: ${SUPERSET_ADMIN_PASSWORD:-}
@@ -72,6 +76,7 @@ services:
       LENSPACK_SUPERSET_PASSWORD: ${LENSPACK_SUPERSET_PASSWORD:-}
       # Who may change dashboards through the chat: superset (whoever Superset lets edit it) or signed-in.
       LENSPACK_EDIT_POLICY: ${LENSPACK_EDIT_POLICY:-superset}
+      # With only ANTHROPIC_API_KEY set, the chat offers Claude Sonnet (the default), Opus and Haiku 5.5.
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       LENSPACK_LLM_PROVIDERS: ${LENSPACK_LLM_PROVIDERS:-}
       # Speech to text for the chat's microphone (OpenRouter); empty = no microphone.
@@ -82,13 +87,13 @@ services:
       - lenspack:/data
     depends_on:
       superset: { condition: service_healthy }
-    # Exits until the datasets exist (setup/setup.mts), then stays up.
+    # Exits until the datasets exist (../demo-data/setup/setup.mts), then stays up.
     restart: unless-stopped
 
   # One-off: the HCM database in Superset, three datasets with metrics, and a starter dashboard.
   #   docker compose run --rm setup
   setup:
-    image: nl-dashboard-lenspack:latest
+    image: ${LENSPACK_IMAGE:-ghcr.io/theflywheel/lenspack:4e8b56d}
     profiles: [setup]
     entrypoint: ["/app/node_modules/.bin/tsx", "--tsconfig", "/app/tsconfig.base.json", "/setup/setup.mts"]
     environment:
@@ -103,7 +108,7 @@ services:
       CLICKHOUSE_USER: ${CLICKHOUSE_USER:-}
       CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-}
     volumes:
-      - ./setup:/setup:ro
+      - ../demo-data/setup:/setup:ro
     depends_on:
       superset: { condition: service_healthy }
 

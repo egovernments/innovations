@@ -43,7 +43,7 @@ installed.
 | You need | Tested with | Notes |
 |---|---|---|
 | Superset 5.0 | `apache/superset:5.0.0` (Flask-AppBuilder 4.5.5) | Superset 6 is untested. |
-| The Lenspack image | `ghcr.io/theflywheel/lenspack:superset-3f6916c` | Public. Built from Lenspack commit `3f6916c`, which is on `main` ([`packages/superset`](https://github.com/theflywheel/lenspack/tree/main/packages/superset)). |
+| The Lenspack image | `ghcr.io/theflywheel/lenspack:4e8b56d` | Public. Built from Lenspack commit `4e8b56d` on `main`; it starts with `superset --config <file>` ([`packages/superset`](https://github.com/theflywheel/lenspack/tree/main/packages/superset)). |
 | A Superset admin's password | | Used once, on Lenspack's first start, to create its own account. |
 | An LLM API key | Anthropic (Claude Sonnet, Opus and Haiku 5.5) | Or any OpenAI-compatible API through `LENSPACK_LLM_PROVIDERS`. |
 | Your data in Superset | ClickHouse, through `clickhouse-connect` | The stock image has no ClickHouse driver: [adding it](#the-clickhouse-driver). |
@@ -71,8 +71,12 @@ How the route, the signed header, the key and streaming work:
 
 ## Get the files
 
-Run the quickstart's download block in the folder that holds your Compose file, or anywhere for Helm. `REF` is a
-branch or commit of this repository.
+Run the quickstart's download block in the folder that holds your Compose file, or anywhere for Helm.
+`lenspack_superset.py` comes from the Lenspack repository
+([`packages/superset/plugin/`](https://github.com/theflywheel/lenspack/tree/main/packages/superset/plugin)) at the
+same commit as the Lenspack image, so Superset's side and the server match. To move to a newer image, change both
+the image tag and the commit in the download URL. The config and `setup.mts` come from this repository: `BASE`
+names a branch or commit of it.
 
 `lenspack/lenspack-superset.yaml` is Lenspack's config for the HCM ClickHouse datasets that `setup.mts` creates. For your
 own datasets, edit its `datasets`, `overlay.entities`, `hierarchies` and `instructions`.
@@ -105,7 +109,9 @@ until step 6.
 
 ### 4. The Lenspack service
 
-- `SUPERSET_URL` is Superset as Lenspack's container reaches it, not the public address. Lenspack learns the public
+- `command: ["superset", "--config", ...]` starts the image's Superset mode (the image's default command is
+  Lenspack's own web app, which isn't used here).
+- `LENSPACK_SUPERSET_URL` is Superset as Lenspack's container reaches it, not the public address. Lenspack learns the public
   address from each request.
 - `SUPERSET_ADMIN_PASSWORD` is needed only until Lenspack has made its account ([Lenspack's Superset account](#lenspacks-superset-account)).
   If your admin isn't called `admin`, add `SUPERSET_ADMIN_USERNAME`.
@@ -121,11 +127,13 @@ until step 6.
     account, and other tools that sign in as `lenspack` (an eval harness, for example) keep working ([Lenspack's Superset account](#lenspacks-superset-account));
   - `LENSPACK_EDIT_POLICY` ([Who may do what](#who-may-do-what));
   - `LENSPACK_AUDIT_RETENTION_DAYS` ([The audit log](#the-audit-log));
-  - `OPENROUTER_API_KEY`, for the chat's microphone (speech to text).
+  - `OPENROUTER_API_KEY`, for the chat's microphone (speech to text);
+  - `LENSPACK_LLM_PROVIDERS`, for models other than Claude. With only `ANTHROPIC_API_KEY`, the chat offers Claude
+    Sonnet (the default), Opus and Haiku 5.5.
 
 ### 5. Datasets and dashboards
 
-See [Datasets and dashboards](#datasets-and-dashboards). The run uses the Lenspack service's `SUPERSET_URL` and
+See [Datasets and dashboards](#datasets-and-dashboards). The run uses the Lenspack service's `LENSPACK_SUPERSET_URL` and
 `SUPERSET_ADMIN_PASSWORD`.
 
 ### 6. Start Lenspack
@@ -163,7 +171,7 @@ several request threads at once after a restart, and a worker can fail with "par
 Optional. Superset 5's image ships the French catalogue but no compiled files, so switching to French changes nothing.
 Build them once into a volume:
 
-1. Download the build script: `curl -fsSL -o lenspack/build_translations.py $BASE/superset/build_translations.py`.
+1. Download the build script: `curl -fsSL -o lenspack/build_translations.py $BASE/deploy/superset/build_translations.py`.
 2. Add `LANGUAGES` to your `superset_config.py`:
    ```python
    LANGUAGES = {"en": {"flag": "us", "name": "English"}, "fr": {"flag": "fr", "name": "French"}}
@@ -326,10 +334,10 @@ bootstrapScript: |
 
 `helm upgrade` with these values restarts the Superset pods.
 
-**3. Lenspack.** Use [`../k8s/lenspack.yaml`](../k8s/lenspack.yaml) as the template: a Deployment with one replica and a
+**3. Lenspack.** Use [`../deploy/k8s/lenspack.yaml`](../deploy/k8s/lenspack.yaml) as the template: a Deployment with one replica and a
 Service on port 8795, with no Ingress. Change these:
-- the image, to `ghcr.io/theflywheel/lenspack:superset-3f6916c`;
-- `SUPERSET_URL`, to your Superset Service (e.g. `http://superset:8088`);
+- the image, to `ghcr.io/theflywheel/lenspack:4e8b56d` (keep the template's `args`, which start its Superset mode);
+- `LENSPACK_SUPERSET_URL`, to your Superset Service (e.g. `http://superset:8088`);
 - the Secret holding `SUPERSET_ADMIN_PASSWORD` and the LLM key.
 
 Name the Service `lenspack`, or change `LENSPACK_INTERNAL_URL`. Put the config in a ConfigMap with the key
@@ -341,7 +349,7 @@ kubectl -n superset create configmap lenspack --from-file=lenspack-superset.yaml
 
 Mount a small PVC at `/data`, not the template's `emptyDir`, to keep the account, the settings and the audit log across restarts.
 
-**4. Datasets and dashboards.** Run `setup.mts` as a one-off Job on the Lenspack image ([`../k8s/setup-job.yaml`](../k8s/setup-job.yaml)
+**4. Datasets and dashboards.** Run `setup.mts` as a one-off Job on the Lenspack image ([`../deploy/k8s/setup-job.yaml`](../deploy/k8s/setup-job.yaml)
 shows how), or import them as in [Datasets and dashboards](#datasets-and-dashboards). Then restart Lenspack:
 `kubectl -n superset rollout restart deploy/lenspack`.
 
@@ -438,7 +446,7 @@ Charts that Lenspack saved are ordinary Superset charts; they stay unless you de
 
 ## Plain Kubernetes manifests
 
-[`../k8s/`](../k8s/) deploys this folder's own Superset image, which has the driver, the French labels and
+[`../deploy/k8s/`](../deploy/k8s/) deploys this folder's own Superset image, which has the driver, the French labels and
 `lenspack_superset.py` built in. The stock image works there too, the same way as with Helm:
 - the ConfigMap volume at `/app/lenspack`, plus `PYTHONPATH`, on the Superset Deployment and its init Job;
 - the import line in the config;

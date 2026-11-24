@@ -5,17 +5,17 @@ upgrade, Superset or the data source going away, and a state volume that is read
 stack comes back by itself, keeps its settings, and answers again.
 
 ```sh
-NLD=/path/to/deployed/nl-dashboard nl-dashboard/test/resilience.sh                # every scenario except chaos
-NLD=… nl-dashboard/test/resilience.sh restart superset-down ui                    # some of them
-NLD=… CHAOS_ROUNDS=10 nl-dashboard/test/resilience.sh chaos                       # random stops and starts
+NLD=/path/to/deployed/nl-dashboard/deploy nl-dashboard/deploy/test/resilience.sh   # every scenario except chaos
+NLD=… nl-dashboard/deploy/test/resilience.sh restart superset-down ui             # some of them
+NLD=… CHAOS_ROUNDS=10 nl-dashboard/deploy/test/resilience.sh chaos                # random stops and starts
 ```
 
-- **`NLD`**: the directory the stack was deployed from, holding `docker-compose.yml` and `.env`. The script reads
-  the Superset passwords from `.env` and never prints them.
+- **`NLD`**: the directory the stack was deployed from, holding `docker-compose.yml` and `.env`; default
+  `nl-dashboard/deploy`. The script reads the Superset passwords from `.env` and never prints them.
 - **`DASHBOARD`**: where the questions are asked; default 6.
 - **`EXPECT_ENTITIES` / `EXPECT_MEASURES`**: what a complete pack has; default 8 / 40.
 - **`WAIT`**: how long recovery may take before a check fails; default 150 s.
-- **`OUT`**: where results and the backup go; default `test/resilience-out/<time>`, which is git-ignored.
+- **`OUT`**: where results and the backup go; default `deploy/test/resilience-out/<time>`, which is git-ignored.
 - **`RESTORE`**:
   - `on-failure` (default) puts `/data` back from the backup if the stack doesn't end healthy;
   - `always` puts it back every time;

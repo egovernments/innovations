@@ -1,6 +1,6 @@
 # One-off: data sources in Superset (sample Postgres and/or ClickHouse), datasets with metrics, starter dashboards
-# (../setup/setup.mts, mounted from the nl-dashboard-setup ConfigMap; README). Not in kustomization.yaml:
-#   kubectl -n lenspack apply -f nl-dashboard/k8s/setup-job.yaml
+# (../../demo-data/setup/setup.mts, mounted from the nl-dashboard-setup ConfigMap; README). Not in kustomization.yaml:
+#   kubectl -n lenspack apply -f nl-dashboard/deploy/k8s/setup-job.yaml
 apiVersion: batch/v1
 kind: Job
 metadata: { name: nl-dashboard-setup, labels: { app.kubernetes.io/part-of: nl-dashboard } }
@@ -12,7 +12,7 @@ spec:
       restartPolicy: OnFailure
       containers:
         - name: setup
-          image: ghcr.io/theflywheel/lenspack:superset-3f6916c
+          image: ghcr.io/theflywheel/lenspack:4e8b56d   # the same Lenspack image as kustomization.yaml
           command: [/app/node_modules/.bin/tsx, --tsconfig, /app/tsconfig.base.json, /setup/setup.mts]
           env:
             - { name: SUPERSET_URL, value: "http://nl-dashboard-superset:8088" }
