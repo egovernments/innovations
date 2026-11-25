@@ -15,6 +15,7 @@ as a ceiling.
 | [DEFINITIONS.md](DEFINITIONS.md) | terms with more than one reading, each reading's value, and what eGov needs to decide |
 | [RESULTS.md](RESULTS.md) | results by model, configuration, question group and language; cost; every run |
 | [FAILURES.md](FAILURES.md) | each kind of failure, with what the model said, the cause and the fix |
+| [REAL-DATA.md](REAL-DATA.md) | Haiku vs Sonnet vs Opus on a real campaign: accuracy, cost, time, the reviewer's effect, and why answers failed |
 
 ## What it tests
 
