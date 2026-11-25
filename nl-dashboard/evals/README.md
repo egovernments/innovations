@@ -146,14 +146,15 @@ provider key. Details: [speech/README.md](speech/README.md), full report [speech
 
 ## Re-running
 
-**Chat agent** (from `agent/`; the runner is `pnpm eval:suite` on the `evals/suite` branch of the Lenspack
-repository). The `*-post-v2*` files are the question set, truth and starting dashboard for the *eGov views +
-definitions* configuration:
+**Chat agent** (from the Lenspack repository's root, where the runner, the question sets and their answers live, in
+`evals/suites/hcm`; `H=evals/suites/hcm`). The `views-definitions*` files are the question set, answers and starting
+dashboard for the *eGov views + definitions* configuration:
 
 ```sh
-CHP=<read-only ClickHouse password> python3 suite/truth.py --suite suite-post-v2.yaml --check   # is the data unchanged?
-pnpm eval:suite --suite <agent>/suite/suite-post-v2.yaml --truth <agent>/truth/truth-post-v2.json \
-  --superset-url <superset> --board-cache <agent>/configs/board-seed-post-rebase-v2.json \
+CLICKHOUSE_URL=<url> CLICKHOUSE_USER=<read-only user> CLICKHOUSE_PASSWORD=<password> \
+  python3 $H/truth.py --suite views-definitions.yaml --check      # is the data unchanged?
+pnpm eval:suite --suite $H/views-definitions.yaml --truth $H/views-definitions.truth.json \
+  --superset-url <superset> --board-cache $H/configs/views-definitions.board.json \
   --models claude-haiku-5-5 --judge claude-sonnet-5-5 --repeats 3 --max-usd 1
 ```
 
@@ -171,7 +172,7 @@ OPENROUTER_API_KEY=... .venv/bin/python -I stt_bench.py data/manifest.jsonl --sy
 evals/
   README.md          this page
   agent/             the chat agent eval: README, QUESTIONS, DESIGN, DEFINITIONS, RESULTS, FAILURES
-    suite/  truth/  configs/  runs/
+    runs/  summarize.py    (question sets, answers, configs: Lenspack repo, evals/suites/hcm)
   speech/            the speech-to-text eval: README (summary), SPEECH.md (full report)
     data/  results/  and the scripts
 ```

@@ -15,10 +15,10 @@ has its own page under [`runs/`](runs/), and the [run history](#run-history) at 
 
 - **Configurations.** Lenspack reads the data through a config file. Three were tested; see
   [README](README.md#configurations) for what each holds.
-  - *Own joins*: our hand-made joins over eGov's analytics tables (`configs/pre-rebase.yaml`).
-  - *eGov views*: eGov's ready-made Superset views, read as they are (`configs/post-rebase.yaml`).
+  - *Own joins*: our hand-made joins over eGov's analytics tables ([`configs/joins.yaml`](https://github.com/theflywheel/lenspack/blob/ce9cd0fe932f811d2542be607716bd8a4ef5c602/evals/suites/hcm/configs/joins.yaml)).
+  - *eGov views*: eGov's ready-made Superset views, read as they are ([`configs/views.yaml`](https://github.com/theflywheel/lenspack/blob/ce9cd0fe932f811d2542be607716bd8a4ef5c602/evals/suites/hcm/configs/views.yaml)).
   - *eGov views + definitions*: the same views, plus instructions that say which definition each ambiguous term uses
-    (`configs/post-rebase-v2.yaml`).
+    ([`configs/views-definitions.yaml`](https://github.com/theflywheel/lenspack/blob/ce9cd0fe932f811d2542be607716bd8a4ef5c602/evals/suites/hcm/configs/views-definitions.yaml)).
 - **Pass** = right, or rightly said "can't" for a question the data can't answer.
 - **Partial** = the right figure but incomplete, or the right figure without saying which definition it used.
 - **Wrong, stated as fact** = a wrong or invented number given as an answer. The run pages call this *confidently
@@ -244,4 +244,4 @@ move run from the first round of fixes on also became partial: it sent the gende
 Each run's full record (kept with the lab, not committed: about 12 MB per full run) has, per answer: the reply, every
 tool call with its input and output, the board before and after, the chart data, token use and cost. That is what
 makes offline rescoring possible. The pages in [`runs/`](runs/) are generated from those records by
-[`suite/summarize.py`](suite/summarize.py).
+[`summarize.py`](summarize.py).

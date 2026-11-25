@@ -22,7 +22,7 @@
 
 data: unified-dev ClickHouse default.su_ni_* (synthetic ng field test)
 computed: 2026-11-23
-config: innovations nl-dashboard/lenspack 88cd73a (frozen as configs/post-rebase-v2.yaml)
+config: innovations nl-dashboard/lenspack 88cd73a (frozen as evals/suites/hcm/configs/views-definitions.yaml in the Lenspack repository)
 
 entries:
   - term: children vaccinated

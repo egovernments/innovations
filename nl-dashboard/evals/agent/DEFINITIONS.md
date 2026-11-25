@@ -6,7 +6,7 @@ reading the reply names. Six are *stated* in the config but not yet confirmed by
 *settled*. Each row ends with the question eGov needs to answer.
 
 For each term: the competing definitions and their values on the synthetic data, what the Lenspack config
-(*eGov views + definitions*, `configs/post-rebase-v2.yaml`) now tells the model, the questions that probe it (ids as
+(*eGov views + definitions*, [`configs/views-definitions.yaml`](https://github.com/theflywheel/lenspack/blob/ce9cd0fe932f811d2542be607716bd8a4ef5c602/evals/suites/hcm/configs/views-definitions.yaml)) now tells the model, the questions that probe it (ids as
 in [QUESTIONS.md](QUESTIONS.md)), and the open question for eGov. The machine-readable version, with SQL, is
 [`definitions.yaml`](definitions.yaml).
 

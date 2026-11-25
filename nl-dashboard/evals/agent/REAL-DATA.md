@@ -267,5 +267,5 @@ Haiku, $4.61 Sonnet, $8.22 Opus and $1.36 the Haiku run with an Opus reviewer.
 
 The runner is Lenspack's `pnpm eval:suite` (`--review` turns the production reviewer on; `--reviewer` and `--escalate` pick other models for those roles). The question set, truth and
 starting board for this campaign stay private, because the data is real. To run the same kind of test on your own
-data, write a suite in the [format of ours](suite/) against your own Superset datasets. See
+data, write a suite in the [format of ours](https://github.com/theflywheel/lenspack/tree/ce9cd0fe932f811d2542be607716bd8a4ef5c602/evals/suites/hcm) against your own Superset datasets. See
 [DESIGN.md](DESIGN.md) for how to compute truth.

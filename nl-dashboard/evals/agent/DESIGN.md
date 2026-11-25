@@ -20,24 +20,23 @@ question group:
 
 ## What it runs against
 
-- **The deployment config** in `configs/`: the same Lenspack config file the server loads. From it the harness
+- **The deployment config** (in the Lenspack repo, [`evals/suites/hcm/configs`](https://github.com/theflywheel/lenspack/tree/ce9cd0fe932f811d2542be607716bd8a4ef5c602/evals/suites/hcm/configs)): the same Lenspack config file the server loads. From it the harness
   builds the *pack* (Lenspack's vocabulary: the datasets, their measures and fields), the system prompt and the tools,
   exactly as production does. Three were tested:
-  - *Own joins* (`pre-rebase.yaml`): 9 Superset datasets, four of them our own joins over eGov's analytics tables
+  - *Own joins* (`joins.yaml`): 9 Superset datasets, four of them our own joins over eGov's analytics tables
     (`analytics.dm_*`) and five over eGov's views.
-  - *eGov views* (`post-rebase.yaml`): 7 datasets read straight from eGov's views. The file names call this move
-    the "rebase".
-  - *eGov views + definitions* (`post-rebase-v2.yaml`): the same, plus a people dataset (people in registered
+  - *eGov views* (`views.yaml`): 7 datasets read straight from eGov's views.
+  - *eGov views + definitions* (`views-definitions.yaml`): the same, plus a people dataset (people in registered
     households), a `children_per_vial` measure, and instructions that state the definitions the eval found ambiguous.
 - **Queries** go through Superset's `/api/v1/chart/data`, as in chat, so the Superset connector path is under test.
-- **Dashboards:** each question starts on an in-memory copy of a real dashboard (`configs/board-seed-*.json`). Nothing is
+- **Dashboards:** each question starts on an in-memory copy of a real dashboard (`configs/<config>.board.json`). Nothing is
   written back to Superset.
 - **Clock:** "today" is fixed at 22 November 2026, 12:00 UTC, so "last 30 days" is reproducible (and empty).
 
 ## Questions
 
 85 questions in eleven groups, T1 to T11: 84 in English and 1 in Hindi. The full list with truth values is in
-[QUESTIONS.md](QUESTIONS.md); the YAML with SQL is `suite/suite.yaml`.
+[QUESTIONS.md](QUESTIONS.md); the YAML with SQL is [`joins.yaml`](https://github.com/theflywheel/lenspack/blob/ce9cd0fe932f811d2542be607716bd8a4ef5c602/evals/suites/hcm/joins.yaml) in the Lenspack repo.
 
 | Group | What | n |
 |---|---|---|
@@ -54,7 +53,7 @@ question group:
 | T11 | Maps: create one, read it, change it (added later; *eGov views* configs only) | 3 |
 
 Questions are written in a campaign manager's words. Only each question's "accepted measures" list names Lenspack's
-measures, so when the config changes the question file is regenerated (`suite/make_post_suite.py`) and the same
+measures, so when the config changes the question file is regenerated (`make_suites.py`) and the same
 questions rerun. A few
 questions change type between configs, because the move to eGov's views closed or opened a gap: E8 field worker, E10
 refusal reasons and E11 insecure settlements become answerable; T1.7 people in households was lost with *eGov views*
@@ -74,8 +73,8 @@ three ways (14.87%, 14.42%, 0.39%); zero-dose share over enumerated children or 
 ## Ground truth
 
 - **Hand-written SQL per question** against eGov's views (`default.su_ni_*`, and `analytics.*` for referrals),
-  never against the Superset datasets Lenspack reads, run read-only (`readonly=1`). `suite/truth.py` computes it into
-  `truth/*.json`.
+  never against the Superset datasets Lenspack reads, run read-only (`readonly=1`). `truth.py` (Lenspack repo) computes it into
+  `<set>.truth.json`.
 - **Two-author check:** a second author wrote SQL for each question from only the question and the schema. 39 of 46
   agreed exactly, 6 matched on values with different names, and 1 agreed through an alternative. The one real split
   was vial wastage, which became a definitions entry. The second author also surfaced alternatives that are now accepted.

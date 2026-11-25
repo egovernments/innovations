@@ -5,7 +5,7 @@ Hindi (T7.14). None are in French or Portuguese yet.
 
 - **Expect** says what a right reply does: *answer* (give the figure, list or series), *edit* (change the dashboard),
   or *decline* (say it can't, or give an open partial answer).
-- **Truth** is computed in SQL straight from ClickHouse (`truth/truth-post-v2.json`); the SQL is in the question
+- **Truth** is computed in SQL straight from ClickHouse ([`views-definitions.truth.json`](https://github.com/theflywheel/lenspack/blob/ce9cd0fe932f811d2542be607716bd8a4ef5c602/evals/suites/hcm/views-definitions.truth.json), Lenspack repo); the SQL is in the question
   file. `alt` lists other accepted definitions, accepted only when the reply says which one it used. "board diff"
   means the check compares the dashboard before and after.
 - **Tags:** `ambiguous` = more than one defensible answer (see [DEFINITIONS.md](DEFINITIONS.md)). `trap` =
@@ -14,8 +14,8 @@ Hindi (T7.14). None are in French or Portuguese yet.
   exists), *data* (the data can't answer it), *scope* (outside this deployment).
 - **Ids:** questions starting with E were first written as expected fails. E3 turned out to be answerable and became
   T6.5; E8, E10 and E11 became answerable with eGov's views and sit in T2.
-- **Source:** this is the current set (`suite/suite-post-v2.yaml`, for the *eGov views + definitions* config). It is
-  generated from `suite/suite.yaml` by `make_post_suite.py v2`; only the measure names differ between configs.
+- **Source:** this is the current set ([`views-definitions.yaml`](https://github.com/theflywheel/lenspack/blob/ce9cd0fe932f811d2542be607716bd8a4ef5c602/evals/suites/hcm/views-definitions.yaml) in the Lenspack repo, for the *eGov views +
+  definitions* config). It is generated from `joins.yaml` by `make_suites.py v2`; only the measure names differ between configs.
 
 ## T1. Totals (8)
 

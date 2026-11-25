@@ -33,12 +33,12 @@ overlay into the tags, `extra` fields and settings above, and then the file can 
 
 ## What it does to the evals
 
-- **The pack must be frozen per run.** The eval configs (`evals/agent/configs/*.yaml`) pin the pack by pinning its YAML.
+- **The pack must be frozen per run.** The eval configs (the Lenspack repository's `evals/suites/hcm/configs/*.yaml`) pin the pack by pinning its YAML.
   Once the pack comes from Superset, a run must record what it ran against. The harness would fetch the derived pack
   (`GET /api/<pack>/pack` already returns it as YAML), store it with the results, and put its hash in the report.
   Comparing two runs means first comparing their pack hashes.
-- **The questions and expected answers don't change.** They live in `evals/agent/suite/*.yaml` and
-  `evals/agent/truth/*.json`, and depend on the data and the measures, not on where the measure definitions are stored.
+- **The questions and expected answers don't change.** They live in the Lenspack repository's
+  `evals/suites/hcm/*.yaml` and `*.truth.json`, and depend on the data and the measures, not on where the measure definitions are stored.
 - **Instructions change scores.** The heatmap instruction is one example: the heatmap questions depend on it. So
   moving the instructions onto a page anyone with admin rights can edit means an unreviewed edit can move the scores. Two
   mitigations, both cheap:
