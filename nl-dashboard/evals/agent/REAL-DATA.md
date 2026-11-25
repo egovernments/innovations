@@ -5,7 +5,7 @@ switched on as in production:
 
 - **Accuracy:** Claude Opus 5.5 gets 97% right, Sonnet 5.5 94% and Haiku 5.5 93%.
 - **Cost:** a right answer costs about 0.15 US cents with Haiku, 2.6 cents with Sonnet and 4.5 cents with Opus.
-- **Recommendation:** Haiku is the default. Opus is worth paying for only where the data has traps a careful reader would catch.
+- **Recommendation:** Haiku is the default, with Haiku as its own reviewer. Opus is worth paying for only where the data has traps a careful reader would catch. Making Opus the reviewer of Haiku's answers cost five times as much and changed nothing (see [below](#a-stronger-reviewer-for-haiku)).
 - **Where the wrong numbers came from:** most of them came from Lenspack and the data, the same for every model, not from the models. Each failure is explained below.
 
 Run on 2026-11-25. The figures here are rates, costs and times only. The data is real, so no counts or per-place
@@ -125,8 +125,38 @@ and said which side of a two-sided stock log it used. Haiku and Sonnet stay leve
   answer it suits two places:
   - the *fix round* (Lenspack's escalation model), which is rare and so cheap overall;
   - deployments where analysts ask hard reconciliation questions.
-- **Keep the reviewer on.** It costs about 15% overall, and its one material catch on Haiku turned a wrong board
-  into a right one. Using a stronger model as the reviewer of a Haiku builder hasn't been measured yet.
+- **Keep the reviewer on, with the same model.** It costs about 15% overall, and its one material catch on Haiku
+  turned a wrong board into a right one. An Opus reviewer for Haiku cost five times as much for the same score (next
+  section).
+
+## A stronger reviewer for Haiku
+
+The same 63 questions, three tries each, with Haiku building every answer and Opus 5.5 as the reviewer. The fix
+round stayed with Haiku. Everything else was as in the main run.
+
+| | Haiku, Haiku reviewer | Haiku, Opus reviewer |
+|---|---|---|
+| Pass | 93% | 93% |
+| Partly right | 2% | 2% |
+| Wrong numbers stated as fact (model or dataset setup / Lenspack or data fault) | 3 / 6 | 3 / 6 |
+| Dashboard edits passed | 29 of 30 | 29 of 30 |
+| Cost per question | $0.0014 | $0.0072 |
+| **Cost per right answer** | **$0.0015** | **$0.0077** |
+| Reviewer's share of the cost | 14% | 85% |
+| Median time, reviewed turns | 6.0 s | 6.2 s |
+| Reviews that found something / that sent the turn back for a fix | 2 / 2 | 3 / 0 |
+
+- **What the Opus reviewer caught:** three issues, all of which it rated minor, so it never sent a turn back. Two
+  were the same unrequested widening of a moved chart that it also flagged on Opus's own edits. The reply then said
+  so.
+- **What it missed:** on one try, Haiku left an existing tile squeezed into the new row of three KPI tiles. The Opus
+  reviewer rated that minor, and the reply described the problem instead of fixing it. On the same question in the
+  main run, the Haiku reviewer called a similar layout material and sent it back, which fixed it once out of two.
+- **Answers are unchanged.** Plain questions aren't reviewed, so the reviewer can't touch the failures that matter
+  most here: the repeated ward names, the burn-rate window and the one-sided stock figure. All three came out
+  exactly as with the Haiku reviewer.
+- **Verdict:** keep Haiku as its own reviewer. A stronger reviewer only pays where edits go wrong in ways a reviewer
+  can fix, and on this campaign they rarely did.
 
 ## Why answers failed
 
@@ -230,12 +260,12 @@ plus the person's read.
 
 ## What it cost
 
-$13.69 for the whole eval, including a $0.51 pilot and the judge that labels "can't" answers. Of that, $0.26 was
-Haiku, $4.61 Sonnet and $8.22 Opus.
+$15.08 for the whole eval, including a $0.51 pilot and the judge that labels "can't" answers. Of that, $0.26 was
+Haiku, $4.61 Sonnet, $8.22 Opus and $1.36 the Haiku run with an Opus reviewer.
 
 ## Re-running
 
-The runner is Lenspack's `pnpm eval:suite` (`--review` turns the production reviewer on). The question set, truth and
+The runner is Lenspack's `pnpm eval:suite` (`--review` turns the production reviewer on; `--reviewer` and `--escalate` pick other models for those roles). The question set, truth and
 starting board for this campaign stay private, because the data is real. To run the same kind of test on your own
 data, write a suite in the [format of ours](suite/) against your own Superset datasets. See
 [DESIGN.md](DESIGN.md) for how to compute truth.
