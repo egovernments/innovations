@@ -1,14 +1,18 @@
 # Haiku, Sonnet or Opus on real campaign data
 
-**In short.** The same three models, asked 63 questions about a real (de-identified) malaria campaign, with the reviewer
+**In short.** The same three models, asked 63 questions about a real (de-identified) malaria campaign (64 in the re-check), with the reviewer
 switched on as in production:
 
-- **Accuracy:** Claude Opus 5.5 gets 97% right, Sonnet 5.5 94% and Haiku 5.5 93%.
-- **Cost:** a right answer costs about 0.15 US cents with Haiku, 2.6 cents with Sonnet and 4.5 cents with Opus.
+- **Accuracy, after fixing what the first run found:** Claude Opus 5.5 gets 100% right, Sonnet 5.5 98% and Haiku 5.5
+  97%, and no model states a wrong figure as fact. In the first run it was 97%, 94% and 93%, with wrong figures from
+  every model; the fixes were to the data setup and to Lenspack, not to the models (see
+  [After the data fixes](#after-the-data-fixes)).
+- **Cost:** a right answer costs about 0.14 US cents with Haiku, 2.5 cents with Sonnet and 4.3 cents with Opus.
 - **Recommendation:** Haiku is the default, with Haiku as its own reviewer. Opus is worth paying for only where the data has traps a careful reader would catch. Making Opus the reviewer of Haiku's answers cost five times as much and changed nothing (see [below](#a-stronger-reviewer-for-haiku)).
-- **Where the wrong numbers came from:** most of them came from Lenspack and the data, the same for every model, not from the models. Each failure is explained below.
+- **Where the wrong numbers came from:** in the first run, mostly from Lenspack and the data, the same for every model. Each failure is explained below, with what changed after the fixes.
 
-Run on 2026-11-25. The figures here are rates, costs and times only. The data is real, so no counts or per-place
+Run on 2026-11-25: a first run, then a re-check the same day after the fixes. Unless a table says otherwise, the
+figures are from the first run. The figures here are rates, costs and times only. The data is real, so no counts or per-place
 figures from it are published, and the question set and its answers stay private.
 
 ## What was tested
@@ -115,14 +119,15 @@ and said which side of a two-sided stock log it used. Haiku and Sonnet stay leve
 
 ## Which model for what
 
-- **Haiku 5.5 as the default.** It matches Sonnet's accuracy, is fastest, and costs 1/17 of Sonnet and 1/30 of Opus
-  per right answer. Its misses here: the repeated-ward-name trap (as Sonnet), not saying which stock log it read, and
-  one dashboard-row layout.
-- **Sonnet 5.5 has no clear role on this evidence.** It is no more accurate than Haiku on answers. On edits it was
-  right on all 30 tries against Haiku's 29, and that one-try gap doesn't justify 17 times the cost.
-- **Opus 5.5 where the data is messy and the stakes are high.** It is the only model with no wrong figures of its own,
-  and the only one that noticed the repeated ward names and said which stock log it used. At 4.5 cents per right
-  answer it suits two places:
+- **Haiku 5.5 as the default.** After the fixes it is within one or two points of Sonnet and Opus, is fastest, and
+  costs about 1/18 of Sonnet and 1/30 of Opus per right answer. Its remaining misses: not saying which stock log it
+  read, and the dashboard-row layout on two of three tries.
+- **Sonnet 5.5 has no clear role on this evidence.** One point above Haiku after the fixes (it said which stock log it
+  read no more often than Haiku, but got the layout right), at 18 times the cost.
+- **Opus 5.5 where the data is messy and the stakes are high.** It was the only model with no wrong figures of its own
+  in the first run, the only one that noticed the repeated ward names before they were fixed, and the only one that
+  always says which stock log it used. After the fixes it got every answer right. At 4.3 cents per right answer it
+  suits two places:
   - the *fix round* (Lenspack's escalation model), which is rare and so cheap overall;
   - deployments where analysts ask hard reconciliation questions.
 - **Keep the reviewer on, with the same model.** It costs about 15% overall, and its one material catch on Haiku
@@ -258,10 +263,60 @@ The first scoring pass marked some right answers wrong. It did not recognise the
 The scorer now reads all of them (`evals/` on Lenspack's `main`). Every result above is from the corrected scorer
 plus the person's read.
 
+## After the data fixes
+
+The first run's failures led to four changes on the test dashboard the same day, and the questions ran again:
+
+- **Ward labels:** a ward whose name repeats in another LGA is now labelled with its LGA ("Name (LGA)").
+- **Stray dates:** delivery and stock records dated after the campaign ended are left out.
+- **Facilities:** deliveries and stock movements now carry the health facility, so the chat can break figures down
+  by facility.
+- **Lenspack:** a per-day average now runs over the measure's own days, not the whole dataset's, and the reply says
+  which days. A reply after a fix round now describes the board once, as it ended.
+
+Haiku answered all 64 questions again, three times each. Sonnet and Opus answered the eight questions the fixes
+could change, three times each. Their other answers are carried over from the first run.
+
+| | Claude Haiku 5.5 | Claude Sonnet 5.5 | Claude Opus 5.5 |
+|---|---|---|---|
+| **Pass**, first run → after the fixes | 93% → **97%** | 94% → **98%** | 97% → **100%** |
+| Wrong numbers stated as fact (of about 190 answers), first run → after | 9 → **0** | 9 → **0** | 6 → **0** |
+| The eight questions the fixes touched, pass | 57% → 100% | 57% → 100% | 71% → 100% |
+| Cost per right answer, after | $0.0014 | $0.025 | $0.043 |
+| Median time, after | 3.4 s | 4.1 s | 5.5 s |
+
+What happened to each failure above:
+
+| Failure | First run | After the fixes |
+|---|---|---|
+| 1. Two wards with the same name counted as one | Haiku and Sonnet one ward short every time | every model lists every ward, each named with its LGA |
+| 2. Burn rate over the wrong span of days | every model about three times too low; days of stock left three times too long | right for every model, and every reply names the days it averaged over |
+| 3. Burn-rate chart per ward, and the day-on-day average per ward | an honest "can't" from every model | unchanged: Superset still can't hold these charts, and every reply says so |
+| 4. A stock figure from one side of a two-sided log | Haiku and Sonnet don't say which side; Opus does | unchanged; a note in the dataset telling the chat to name the side is still to do |
+| 5. Four quarter-width tiles instead of three | Haiku, one try of three | Haiku, two tries of three (the reviewer flagged it; the fix round didn't undo it) |
+| 6. A reply that contradicts itself after a fix round | reply described both rounds | the reply now describes the end state once |
+| 7. "Current" balance with records after today | both readings accepted | fewer stray records; both readings still accepted |
+
+**Facilities, newly answerable.** Two facility questions moved from "can't" to answers:
+
+- **Which health facility delivered the most doses:** right for every model, every time.
+- **The burn rate of each health facility, based on consumption** (a question asked in real use): this has two fair
+  readings. One is stock dispatched from each facility's store; the other is SPAQ units given to children at each
+  facility. Haiku always took the first, Sonnet and Opus mostly the second. Every reply said which reading and which
+  days it used, and every one was right for its reading, so both pass. The two readings rank the facilities quite
+  differently, so a deployment should name the one it means in the pack's instructions.
+
+**The scorer missed some right answers** here, so a person reclassified them:
+- a ward list that also mentioned the nearest ward above the cut-off;
+- days of stock rounded to one decimal;
+- facility names shortened to "PHC".
+
 ## What it cost
 
-$15.08 for the whole eval, including a $0.51 pilot and the judge that labels "can't" answers. Of that, $0.26 was
-Haiku, $4.61 Sonnet, $8.22 Opus and $1.36 the Haiku run with an Opus reviewer.
+$17.00 for the whole eval, including a $0.51 pilot and the judge that labels "can't" answers. Of that:
+- $0.26 was Haiku, $4.61 Sonnet and $8.22 Opus in the first run;
+- $1.36 was the Haiku run with an Opus reviewer;
+- $1.92 was the re-check after the fixes ($0.27 Haiku, $1.63 Sonnet and Opus).
 
 ## Re-running
 

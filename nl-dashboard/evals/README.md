@@ -81,8 +81,8 @@ questions found Lenspack layout bugs, now fixed. Details: [agent/RESULTS.md](age
 [agent/FAILURES.md](agent/FAILURES.md).
 
 **On a real campaign.** 63 questions on a real, masked malaria campaign (stock ledger, burn rate, facilities, and
-questions from real use), with the production reviewer on: Opus 5.5 97% right, Sonnet 5.5 94%, Haiku 5.5 93%, at about
-4.5, 2.6 and 0.15 US cents per right answer. Haiku stays the default. Most wrong figures came from Lenspack or the data
+questions from real use), with the production reviewer on: after fixing what the first run found (data setup and Lenspack, not the models), Opus 5.5 100%
+right, Sonnet 5.5 98%, Haiku 5.5 97%, with no wrong figures stated as fact, at about 4.3, 2.5 and 0.14 US cents per right answer. Haiku stays the default. Most wrong figures came from Lenspack or the data
 and hit every model alike. Details, the reviewer's cost and each failure:
 [agent/REAL-DATA.md](agent/REAL-DATA.md).
 

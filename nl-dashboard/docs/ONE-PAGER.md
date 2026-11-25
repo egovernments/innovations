@@ -56,17 +56,17 @@ seconds each), averages $0.0003 a question.
 
 | | Claude Haiku 5.5 | Claude Sonnet 5.5 | Claude Opus 5.5 |
 |---|---|---|---|
-| Questions answered correctly | 93 % | 94 % | 97 % |
-| Cost per question, typed | $0.0014 | $0.024 | $0.044 |
-| Cost per question, spoken | $0.0017 | $0.024 | $0.044 |
-| **A campaign of 80,000 questions, typed** | **$112** | **$1,920** | **$3,520** |
-| **The same, all spoken** | **$136** | **$1,944** | **$3,544** |
+| Questions answered correctly | 97 % | 98 % | 100 % |
+| Cost per question, typed | $0.0014 | $0.025 | $0.043 |
+| Cost per question, spoken | $0.0017 | $0.025 | $0.043 |
+| **A campaign of 80,000 questions, typed** | **$112** | **$1,990** | **$3,440** |
+| **The same, all spoken** | **$136** | **$2,020** | **$3,460** |
 
 80,000 questions is a first estimate for one campaign, to be checked: about 7,000 field workers managed by 500 to 700
 supervisors, each asking around 10 questions a day (more at each level above), so about 8,000 questions a day for 10 days.
 If field workers asked questions too, the count would be several times higher.
 
-Haiku is the default: it is as accurate as Sonnet at about a seventeenth of the cost. The cost of each answer, speech
+Haiku is the default: it is within one or two points of Sonnet and Opus at about an eighteenth and a thirtieth of their cost. The cost of each answer, speech
 included, is shown under the reply and kept in the audit log, so real usage can replace these estimates once a campaign
 runs.
 
