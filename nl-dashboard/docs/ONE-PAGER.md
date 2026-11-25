@@ -47,6 +47,26 @@ Sonnet and Opus ran on the config without the definitions, on which Haiku scored
 - **The gains came from configuration,** not code: naming each ambiguous measure's definition.
 - **A thousand questions on Haiku cost under $2.**
 
+## Running cost
+
+What one question costs, from the runs above (Claude list prices). A spoken question adds the speech-to-text cost:
+Voxtral Mini Transcribe, measured on our 315 test recordings (about 6 seconds each), averages $0.0003 a question.
+
+| Per question | Claude Haiku 5.5 | Claude Sonnet 5.5 | Claude Opus 5.5 |
+|---|---|---|---|
+| Typed | $0.0014 | $0.018 | $0.034 |
+| Spoken | $0.0017 | $0.018 | $0.034 |
+| **A campaign of 80,000 questions, typed** | **$112** | **$1,440** | **$2,720** |
+| **The same, all spoken** | **$136** | **$1,464** | **$2,744** |
+
+80,000 questions is a first estimate for one campaign, to be checked: about 7,000 field workers managed by 500 to 700
+supervisors, each asking around 10 questions a day (more at each level above), so about 8,000 questions a day for 10 days.
+
+These figures come from the test runs, which leave out the second check that reviews each dashboard change. With that check
+on, as in the live app, answers have cost about twice as much in the small number we have measured: around $0.0025 on
+Haiku and $0.035 on Sonnet, so roughly $200 or $2,800 for the campaign. The cost of each answer, speech included, is shown
+under the reply and kept in the audit log, so real usage can replace these estimates once a campaign runs.
+
 The method, every run and each failure analysis are in [`evals/`](../evals/).
 
 ## Where it stands
