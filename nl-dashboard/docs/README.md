@@ -11,6 +11,7 @@ Documentation for the Superset + Lenspack natural-language dashboard (use case 3
 ## For operators
 
 - [ADD-TO-EXISTING-SUPERSET.md](ADD-TO-EXISTING-SUPERSET.md): quickstart for adding Lenspack to a running Superset 5
+- [UPDATING.md](UPDATING.md): moving a running deployment to a newer Lenspack, checking it, and rolling back
   on the stock image, with Docker Compose or the official Helm chart.
 - [ADD-TO-EXISTING-SUPERSET-REFERENCE.md](ADD-TO-EXISTING-SUPERSET-REFERENCE.md): the detail behind each quickstart
   step, options, permissions, the audit log, capacity, the full Helm setup and troubleshooting.

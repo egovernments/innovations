@@ -1,0 +1,102 @@
+# Updating a running deployment
+
+For whoever runs Superset and ClickHouse. This page covers moving an existing deployment to a newer Lenspack. To install
+it for the first time, see [ADD-TO-EXISTING-SUPERSET.md](ADD-TO-EXISTING-SUPERSET.md) (your own Superset) or
+[`../deploy/`](../deploy/) (this folder's stack: [Compose](../README.md#run-it-with-docker-compose),
+[Kubernetes](../deploy/k8s/README.md)).
+
+## What you are updating
+
+A deployment has two Lenspack pieces. They must come from the **same Lenspack version**.
+
+| Piece | Where it runs | Where it comes from |
+|---|---|---|
+| The Lenspack server | its own container or pod | the image `ghcr.io/theflywheel/lenspack:<version>` |
+| `lenspack_superset.py` | inside Superset, loaded from `superset_config.py` | the same version of the [Lenspack repository](https://github.com/theflywheel/lenspack/tree/main/packages/hosts/superset/plugin), or copied out of the image |
+
+The version is a commit of Lenspack's `main` branch: for example `719526e`. Every merge to `main` builds and publishes an
+image with that tag ([how the image is built](https://github.com/theflywheel/lenspack/blob/main/Dockerfile),
+[the workflow](https://github.com/theflywheel/lenspack/blob/main/.github/workflows/image.yml)). What changed between
+two versions is in [the commit list](https://github.com/theflywheel/lenspack/commits/main).
+
+Lenspack never writes to ClickHouse or to your data. It reads through Superset, using the datasets you gave it. An update
+doesn't touch ClickHouse, Superset's metadata database or your dashboards, unless the release notes say a dataset should
+change.
+
+## Before you start
+
+1. **Pick the version** and note the current one, for rolling back.
+2. **Back up Lenspack's data volume** (`/data` in the container). It holds the audit log and the settings made on
+   Settings → Manage → AI assistant.
+3. **Back up the Lenspack config** (`lenspack-superset.yaml`, or its ConfigMap) and, on Kubernetes, the Deployment
+   manifests.
+4. **Tell users.** Lenspack restarts in about 15 seconds. Superset restarts only if `lenspack_superset.py` changed; with
+   several Superset pods, a rolling restart keeps it up.
+
+## Update
+
+### This folder's Docker Compose stack
+
+```sh
+cd nl-dashboard/deploy
+# in .env:  LENSPACK_IMAGE=ghcr.io/theflywheel/lenspack:<version>
+docker compose pull lenspack
+docker compose up -d --build      # rebuilds Superset with the matching lenspack_superset.py
+```
+
+Superset's image copies `lenspack_superset.py` out of the Lenspack image named by `LENSPACK_IMAGE`, so one setting covers
+both pieces.
+
+### Your own Superset (Compose or Helm)
+
+1. Download `lenspack_superset.py` at the new version, over the old copy:
+   ```sh
+   V=<full commit of the version>
+   curl -fsSL -o lenspack/lenspack_superset.py \
+     https://raw.githubusercontent.com/theflywheel/lenspack/$V/packages/hosts/superset/plugin/lenspack_superset.py
+   ```
+   Helm: recreate the ConfigMap from it:
+   `kubectl -n superset create configmap superset-lenspack --from-file=lenspack/lenspack_superset.py --dry-run=client -o yaml | kubectl apply -f -`.
+2. Change the Lenspack image tag to the new version (Compose file, or the Lenspack Deployment).
+3. Restart Superset (all its pods or containers), then Lenspack. Compose: `docker compose up -d`. Helm:
+   `kubectl -n superset rollout restart deploy/superset` and the same for the Lenspack Deployment.
+
+If the file didn't change between the two versions (compare it), skip the Superset restart.
+
+### This folder's Kubernetes manifests
+
+Change both tags in [`../deploy/k8s/kustomization.yaml`](../deploy/k8s/kustomization.yaml): the Lenspack image, and the
+Superset image built with that Lenspack version (`superset5-<sha>`; [building your own](../deploy/k8s/README.md#before-you-start)). Then:
+
+```sh
+kubectl -n lenspack delete job nl-dashboard-superset-init   # a Job can't be changed in place
+kubectl apply -k k8s
+kubectl -n lenspack rollout status deploy/nl-dashboard-superset
+kubectl -n lenspack rollout status deploy/nl-dashboard-lenspack
+```
+
+## Check it works
+
+1. The Lenspack log names the pack and counts its datasets and measures (`lenspack-superset: …`).
+2. Signed out, `/lenspack/overlay.js` answers 401.
+3. Signed in, dashboards show **Ask Lenspack**. Ask a question you know the answer to.
+4. Settings → Manage → AI assistant shows the datasets, models, usage and audit log.
+
+## Roll back
+
+Put the previous version back in the same places (image tag, and `lenspack_superset.py` at that version), then restart as
+above. Restore `/data` only if the new version wrote something you don't want. Charts Lenspack saved are ordinary Superset
+charts and keep working.
+
+## Things that matter for ClickHouse data
+
+- **Read-only user.** Superset's connection to ClickHouse only needs to read. Lenspack runs every query through Superset.
+- **Day columns as `Date`.** If the deployment's time zone isn't UTC, Lenspack groups by day only on columns of type
+  `Date` (or `Date32`). A `DateTime` column holding midnight of each day is refused for day-by-day questions such as
+  daily averages. Make the dataset return `toDate(…)`, then restart Lenspack so it reads the new column type.
+- **Changing a dataset** (columns, saved metrics) needs a Lenspack restart: it reads datasets when it starts.
+- **Who sees what.** By default, anyone signed in to Superset can ask about every dataset Lenspack is given. To apply
+  Superset's own dataset permissions and row-level security, set `hostPolicy: superset` in `lenspack-superset.yaml`
+  ([details](https://github.com/theflywheel/lenspack/blob/main/packages/hosts/superset/README.md#what-each-user-sees)).
+
+The full [restart table](ADD-TO-EXISTING-SUPERSET-REFERENCE.md#what-needs-a-restart) lists what each kind of change needs.
