@@ -6,7 +6,7 @@ data endpoints called directly, and Superset's own source (`superset/viz.py`, th
 this note is a placeholder.
 
 **Status:** point maps ([section 7](#7-what-lenspack-does-with-this-point-maps)) are built and are in Lenspack's
-`main` ([`packages/superset`](https://github.com/theflywheel/lenspack/tree/main/packages/superset)). Section 6
+`main` ([`packages/hosts/superset`](https://github.com/theflywheel/lenspack/tree/main/packages/hosts/superset)). Section 6
 describes Lenspack before them. Shaded-area maps (choropleths, section 4) are not built.
 
 ## 1. A scatter map's form data (`deck_scatter`)

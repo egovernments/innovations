@@ -2,7 +2,7 @@
 
 How the natural-language dashboard assistant is built, deployed and secured. This page describes the setup as it is
 in this folder: Lenspack's Superset connector from the `main` branch of
-[theflywheel/lenspack](https://github.com/theflywheel/lenspack/tree/main/packages/superset), run from Lenspack's
+[theflywheel/lenspack](https://github.com/theflywheel/lenspack/tree/main/packages/hosts/superset), run from Lenspack's
 published image at a pinned commit ([`deploy/docker-compose.yml`](../deploy/docker-compose.yml)), and stock Apache
 Superset 5.0. Where the data comes from is in
 [ANALYTICS-PIPELINE.md](ANALYTICS-PIPELINE.md).
@@ -26,7 +26,7 @@ For the hands-on steps, see [the README](../README.md) (this folder's Compose st
 ```mermaid
 flowchart LR
   B["Browser<br/>Superset dashboard page<br/>+ Ask Lenspack panel"] -->|"pages, charts, /lenspack/*<br/>(Superset session)"| S["Superset 5<br/>+ lenspack_superset.py"]
-  S -->|"/lenspack/* forwarded,<br/>signed identity header"| L["Lenspack server<br/>(packages/superset)"]
+  S -->|"/lenspack/* forwarded,<br/>signed identity header"| L["Lenspack server<br/>(packages/hosts/superset)"]
   L -->|"REST API as its own account:<br/>datasets, chart data, charts, layouts"| S
   L -->|"chat turns, review"| M["LLM API<br/>(Anthropic, or any<br/>OpenAI-compatible)"]
   L -->|"mic recordings"| T["Speech-to-text API<br/>(OpenRouter)"]
@@ -57,7 +57,7 @@ interface language). The suggested questions, the labels and the replies follow 
 
 ### The proxy through Superset
 
-[`lenspack_superset.py`](https://github.com/theflywheel/lenspack/blob/main/packages/superset/plugin/lenspack_superset.py) registers a `/lenspack/<path>` route on Superset
+[`lenspack_superset.py`](https://github.com/theflywheel/lenspack/blob/main/packages/hosts/superset/plugin/lenspack_superset.py) registers a `/lenspack/<path>` route on Superset
 itself. For a signed-in user it forwards the request to the Lenspack container (`LENSPACK_INTERNAL_URL`) and streams
 the reply back unbuffered, with `X-Accel-Buffering: no` and no compression. For anyone else it answers 401.
 
@@ -79,7 +79,7 @@ The header is `base64url(JSON) "." HMAC-SHA256`.
   `GET /api/v1/lenspack/identity-key`, open only to admins and to Lenspack's own account. There is no second shared secret, and rotating
   `SECRET_KEY` rotates the key (restart Lenspack).
 - **Lenspack keeps no users.** A request without a valid signature less than 5 minutes old counts as signed out
-  (401). See [`src/identity.ts`](https://github.com/theflywheel/lenspack/blob/main/packages/superset/src/identity.ts).
+  (401). See [`src/identity.ts`](https://github.com/theflywheel/lenspack/blob/main/packages/hosts/superset/src/identity.ts).
 
 ### Edit policy
 
@@ -168,9 +168,9 @@ record: the usage figures on the settings page reset on restart. Rotation, reten
 | `packages/core` | Board model and layout operations (`ops.ts`), board summaries |
 | `packages/mcp` | The chat's tools: board reads and edits, queries, versions |
 | `packages/serve` | The chat server: model calls, step cap, reviewer, budget and usage, speech to text, prompt |
-| `packages/superset` | The Superset connector: `bin/serve.ts` (the server), `src/catalogue.ts` (pack from datasets), `src/dashboard.ts` and `src/store.ts` (boards as dashboards), `src/identity.ts`, `src/bootstrap.ts`, `src/audit.ts`, `src/settings.ts`, and `web/overlay.js` / `web/chat.js` (the panel) |
+| `packages/hosts/superset` | The Superset connector: `bin/serve.ts` (the server), `src/catalogue.ts` (pack from datasets), `src/dashboard.ts` and `src/store.ts` (boards as dashboards), `src/identity.ts`, `src/bootstrap.ts`, `src/audit.ts`, `src/settings.ts`, and `web/overlay.js` / `web/chat.js` (the panel) |
 | [egovernments/innovations](https://github.com/egovernments/innovations), `nl-dashboard/` | This deployment |
-| [`packages/superset/plugin/lenspack_superset.py`](https://github.com/theflywheel/lenspack/blob/main/packages/superset/plugin/lenspack_superset.py) (in Lenspack) | Everything Lenspack adds to Superset, in one file: the `/lenspack/` route and signing, the script tag, the AI assistant page, the bootstrap and key endpoints, and the [list-filter fix](ADD-TO-EXISTING-SUPERSET-REFERENCE.md#the-list-filter-fix) |
+| [`packages/hosts/superset/plugin/lenspack_superset.py`](https://github.com/theflywheel/lenspack/blob/main/packages/hosts/superset/plugin/lenspack_superset.py) (in Lenspack) | Everything Lenspack adds to Superset, in one file: the `/lenspack/` route and signing, the script tag, the AI assistant page, the bootstrap and key endpoints, and the [list-filter fix](ADD-TO-EXISTING-SUPERSET-REFERENCE.md#the-list-filter-fix) |
 | [`deploy/superset/superset_config.py`](../deploy/superset/superset_config.py) | Superset settings from environment variables; imports the file above |
 | [`deploy/superset/Dockerfile`](../deploy/superset/Dockerfile) | Stock `apache/superset:5.0.0` plus database drivers and French labels, and `lenspack_superset.py` copied from the Lenspack image |
 | [`deploy/lenspack/`](../deploy/lenspack/) | The Lenspack configs; Lenspack itself runs its published image, `ghcr.io/theflywheel/lenspack:<commit>` |

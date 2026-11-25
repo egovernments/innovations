@@ -43,7 +43,7 @@ installed.
 | You need | Tested with | Notes |
 |---|---|---|
 | Superset 5.0 | `apache/superset:5.0.0` (Flask-AppBuilder 4.5.5) | Superset 6 is untested. |
-| The Lenspack image | `ghcr.io/theflywheel/lenspack:4e8b56d` | Public. Built from Lenspack commit `4e8b56d` on `main`; it starts with `superset --config <file>` ([`packages/superset`](https://github.com/theflywheel/lenspack/tree/main/packages/superset)). |
+| The Lenspack image | `ghcr.io/theflywheel/lenspack:7fb4d6a` | Public. Built from Lenspack commit `7fb4d6a` on `main`; it starts with `superset --config <file>` ([`packages/hosts/superset`](https://github.com/theflywheel/lenspack/tree/main/packages/hosts/superset)). |
 | A Superset admin's password | | Used once, on Lenspack's first start, to create its own account. |
 | An LLM API key | Anthropic (Claude Sonnet, Opus and Haiku 5.5) | Or any OpenAI-compatible API through `LENSPACK_LLM_PROVIDERS`. |
 | Your data in Superset | ClickHouse, through `clickhouse-connect` | The stock image has no ClickHouse driver: [adding it](#the-clickhouse-driver). |
@@ -73,7 +73,7 @@ How the route, the signed header, the key and streaming work:
 
 Run the quickstart's download block in the folder that holds your Compose file, or anywhere for Helm.
 `lenspack_superset.py` comes from the Lenspack repository
-([`packages/superset/plugin/`](https://github.com/theflywheel/lenspack/tree/main/packages/superset/plugin)) at the
+([`packages/hosts/superset/plugin/`](https://github.com/theflywheel/lenspack/tree/main/packages/hosts/superset/plugin)) at the
 same commit as the Lenspack image, so Superset's side and the server match. To move to a newer image, change both
 the image tag and the commit in the download URL. The config and `setup.mts` come from this repository: `BASE`
 names a branch or commit of it.
@@ -337,7 +337,7 @@ bootstrapScript: |
 
 **3. Lenspack.** Use [`../deploy/k8s/lenspack.yaml`](../deploy/k8s/lenspack.yaml) as the template: a Deployment with one replica and a
 Service on port 8795, with no Ingress. Change these:
-- the image, to `ghcr.io/theflywheel/lenspack:4e8b56d` (keep the template's `args`, which start its Superset mode);
+- the image, to `ghcr.io/theflywheel/lenspack:7fb4d6a` (keep the template's `args`, which start its Superset mode);
 - `LENSPACK_SUPERSET_URL`, to your Superset Service (e.g. `http://superset:8088`);
 - the Secret holding `SUPERSET_ADMIN_PASSWORD` and the LLM key.
 

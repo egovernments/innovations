@@ -26,7 +26,7 @@ in [RESULTS.md](RESULTS.md#run-history).
 | [6](#6-the-instructions-left-location-out-of-the-visit-fields) | Config didn't list location as a visit field, so models refused to filter visits by place | Lenspack config | *eGov views + definitions* config | fixed: 2/3 → 3/3 |
 | [7](#7-children-per-vial) | No children-per-vial measure | Lenspack config | *eGov views + definitions* config | measure added; issued vs used vials is now an open definition |
 | [8](#8-what-moving-to-egovs-views-gained-and-lost) | Moving to eGov's views lost "people in households" | Lenspack config | *eGov views + definitions* config | fixed: restored as a people dataset |
-| [9](#9-superset-returned-the-wrong-dataset-for-a-name-lookup) | Superset sometimes returned the wrong dataset for a name lookup | Superset (Flask-AppBuilder) | [`lenspack_superset.py`](https://github.com/theflywheel/lenspack/blob/main/packages/superset/plugin/lenspack_superset.py) | fixed: 320/320 lookups correct |
+| [9](#9-superset-returned-the-wrong-dataset-for-a-name-lookup) | Superset sometimes returned the wrong dataset for a name lookup | Superset (Flask-AppBuilder) | [`lenspack_superset.py`](https://github.com/theflywheel/lenspack/blob/main/packages/hosts/superset/plugin/lenspack_superset.py) | fixed: 320/320 lookups correct |
 | [10](#10-results-reclassified-after-the-hand-check) | Answers the scorer marked wrong-as-fact that weren't | scorer, questions, judge | rescored offline | done; two scorer follow-ups open |
 | [11](#11-a-move-reported-success-but-left-the-chart-where-it-was-lenspack-bug-found-in-the-lab-demo) | A move reported success but left the chart where it was | Lenspack core | [lenspack#22](https://github.com/theflywheel/lenspack/pull/22) | fixed |
 | [12](#12-the-move-questions-a-right-dashboard-reached-the-hard-way) | Moving a chart into a full row took 9–22 tool calls and changed other charts | Lenspack layout and prompt | [lenspack#25](https://github.com/theflywheel/lenspack/pull/25) | fixed: 1–3 calls, 5/6 pass; small wording slips remain |
@@ -199,7 +199,7 @@ other's dataset (21 of 320 concurrent lookups in a test loop). Chart data is bui
 0 mismatches across about 1,350 stored eval queries and 88 concurrent calls.
 
 **Fix:** list filters are built per request (first in `superset_config.py`, now in Lenspack's
-[`lenspack_superset.py`](https://github.com/theflywheel/lenspack/blob/main/packages/superset/plugin/lenspack_superset.py);
+[`lenspack_superset.py`](https://github.com/theflywheel/lenspack/blob/main/packages/hosts/superset/plugin/lenspack_superset.py);
 320/320 correct after it). Lenspack's Superset client also looks datasets up one at a time and keeps only an exact name match. The
 eval harness checks every dataset name before it trusts a pack. After the fix, 15 of 15 pack builds were clean with
 no retries. Every full run reported here was checked: its tool outputs show the expected entities.

@@ -12,7 +12,7 @@
 //     and two dashboards: "nOPV2 field test overview (ClickHouse)" (slug ni-smc) and "Kebbi nOPV2 campaign: national view" (ni-national).
 // Always: SUPERSET_URL (or LENSPACK_SUPERSET_URL), SUPERSET_ADMIN_PASSWORD.
 
-import { supersetClient } from "/app/packages/superset/src/client.ts";
+import { supersetClient } from "/app/packages/hosts/superset/src/client.ts";
 
 const env = (name: string) => {
   const v = process.env[name];
