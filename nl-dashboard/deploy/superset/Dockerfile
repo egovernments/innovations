@@ -2,7 +2,7 @@
 # config file and one template that Superset documents as overridable.
 # Lenspack's Superset side (lenspack_superset.py) comes from the Lenspack image of the same version as the
 # server, so the two always match. Pass a different one with --build-arg LENSPACK_IMAGE=...
-ARG LENSPACK_IMAGE=ghcr.io/theflywheel/lenspack:7fb4d6a
+ARG LENSPACK_IMAGE=ghcr.io/theflywheel/lenspack:719526e
 FROM ${LENSPACK_IMAGE} AS lenspack
 
 FROM apache/superset:5.0.0
