@@ -10,7 +10,7 @@ Documentation for the Superset + Lenspack natural-language dashboard (use case 3
 
 ## For operators
 
-- [ADD-TO-EXISTING-SUPERSET.md](ADD-TO-EXISTING-SUPERSET.md): quickstart for adding Lenspack to a running Superset 5
+- [ADD-TO-EXISTING-SUPERSET.md](ADD-TO-EXISTING-SUPERSET.md): quickstart for adding Lenspack to a running Superset 6.1 (5.0 also works; 6.0 untested)
 - [UPDATING.md](UPDATING.md): moving a running deployment to a newer Lenspack, checking it, and rolling back
   on the stock image, with Docker Compose or the official Helm chart.
 - [ADD-TO-EXISTING-SUPERSET-REFERENCE.md](ADD-TO-EXISTING-SUPERSET-REFERENCE.md): the detail behind each quickstart
@@ -25,7 +25,7 @@ Documentation for the Superset + Lenspack natural-language dashboard (use case 3
   datasets the assistant reads, stage by stage, with what each step drops and the known gaps.
 - [PACK-FROM-SUPERSET.md](PACK-FROM-SUPERSET.md): design (not built) for building Lenspack's vocabulary from Superset
   alone, without a hand-written config file.
-- [MAPS.md](MAPS.md): how Superset 5.0's map charts work, and how Lenspack's point maps map onto them.
+- [MAPS.md](MAPS.md): how Superset's map charts work (studied on 5.0, with what 6.x changes), and how Lenspack's point maps map onto them.
 
 ## Evaluations
 

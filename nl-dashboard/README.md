@@ -4,7 +4,7 @@ Use case 3.1, *Natural-Language Dashboard/Query Assistant*. People ask for a cha
 and get it as ordinary Superset charts on an ordinary Superset dashboard. Goal, approaches and limitations:
 [issue #1](https://github.com/egovernments/innovations/issues/1).
 
-- **Superset is not forked.** We use the stock `apache/superset:5.0.0` image plus two database drivers, a config file,
+- **Superset is not forked.** We use the stock `apache/superset:6.1.0` image plus two database drivers, a config file,
   and one Python file (`lenspack_superset.py`) that the config imports.
 - **[Lenspack](https://github.com/theflywheel/lenspack/tree/main/packages/hosts/superset) adds the chat.**
   - It reads Superset's datasets and saved metrics as its vocabulary (Lenspack calls this vocabulary a *pack*).
@@ -13,7 +13,7 @@ and get it as ordinary Superset charts on an ordinary Superset dashboard. Goal, 
 - **The chat is on every dashboard:** an "Ask Lenspack" button on Superset's own dashboard page. Anyone who can view
   the dashboard can ask; changes follow Superset's own rights on that dashboard.
 - **Admins get a settings page** in Superset: Settings → Manage → **AI assistant**.
-- **Already running Superset 5?** [Add Lenspack to an existing Superset](docs/ADD-TO-EXISTING-SUPERSET.md) on the stock
+- **Already running Superset?** Superset 6.1 (5.0 also works; 6.0 untested): [add Lenspack to an existing Superset](docs/ADD-TO-EXISTING-SUPERSET.md) on the stock
   image, with Docker Compose or the official Helm chart, without this folder's Superset image.
 - **How it's built:** [ARCHITECTURE.md](docs/ARCHITECTURE.md) (design, data flow, security, capacity). **Where the
   data comes from:** [ANALYTICS-PIPELINE.md](docs/ANALYTICS-PIPELINE.md) (HCM records to ClickHouse tables to Superset
@@ -23,7 +23,7 @@ and get it as ordinary Superset charts on an ordinary Superset dashboard. Goal, 
 ## How it fits together
 
 ```
-browser ──► Superset 5 (:8088) ──────────────────────────► metadata Postgres, data (Postgres / ClickHouse)
+browser ──► Superset 6.1 (:8088) ────────────────────────► metadata Postgres, data (Postgres / ClickHouse)
               └── /lenspack/…  Superset forwards, signed ──► Lenspack server ──► Superset REST API (its own account)
                    (signed-in users only)                                     └► LLM API (Anthropic or OpenAI-compatible)
 ```
@@ -47,7 +47,7 @@ The design in full: [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 | [`deploy/`](deploy/) | Everything needed to run it: Docker Compose, the Superset image, the Lenspack config, Kubernetes |
 | [`deploy/docker-compose.yml`](deploy/docker-compose.yml) | Postgres, Superset (with an init step), Lenspack, a one-off `setup`, and `clickhouse-tunnel` (profile `clickhouse`) |
 | [`deploy/.env.example`](deploy/.env.example) | Every variable, explained; copy it to `deploy/.env` |
-| [`deploy/superset/`](deploy/superset/) | The Superset image: `apache/superset:5.0.0` + `psycopg2-binary` + `clickhouse-connect` + French labels, our settings ([`superset_config.py`](deploy/superset/superset_config.py), all from environment variables) and the one-off [`init.sh`](deploy/superset/init.sh) (schema, `admin` user, roles). The image also carries Lenspack's Superset side, [`lenspack_superset.py`](https://github.com/theflywheel/lenspack/blob/main/packages/hosts/superset/plugin/lenspack_superset.py), copied from the Lenspack image of the same version. |
+| [`deploy/superset/`](deploy/superset/) | The Superset image: `apache/superset:6.1.0` + `psycopg2-binary` + `clickhouse-connect` + French labels, our settings ([`superset_config.py`](deploy/superset/superset_config.py), all from environment variables) and the one-off [`init.sh`](deploy/superset/init.sh) (schema, `admin` user, roles). The image also carries Lenspack's Superset side, [`lenspack_superset.py`](https://github.com/theflywheel/lenspack/blob/main/packages/hosts/superset/plugin/lenspack_superset.py), copied from the Lenspack image of the same version. |
 | [`deploy/lenspack/`](deploy/lenspack/) | Lenspack's config: [`lenspack-superset.yaml`](deploy/lenspack/lenspack-superset.yaml) for the sample data, [`lenspack-superset.clickhouse.yaml`](deploy/lenspack/lenspack-superset.clickhouse.yaml) for ClickHouse (pick one with `LENSPACK_CONFIG`): datasets, names, the place hierarchy, guidance and examples for the model. Lenspack itself runs its published image, `ghcr.io/theflywheel/lenspack:<commit>`. |
 | [`deploy/k8s/`](deploy/k8s/) | The same stack on Kubernetes, with [its own README](deploy/k8s/README.md) |
 | [`deploy/test/`](deploy/test/) | A resilience test that restarts and breaks parts of a running stack and checks it recovers |
@@ -119,7 +119,7 @@ trusts the `X-Forwarded-*` headers it receives.
 | `LENSPACK_INTERNAL_URL` | Superset | no | `http://lenspack:8795` | How Superset's server reaches Lenspack (the `/lenspack/` route and the AI assistant page) |
 | `BIND_ADDRESS`, `PORT` | Superset | no | `127.0.0.1`, `8088` | Where Superset listens |
 | `LENSPACK_CONFIG` | compose | no | `lenspack-superset.yaml` | Which Lenspack config in `deploy/lenspack/`: the sample one or `lenspack-superset.clickhouse.yaml` |
-| `LENSPACK_IMAGE` | compose | no | `ghcr.io/theflywheel/lenspack:719526e` | The Lenspack image (a commit of Lenspack's `main`). Superset's image copies `lenspack_superset.py` from it, so rebuild with `docker compose up -d --build` after changing it |
+| `LENSPACK_IMAGE` | compose | no | `ghcr.io/theflywheel/lenspack:e1989eb` | The Lenspack image (a commit of Lenspack's `main`). Superset's image copies `lenspack_superset.py` from it, so rebuild with `docker compose up -d --build` after changing it |
 | `CLICKHOUSE_USER`, `CLICKHOUSE_PASSWORD` | setup | for ClickHouse | | Read-only ClickHouse user. Pass the password with `-e` to the setup run; Superset stores it encrypted |
 | `CLICKHOUSE_HOST`, `CLICKHOUSE_PORT`, `CLICKHOUSE_DATABASE` | setup | no | `clickhouse-tunnel`, `8123`, `analytics` | Where Superset reaches ClickHouse |
 | `CLICKHOUSE_TENANT` | setup | no | `ng` | Tenant id for the targets and referrals tables. eGov's ready-made views cover a single field-test campaign and don't use it |

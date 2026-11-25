@@ -14,7 +14,7 @@ A deployment has two Lenspack pieces. They must come from the **same Lenspack ve
 | The Lenspack server | its own container or pod | the image `ghcr.io/theflywheel/lenspack:<version>` |
 | `lenspack_superset.py` | inside Superset, loaded from `superset_config.py` | the same version of the [Lenspack repository](https://github.com/theflywheel/lenspack/tree/main/packages/hosts/superset/plugin), or copied out of the image |
 
-The version is a commit of Lenspack's `main` branch: for example `719526e`. Every merge to `main` builds and publishes an
+The version is a commit of Lenspack's `main` branch: for example `e1989eb`. Every merge to `main` builds and publishes an
 image with that tag ([how the image is built](https://github.com/theflywheel/lenspack/blob/main/Dockerfile),
 [the workflow](https://github.com/theflywheel/lenspack/blob/main/.github/workflows/image.yml)). What changed between
 two versions is in [the commit list](https://github.com/theflywheel/lenspack/commits/main).
@@ -66,7 +66,7 @@ If the file didn't change between the two versions (compare it), skip the Supers
 ### This folder's Kubernetes manifests
 
 Change both tags in [`../deploy/k8s/kustomization.yaml`](../deploy/k8s/kustomization.yaml): the Lenspack image, and the
-Superset image built with that Lenspack version (`superset5-<sha>`; [building your own](../deploy/k8s/README.md#before-you-start)). Then:
+Superset image built with that Lenspack version (`superset6-<sha>`; [building your own](../deploy/k8s/README.md#before-you-start)). Then:
 
 ```sh
 kubectl -n lenspack delete job nl-dashboard-superset-init   # a Job can't be changed in place
@@ -74,6 +74,30 @@ kubectl apply -k k8s
 kubectl -n lenspack rollout status deploy/nl-dashboard-superset
 kubectl -n lenspack rollout status deploy/nl-dashboard-lenspack
 ```
+
+## Moving Superset from 5.0 to 6.1
+
+Lenspack works on both, so the Lenspack update and the Superset upgrade can be done separately. Upgrading Superset
+itself is a bigger step than a Lenspack update:
+
+- **It is one-way.** Superset 6.1 changes its metadata database when it starts (`superset db upgrade`, about a minute for
+  a small deployment). That change can't be undone, so **back up the metadata database first** and keep the backup until
+  6.1 has run for a while:
+  - Compose: `docker compose exec db pg_dump -U superset -Fc superset > superset-meta-$(date +%F).dump`
+  - Kubernetes: `kubectl -n lenspack exec <postgres pod> -- pg_dump -U superset -Fc superset > superset-meta-$(date +%F).dump`
+- **This folder's stack:** the Superset image is `nl-dashboard-superset:6.1.0` in Compose (rebuild with
+  `docker compose up -d --build`; the init step migrates the database), and `superset6-<sha>` in
+  [`../deploy/k8s/kustomization.yaml`](../deploy/k8s/kustomization.yaml) (delete the init Job and apply, as above).
+- **Your own Superset:** `clickhouse-connect` must be 0.13 or later, and `lenspack_superset.py` must come from a Lenspack
+  version that supports 6.1 (`e1989eb` or later).
+- **What looks different:** Superset 6's new look (fonts, icons, a theme menu with a dark theme, which the chat follows),
+  and maps on an OpenStreetMap basemap with no Mapbox key. Superset's cache starts empty once, so the first loads are slower.
+- **ClickHouse metrics named like a column.** See
+  [the ClickHouse driver](ADD-TO-EXISTING-SUPERSET-REFERENCE.md#the-clickhouse-driver): Lenspack's plugin handles it.
+
+**Rolling back from 6.1** means restoring that backup: stop Superset, drop and recreate the metadata database, restore
+the dump with `pg_restore`, and start the previous Superset image. Charts and dashboards made after the upgrade are lost
+unless you export them first.
 
 ## Check it works
 

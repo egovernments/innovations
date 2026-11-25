@@ -1,6 +1,6 @@
-# Add Lenspack to an existing Superset 5
+# Add Lenspack to an existing Superset
 
-This adds the Lenspack chat to a running Superset 5 on the stock `apache/superset` image: an **Ask Lenspack** button on
+This adds the Lenspack chat to a running Superset 6.1 (5.0 also works; 6.0 untested) on the stock `apache/superset` image: an **Ask Lenspack** button on
 dashboards and an **AI assistant** admin page. You add two things:
 - one Python file, imported from `superset_config.py`;
 - a Lenspack container next to Superset.
@@ -9,20 +9,20 @@ Superset serves the chat itself at `/lenspack/`, to signed-in users only, so you
 Lenspack creates its own Superset account the first time it starts.
 Detail, options and troubleshooting are in the [reference](ADD-TO-EXISTING-SUPERSET-REFERENCE.md).
 
-Compose was tested by following these steps literally on `apache/superset:5.0.0`. The Helm values were rendered with chart 0.15.5 but not installed.
+Compose was tested by following these steps literally on `apache/superset:5.0.0`; Lenspack's Superset side is tested on `apache/superset:6.1.0` and `5.0.0`. The Helm values were rendered with charts 0.15.5 (Superset 5.0) and 0.22.8 (Superset 6.1) but not installed.
 
 ## Prerequisites
 
-- Superset 5.0 that already reads your data. For ClickHouse that means the `clickhouse-connect` driver ([adding it](ADD-TO-EXISTING-SUPERSET-REFERENCE.md#the-clickhouse-driver)).
+- Superset 6.1 or 5.0 that already reads your data. For ClickHouse that means the `clickhouse-connect` driver, 0.13 or later ([adding it](ADD-TO-EXISTING-SUPERSET-REFERENCE.md#the-clickhouse-driver)).
 - The password of a Superset admin, used once on Lenspack's first start.
-- The image `ghcr.io/theflywheel/lenspack:719526e` (public; the tag is a commit of Lenspack's `main`).
+- The image `ghcr.io/theflywheel/lenspack:e1989eb` (public; the tag is a commit of Lenspack's `main`).
 - An Anthropic API key.
 
 ## Get the files
 
 ```sh
 # Superset's side comes from the Lenspack repository, at the same commit as the image.
-LENSPACK=https://raw.githubusercontent.com/theflywheel/lenspack/719526e3b166aa3a526e4a500b70677609a3a001
+LENSPACK=https://raw.githubusercontent.com/theflywheel/lenspack/e1989eb8d878aa6590eb1092170f3c8ab9c36eb6
 BASE=https://raw.githubusercontent.com/egovernments/innovations/nl-dashboard/superset-lenspack/nl-dashboard
 mkdir -p lenspack
 curl -fsSL -o lenspack/lenspack_superset.py   $LENSPACK/packages/hosts/superset/plugin/lenspack_superset.py
@@ -63,7 +63,7 @@ docker compose exec superset python -c "import lenspack_superset; print('ok')"
 
 ```yaml
   lenspack:
-    image: ghcr.io/theflywheel/lenspack:719526e
+    image: ghcr.io/theflywheel/lenspack:e1989eb
     command: ["superset", "--config", "/config/lenspack-superset.yaml"]
     environment:
       LENSPACK_SUPERSET_URL: http://superset:8088           # Superset itself, from inside the Compose network

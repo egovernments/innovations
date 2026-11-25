@@ -1,4 +1,4 @@
-# Superset 5 + Lenspack on Kubernetes (the HCM lab VM's minikube, namespace lenspack).
+# Superset 6.1 + Lenspack on Kubernetes (the HCM lab VM's minikube, namespace lenspack).
 # Before applying: the Secret and ConfigMaps in README.md, and the images pushed.
 #   kubectl apply -k nl-dashboard/deploy/k8s
 namespace: lenspack
@@ -10,7 +10,7 @@ resources:
   - lenspack.yaml
   - ingress.yaml
 images:
-  # This folder's Superset image (../superset), published as a non-main tag: superset5-<commit of this repo>.
+  # This folder's Superset image (../superset), published as a non-main tag: superset6-<commit of this repo>.
   - name: nl-dashboard-superset
     newName: ghcr.io/theflywheel/lenspack
     newTag: "superset5-9a88c51"
@@ -18,4 +18,4 @@ images:
   # Build the Superset image with the same one (--build-arg LENSPACK_IMAGE=...), so both sides match.
   - name: nl-dashboard-lenspack
     newName: ghcr.io/theflywheel/lenspack
-    newTag: "719526e"
+    newTag: "e1989eb"

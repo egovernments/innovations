@@ -11,7 +11,7 @@ would live in Superset, and what the change means for the evals.
 
 | Today (`lenspack-superset.yaml`) | Proposed home in Superset | Edited by | Why there |
 |---|---|---|---|
-| `datasets:` list | A Superset **tag**, `lenspack`, on each dataset (the `TAGGING_SYSTEM` feature flag, off by default in Superset 5) | Dataset owners, in the dataset list | The list moves with the datasets; adding one is a click. |
+| `datasets:` list | A Superset **tag**, `lenspack`, on each dataset (the `TAGGING_SYSTEM` feature flag, off by default in Superset 5.0 and 6.1) | Dataset owners, in the dataset list | The list moves with the datasets; adding one is a click. |
 | `overlay.entities` (entity name per dataset) | Dataset **`extra`** JSON: `{"lenspack": {"entity": "coverage"}}` | Dataset owners (Edit dataset → Settings → Extra) | `extra` is free-form, is exported and imported with the dataset, and Superset ignores keys it doesn't know. |
 | `overlay.hierarchies` | Same dataset `extra`: `{"lenspack": {"hierarchy": ["state", "lga", "ward"]}}` | Dataset owners | A hierarchy is an ordered list of that dataset's columns. A conformed one is the same list on several datasets. |
 | `overlay.hints`, `labels` | Already Superset's: column and metric **descriptions** and **verbose names** | Dataset owners | Lenspack reads them today. The overlay only covers gaps, so the gaps get filled in Superset. |

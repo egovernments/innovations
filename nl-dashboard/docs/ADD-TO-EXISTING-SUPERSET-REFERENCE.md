@@ -1,4 +1,4 @@
-# Add Lenspack to an existing Superset 5: reference
+# Add Lenspack to an existing Superset: reference
 
 This is the detail behind the [quickstart](ADD-TO-EXISTING-SUPERSET.md): what each step does and why, the options the
 quickstart leaves out, the full Helm and Kubernetes setup, and troubleshooting. Steps are numbered as in the quickstart.
@@ -14,8 +14,8 @@ Superset. You don't need this repository's Superset image, a fork, a proxy rule 
 it, take those out and restart ([Roll back](#roll-back)).
 
 The Docker Compose steps were tested by following them literally on a stock `apache/superset:5.0.0`, with its own
-Postgres and Redis, reading HCM analytics from ClickHouse. The Helm values were rendered with chart 0.15.5 but not
-installed.
+Postgres and Redis, reading HCM analytics from ClickHouse. Lenspack's Superset side is tested on `apache/superset:6.1.0`
+and `5.0.0`. The Helm values were rendered with charts 0.15.5 (Superset 5.0) and 0.22.8 (Superset 6.1) but not installed.
 
 ## Contents
 
@@ -42,8 +42,8 @@ installed.
 
 | You need | Tested with | Notes |
 |---|---|---|
-| Superset 5.0 | `apache/superset:5.0.0` (Flask-AppBuilder 4.5.5) | Superset 6 is untested. |
-| The Lenspack image | `ghcr.io/theflywheel/lenspack:719526e` | Public. Built from Lenspack commit `719526e` on `main`; it starts with `superset --config <file>` ([`packages/hosts/superset`](https://github.com/theflywheel/lenspack/tree/main/packages/hosts/superset)). |
+| Superset 6.1 or 5.0 | `apache/superset:6.1.0` (Flask-AppBuilder 5.0.2) and `apache/superset:5.0.0` (4.5.5) | Superset 6.0 is untested. |
+| The Lenspack image | `ghcr.io/theflywheel/lenspack:e1989eb` | Public. Built from Lenspack commit `e1989eb` on `main`; it starts with `superset --config <file>` ([`packages/hosts/superset`](https://github.com/theflywheel/lenspack/tree/main/packages/hosts/superset)). |
 | A Superset admin's password | | Used once, on Lenspack's first start, to create its own account. |
 | An LLM API key | Anthropic (Claude Sonnet, Opus and Haiku 5.5) | Or any OpenAI-compatible API through `LENSPACK_LLM_PROVIDERS`. |
 | Your data in Superset | ClickHouse, through `clickhouse-connect` | The stock image has no ClickHouse driver: [adding it](#the-clickhouse-driver). |
@@ -153,12 +153,12 @@ and lets you change the chat model.
 The stock image has no ClickHouse driver. If your Superset already reads ClickHouse, skip this. Otherwise, choose one:
 
 - **The way you already add Python packages:** a derived image, or Superset's `docker-bootstrap.sh` with
-  `requirements-local.txt`. Add `clickhouse-connect>=0.8,<1.0`.
+  `requirements-local.txt`. Add `clickhouse-connect>=0.13,<1.0`.
 - **At container start**, with Superset running as root (Superset's Compose files and the Helm chart, `runAsUser: 0`, already do):
   ```yaml
     superset:
       user: root
-      command: ["sh", "-c", "uv pip install --no-cache --python /app/.venv/bin/python 'clickhouse-connect>=0.8,<1.0' && exec /usr/bin/run-server.sh"]
+      command: ["sh", "-c", "uv pip install --no-cache --python /app/.venv/bin/python 'clickhouse-connect>=0.13,<1.0' && exec /usr/bin/run-server.sh"]
   ```
   If you have your own start command, keep it and put the `uv pip install … &&` in front of it. The install needs PyPI and adds
   a few seconds to every start. On Helm, put the same `uv pip install` line in `bootstrapScript`.
@@ -166,9 +166,15 @@ The stock image has no ClickHouse driver. If your Superset already reads ClickHo
 `lenspack_superset.py` imports the driver once while the config loads. Without that, Superset imports it lazily from
 several request threads at once after a restart, and a worker can fail with "partially initialized module" until it is restarted.
 
+Superset 6.1 stopped adding a short suffix to column names in ClickHouse queries. A saved metric named like the column it
+adds up (`SUM(x)` saved as `x`) then breaks every other metric in the same chart that uses `x` (ClickHouse error 184).
+`lenspack_superset.py` puts the suffix back when Superset starts; results keep their names, so nothing else changes. It
+does nothing on Superset 5.0. To turn it off, set `LENSPACK_CLICKHOUSE_LABEL_SUFFIX=off` on Superset and rename such
+metrics or columns instead.
+
 ## French labels
 
-Optional. Superset 5's image ships the French catalogue but no compiled files, so switching to French changes nothing.
+Optional. The stock images have no compiled French labels (6.1 ships the catalogue, 5.0 not even that), so switching to French changes nothing.
 Build them once into a volume:
 
 1. Download the build script: `curl -fsSL -o lenspack/build_translations.py $BASE/deploy/superset/build_translations.py`.
@@ -181,7 +187,7 @@ Build them once into a volume:
        volumes:
          - superset-fr:/app/superset/translations/fr
    ```
-4. Build the files once. This needs GitHub; the volume keeps them across restarts.
+4. Build the files once. On 5.0 this needs GitHub (6.1 has the catalogue in the image); the volume keeps them across restarts.
    ```sh
    docker compose run --rm --no-deps --user root -v "$PWD/lenspack/build_translations.py:/tmp/bt.py:ro" \
      --entrypoint python superset /tmp/bt.py fr
@@ -287,7 +293,7 @@ costs about 300–500 MB).
 ## Helm (the official chart)
 
 This uses the `apache/superset` chart's `configOverrides`, `extraEnv`, `extraVolumes` and `bootstrapScript`. Chart
-0.15.x ships Superset 5.0.0. Namespace `superset` and release `superset` are examples.
+0.22.x ships Superset 6.1.0 and 0.15.x ships 5.0.0; the values below render with both (0.22.8 and 0.15.5). Namespace `superset` and release `superset` are examples.
 
 **1. A ConfigMap with the file** (add `build_translations.py` for French):
 
@@ -321,8 +327,8 @@ extraVolumeMounts:
 bootstrapScript: |
   #!/bin/bash
   # ...your existing lines (e.g. psycopg2-binary for the metadata database)...
-  uv pip install --no-cache --python /app/.venv/bin/python "clickhouse-connect>=0.8,<1.0"
-  # Optional, French labels: rebuilt at each pod start, needs GitHub; the page stays English if it fails.
+  uv pip install --no-cache --python /app/.venv/bin/python "clickhouse-connect>=0.13,<1.0"
+  # Optional, French labels: rebuilt at each pod start (on 5.0 this needs GitHub); the page stays English if it fails.
   python /app/lenspack/build_translations.py fr || echo "French labels skipped"
 ```
 
@@ -337,7 +343,7 @@ bootstrapScript: |
 
 **3. Lenspack.** Use [`../deploy/k8s/lenspack.yaml`](../deploy/k8s/lenspack.yaml) as the template: a Deployment with one replica and a
 Service on port 8795, with no Ingress. Change these:
-- the image, to `ghcr.io/theflywheel/lenspack:719526e` (keep the template's `args`, which start its Superset mode);
+- the image, to `ghcr.io/theflywheel/lenspack:e1989eb` (keep the template's `args`, which start its Superset mode);
 - `LENSPACK_SUPERSET_URL`, to your Superset Service (e.g. `http://superset:8088`);
 - the Secret holding `SUPERSET_ADMIN_PASSWORD` and the LLM key.
 

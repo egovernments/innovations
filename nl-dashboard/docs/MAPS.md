@@ -1,4 +1,4 @@
-# Superset maps: what Superset 5.0 does, and what Lenspack needs
+# Superset maps: what Superset does, and what Lenspack needs
 
 Notes from studying a stock Superset 5.0 and its point-map chart (`deck_scatter`), done before adding maps to Lenspack.
 The method was read-only: a saved chart's params, a headless browser's network log while the chart renders, the
@@ -8,6 +8,11 @@ this note is a placeholder.
 **Status:** point maps ([section 7](#7-what-lenspack-does-with-this-point-maps)) are built and are in Lenspack's
 `main` ([`packages/hosts/superset`](https://github.com/theflywheel/lenspack/tree/main/packages/hosts/superset)). Section 6
 describes Lenspack before them. Shaded-area maps (choropleths, section 4) are not built.
+
+**Superset 6.x:** OpenStreetMap is the default basemap, so maps need no Mapbox key, and deployments can set their own
+tiles with `DECKGL_BASE_MAP`. Superset 6.1 also draws a point map through the chart-data API instead of 5.0's
+`explore_json`. Lenspack uses each version's default basemap (OpenStreetMap on 6, Mapbox light on 5) and saves maps with
+the query that draws their points. The rest of this note describes 5.0, where it was studied.
 
 ## 1. A scatter map's form data (`deck_scatter`)
 
@@ -132,7 +137,7 @@ The join key is the hard part: ward names are spelled differently across sources
   it. It should be a URL-restricted public token.
 - Superset 5.0 has **no setting for non-Mapbox tiles** for deck.gl. The style field offers six Mapbox styles
   (Streets, Dark, Light, Satellite Streets, Satellite, Outdoors). It accepts free text, but a validator requires
-  `mapbox://styles/…`. Later versions add `DECKGL_BASE_MAP`; 5.0 doesn't have it. The OpenStreetMap WMS in the
+  `mapbox://styles/…`. Superset 6 adds `DECKGL_BASE_MAP` and uses OpenStreetMap by default; 5.0 has neither. The OpenStreetMap WMS in the
   bundle belongs to a different plugin.
 - The default CSP allows `connect-src` to `api.mapbox.com` and `events.mapbox.com` only, so a tile server
   elsewhere would also need a CSP change.

@@ -1,17 +1,17 @@
-# Stock Apache Superset 5.0 with our settings baked in. Not a fork: drivers, a
+# Stock Apache Superset 6.1 with our settings baked in. Not a fork: drivers, a
 # config file and one template that Superset documents as overridable.
 # Lenspack's Superset side (lenspack_superset.py) comes from the Lenspack image of the same version as the
 # server, so the two always match. Pass a different one with --build-arg LENSPACK_IMAGE=...
-ARG LENSPACK_IMAGE=ghcr.io/theflywheel/lenspack:719526e
+ARG LENSPACK_IMAGE=ghcr.io/theflywheel/lenspack:e1989eb
 FROM ${LENSPACK_IMAGE} AS lenspack
 
-FROM apache/superset:5.0.0
+FROM apache/superset:6.1.0
 
 USER root
 # Postgres (metadata and the sample data) and ClickHouse (HCM analytics) drivers.
-# clickhouse-connect is the driver Superset's own "clickhouse" extra names.
+# clickhouse-connect is the driver Superset's own "clickhouse" extra names; Superset 6.1 needs 0.13 or later.
 RUN . /app/.venv/bin/activate \
- && uv pip install --no-cache "psycopg2-binary==2.9.10" "clickhouse-connect>=0.8,<1.0"
+ && uv pip install --no-cache "psycopg2-binary==2.9.10" "clickhouse-connect>=0.13,<1.0"
 
 # Superset's own French labels for the language menu (LANGUAGES in superset_config.py): the
 # stock image ships without compiled translations.

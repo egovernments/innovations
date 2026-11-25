@@ -1,4 +1,4 @@
-# Superset 5 + Lenspack on one machine. Browsers reach Superset only:
+# Superset 6.1 + Lenspack on one machine. Browsers reach Superset only:
 #   http://<host>:8088/   Superset, with the "Ask Lenspack" chat on dashboard pages
 # Superset itself forwards /lenspack/ to the lenspack container for signed-in users (lenspack_superset.py),
 # so there is no proxy in front and Lenspack's port is not published.
@@ -33,11 +33,11 @@ services:
     restart: unless-stopped
 
   superset-init:
-    image: nl-dashboard-superset:5.0.0
+    image: nl-dashboard-superset:6.1.0
     build:
       context: ./superset
       # lenspack_superset.py is copied from this Lenspack image, so Superset's side and the server always match.
-      args: { LENSPACK_IMAGE: "${LENSPACK_IMAGE:-ghcr.io/theflywheel/lenspack:719526e}" }
+      args: { LENSPACK_IMAGE: "${LENSPACK_IMAGE:-ghcr.io/theflywheel/lenspack:e1989eb}" }
     command: ["/app/nl-dashboard-init.sh"]
     environment:
       <<: *superset-env
@@ -47,7 +47,7 @@ services:
     restart: "no"
 
   superset:
-    image: nl-dashboard-superset:5.0.0
+    image: nl-dashboard-superset:6.1.0
     environment:
       <<: *superset-env
       # Each streaming chat turn holds one gunicorn thread for 30-60 s: 4 workers x 20 threads leaves plenty.
@@ -64,7 +64,7 @@ services:
 
   lenspack:
     # Lenspack's published image, built from its main branch; the tag is a commit of github.com/theflywheel/lenspack.
-    image: ${LENSPACK_IMAGE:-ghcr.io/theflywheel/lenspack:719526e}
+    image: ${LENSPACK_IMAGE:-ghcr.io/theflywheel/lenspack:e1989eb}
     command: ["superset", "--config", "/config/lenspack-superset.yaml"]
     environment:
       LENSPACK_SUPERSET_URL: http://superset:8088
@@ -93,7 +93,7 @@ services:
   # One-off: the HCM database in Superset, three datasets with metrics, and a starter dashboard.
   #   docker compose run --rm setup
   setup:
-    image: ${LENSPACK_IMAGE:-ghcr.io/theflywheel/lenspack:719526e}
+    image: ${LENSPACK_IMAGE:-ghcr.io/theflywheel/lenspack:e1989eb}
     profiles: [setup]
     entrypoint: ["/app/node_modules/.bin/tsx", "--tsconfig", "/app/tsconfig.base.json", "/setup/setup.mts"]
     environment:

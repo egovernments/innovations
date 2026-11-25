@@ -24,7 +24,7 @@ The answer comes back in seconds, as a sentence and, when asked, as an ordinary 
 
 ## How it fits eGov's stack
 
-- **Superset isn't forked.** The stock Apache Superset 5 image plus one Python file and one small container.
+- **Superset isn't forked.** The stock Apache Superset 6.1 image plus one Python file and one small container.
 - **Access is Superset's.** Anyone who can view a dashboard can ask about it. Only people Superset lets edit it can
   change it. Settings are for admins.
 - **Every change and refusal is logged** with the Superset user, and kept for 90 days.
