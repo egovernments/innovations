@@ -37,14 +37,14 @@ OpenRouter reported it. Portuguese was added on **2026-11-24** ([Portuguese](#po
 
 - All seven sets are **read speech**.
 - **Sampling:** the SLR57 and Common Voice clips are taken round-robin across speakers (Common Voice speakers in a
-  fixed order, by a hash of their id; [`pick_pt.py`](pick_pt.py)). The FLEURS clips are the first 25 in each test
+  fixed order, by a hash of their id; [`pick_pt.py`](https://github.com/theflywheel/lenspack/blob/09d59f303e11798ae0be7aa07bc248cf23714763/evals/speech/pick_pt.py)). The FLEURS clips are the first 25 in each test
   archive.
 - **No African Portuguese set.** Common Voice has no speakers labelled as Mozambican or Angolan (none in the test,
   dev or train accent labels), and no other open set with such labels was found. European Portuguese stands in for
   the European-pattern Portuguese spoken in Mozambique and Angola; the accent itself is not covered (see
   [Not verified yet](#not-verified-yet)).
 - **Common Voice audio is mp3**, kept as distributed: compressed, closer to what a browser sends than FLEURS' WAV.
-- **[`data/manifest.jsonl`](data/manifest.jsonl)** lists all 315 clips (210 French and Hindi, 105 Portuguese). Each line has:
+- **[`data/manifest.jsonl`](https://github.com/theflywheel/lenspack/blob/09d59f303e11798ae0be7aa07bc248cf23714763/evals/speech/data/manifest.jsonl)** lists all 315 clips (210 French and Hindi, 105 Portuguese). Each line has:
   - the clip id and set, which identify the source utterance (SLR57 file name; FLEURS utterance id);
   - the language;
   - the speaker (SLR57);
@@ -59,7 +59,7 @@ OpenRouter reported it. Portuguese was added on **2026-11-24** ([Portuguese](#po
   - That second pass matters because the panel's **Auto** setting sends no hint.
 - **WER** (word error rate) comes from [jiwer](https://github.com/jitsi/jiwer), over all of a set's clips together
   (total errors ÷ total reference words). Both the reference and the transcript are normalised first, by `norm()` in
-  [`score.py`](score.py):
+  [`score.py`](https://github.com/theflywheel/lenspack/blob/09d59f303e11798ae0be7aa07bc248cf23714763/evals/speech/score.py):
   1. Unicode NFC, lower case.
   2. Curly apostrophes (’) become straight ones (').
   3. Every character that isn't a letter, a digit, an apostrophe or Devanagari (including its vowel signs) becomes a
@@ -70,7 +70,7 @@ OpenRouter reported it. Portuguese was added on **2026-11-24** ([Portuguese](#po
      Portuguese the masculine form is used (`1` → `um`, `2` → `dois`), so `1` against a spoken *uma* still counts as
      an error. Larger numbers aren't converted, and Hindi numbers aren't normalised at all.
 - **Output language without the hint.** OpenRouter returns no detected-language field, so
-  [`score_detect.py`](score_detect.py) reads it off the text:
+  [`score_detect.py`](https://github.com/theflywheel/lenspack/blob/09d59f303e11798ae0be7aa07bc248cf23714763/evals/speech/score_detect.py) reads it off the text:
   - Devanagari is Hindi, and Arabic script is Urdu.
   - For Latin script, French, English, romanised-Hindi, Portuguese and Spanish function words decide. The
     Portuguese and Spanish lists hold only words the others don't share (Spanish is there to catch Portuguese
@@ -212,7 +212,7 @@ Each WER cell reads hint → no hint.
 - **32-bit float WAV is refused.**
   - FLEURS ships float WAV. Chirp 3 and AssemblyAI answered "Audio data does not appear to be in a supported
     encoding" (AssemblyAI: "malformed WAV: unknown format: 3") until the clips were converted to 16-bit PCM and rerun.
-  - [`fetch_audio.py`](fetch_audio.py) converts them. Its conversion loop had a bug until 2026-11-24: it looked up
+  - [`fetch_audio.py`](https://github.com/theflywheel/lenspack/blob/09d59f303e11798ae0be7aa07bc248cf23714763/evals/speech/fetch_audio.py) converts them. Its conversion loop had a bug until 2026-11-24: it looked up
     file names instead of paths, so nothing was converted. The Portuguese run hit this, and those two models were
     rerun on converted clips. The other nine took FLEURS pt as float WAV; the audio content is the same.
   - The browser sends webm/opus or mp4, so the product doesn't hit this.
@@ -278,7 +278,7 @@ reproduce there. Another tab or origin is the likely source.
 - **African Portuguese.** No open set labels Mozambican or Angolan speakers, so the Portuguese numbers cover
   Brazil and Portugal only. European Portuguese is the nearest proxy, and the leading models handle it as well as
   Brazilian. A few voice notes from Mozambique or Angola, scored as an own-domain set with
-  [`folder_manifest.py`](folder_manifest.py), would close this.
+  [`folder_manifest.py`](https://github.com/theflywheel/lenspack/blob/09d59f303e11798ae0be7aa07bc248cf23714763/evals/speech/folder_manifest.py), would close this.
 - **End to end with a real key.** The server's `POST /api/_stt` is tested against a stub provider. Real clips through
   the deployed mic → server → provider path wait for a production speech-to-text key.
 
@@ -286,67 +286,42 @@ reproduce there. Another tab or origin is the likely source.
 
 | File | What |
 |---|---|
-| [`data/manifest.jsonl`](data/manifest.jsonl) | the 315 clips: id, set, language, speaker, source path, reference text, seconds |
+| [`data/manifest.jsonl`](https://github.com/theflywheel/lenspack/blob/09d59f303e11798ae0be7aa07bc248cf23714763/evals/speech/data/manifest.jsonl) | the 315 clips: id, set, language, speaker, source path, reference text, seconds |
 | [`results/<model>.jsonl`](results/), `…__nohint.jsonl` | the raw output per clip: transcript, latency, OpenRouter usage and cost (22 files, 11 models × 2 passes) |
 | [`results/per_clip.csv`](results/per_clip.csv) | one row per clip × model × pass (6,050 rows, 2,310 of them Portuguese): reference, transcript, both normalised, WER, latency, cost |
-| [`score.py`](score.py) | the WER and latency table, with the normalisation rules (`norm()`) |
-| [`score_detect.py`](score_detect.py) | hint vs no hint, and the output language read off the text |
-| [`per_clip.py`](per_clip.py) | builds `results/per_clip.csv` with `score.py`'s normalisation |
-| [`stt_bench.py`](stt_bench.py) | runs models over a manifest, optionally only some `--sets` (resumable; stops after five errors in a row) |
-| [`fetch_audio.py`](fetch_audio.py) | streams the source archives, keeps only the manifest's clips (`--sets` for some sets), converts float WAV to 16-bit PCM; `--delete` removes them |
-| [`pick_pt.py`](pick_pt.py) | picks the Portuguese clips (FLEURS pt_br, Common Voice Portugal and Brazil) and prints their manifest lines |
-| [`folder_manifest.py`](folder_manifest.py) | turns a folder of your own clips plus a `refs.tsv` into a manifest |
+| [`score.py`](https://github.com/theflywheel/lenspack/blob/09d59f303e11798ae0be7aa07bc248cf23714763/evals/speech/score.py) | the WER and latency table, with the normalisation rules (`norm()`) |
+| [`score_detect.py`](https://github.com/theflywheel/lenspack/blob/09d59f303e11798ae0be7aa07bc248cf23714763/evals/speech/score_detect.py) | hint vs no hint, and the output language read off the text |
+| [`per_clip.py`](https://github.com/theflywheel/lenspack/blob/09d59f303e11798ae0be7aa07bc248cf23714763/evals/speech/per_clip.py) | builds `results/per_clip.csv` with `score.py`'s normalisation |
+| [`stt_bench.py`](https://github.com/theflywheel/lenspack/blob/09d59f303e11798ae0be7aa07bc248cf23714763/evals/speech/stt_bench.py) | runs models over a manifest, optionally only some `--sets` (resumable; stops after five errors in a row) |
+| [`fetch_audio.py`](https://github.com/theflywheel/lenspack/blob/09d59f303e11798ae0be7aa07bc248cf23714763/evals/speech/fetch_audio.py) | streams the source archives, keeps only the manifest's clips (`--sets` for some sets), converts float WAV to 16-bit PCM; `--delete` removes them |
+| [`pick_pt.py`](https://github.com/theflywheel/lenspack/blob/09d59f303e11798ae0be7aa07bc248cf23714763/evals/speech/pick_pt.py) | picks the Portuguese clips (FLEURS pt_br, Common Voice Portugal and Brazil) and prints their manifest lines |
+| [`folder_manifest.py`](https://github.com/theflywheel/lenspack/blob/09d59f303e11798ae0be7aa07bc248cf23714763/evals/speech/folder_manifest.py) | turns a folder of your own clips plus a `refs.tsv` into a manifest |
 | [`data/LICENSE-SLR57-Apache-2.0.txt`](data/LICENSE-SLR57-Apache-2.0.txt) | the licence the SLR57 reference texts are distributed under |
 
-**Origin.** `fetch_audio.py`, `stt_bench.py`, `score.py`, `score_detect.py`, `folder_manifest.py`, `requirements.txt`,
-`data/manifest.jsonl` and `results/*.jsonl` are copied unchanged from
-[theflywheel/lenspack#19](https://github.com/theflywheel/lenspack/pull/19) (`bench/stt/` at 11c0746), which followed
-the voice feature in [theflywheel/lenspack#17](https://github.com/theflywheel/lenspack/pull/17). `per_clip.py` and
-`results/per_clip.csv` were added here.
+**Origin.** The benchmark began in [theflywheel/lenspack#19](https://github.com/theflywheel/lenspack/pull/19)
+(`bench/stt/` at 11c0746), after the voice feature in [theflywheel/lenspack#17](https://github.com/theflywheel/lenspack/pull/17),
+and was developed here. Since 2026-11-25 the scripts and the clip list live in the Lenspack repository,
+[`evals/speech`](https://github.com/theflywheel/lenspack/tree/09d59f303e11798ae0be7aa07bc248cf23714763/evals/speech) ([theflywheel/lenspack#71](https://github.com/theflywheel/lenspack/pull/71)), so anyone can
+run it. This folder keeps the write-up and the results; the links above point at commit `09d59f3`.
 
 ## Rerunning it
 
-From this folder. The audio is downloaded for the run and deleted afterwards. Take the OpenRouter key from a secret
-store for the one command, and never write it to a file.
+The benchmark runs from the Lenspack repository: [theflywheel/lenspack `evals/speech`](https://github.com/theflywheel/lenspack/tree/09d59f303e11798ae0be7aa07bc248cf23714763/evals/speech), pinned to commit
+`09d59f3`, the version that matches these results. Its README has the commands:
+- fetching the audio, all of it or only some sets, and deleting it afterwards;
+- running models with and without the hint, with the OpenRouter key taken from a secret store and never written to
+  a file;
+- the WER table, the hint versus no-hint view, and the per-clip CSV;
+- local Whisper on the CPU;
+- scoring your own voice notes from a folder and a `refs.tsv`.
 
-```sh
-python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
-.venv/bin/python -I fetch_audio.py                     # the published sample
-OPENROUTER_API_KEY=... .venv/bin/python -I stt_bench.py data/manifest.jsonl --systems or:mistralai/voxtral-mini-transcribe-3-0
-OPENROUTER_API_KEY=... .venv/bin/python -I stt_bench.py data/manifest.jsonl --systems or:mistralai/voxtral-mini-transcribe-3-0 --nohint
-.venv/bin/python -I score.py                            # the WER and latency table
-.venv/bin/python -I score_detect.py data/manifest.jsonl # hint vs no hint, and the output language
-.venv/bin/python -I per_clip.py .                       # results/per_clip.csv
-.venv/bin/python -I fetch_audio.py --delete
-```
-
-Only the Portuguese sets:
-
-```sh
-.venv/bin/python -I fetch_audio.py --sets fleurs-pt,cv-pt-pt,cv-pt-br
-OPENROUTER_API_KEY=... .venv/bin/python -I stt_bench.py data/manifest.jsonl --sets fleurs-pt,cv-pt-pt,cv-pt-br --systems or:mistralai/voxtral-mini-transcribe-3-0
-```
-
-`--systems local:large-v3-turbo` runs faster-whisper on the CPU instead; uncomment it in `requirements.txt`.
-
-**On your own voice notes:**
-1. Put the clips in a folder, in any format ffmpeg reads (phone m4a, ogg and opus are fine).
-2. Next to them, write `refs.tsv` with one line per clip: `<file name>\t<fr|en|hi>\t<what was said>`.
-3. Then:
-
-```sh
-.venv/bin/python -I folder_manifest.py ~/voice-notes ~/voice-notes/refs.tsv > data/own.jsonl
-OPENROUTER_API_KEY=... .venv/bin/python -I stt_bench.py data/own.jsonl --systems or:mistralai/voxtral-mini-transcribe-3-0,or:google/gemini-3.5-transcribe --nohint
-.venv/bin/python -I score.py data/own.jsonl
-```
-
-`data/own.jsonl`, the converted audio and the results of such a run are ignored by git (`.gitignore`). Commit them only
-if the references hold nothing private.
+A run there writes `results/<model>.jsonl` in the same format as [`results/`](results/) here.
 
 ## Attribution and licences
 
-The reference texts in `data/manifest.jsonl` come from two datasets. They are redistributed here under each one's
-licence, for evaluation. No audio is included.
+The reference texts in [`results/per_clip.csv`](results/per_clip.csv), and in the clip list
+[`data/manifest.jsonl`](https://github.com/theflywheel/lenspack/blob/09d59f303e11798ae0be7aa07bc248cf23714763/evals/speech/data/manifest.jsonl) in the Lenspack repository, come from three datasets. They are
+redistributed under each one's licence, for evaluation. No audio is included.
 
 - **African Accented French (OpenSLR SLR57)**, https://www.openslr.org/57/.
   - Licence: Apache License 2.0 ([copy](data/LICENSE-SLR57-Apache-2.0.txt)).

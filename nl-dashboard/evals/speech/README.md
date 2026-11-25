@@ -15,8 +15,9 @@ licences, is
 
 ## Data
 
-All clips are read speech from public datasets. No audio is stored here; [`data/manifest.jsonl`](data/manifest.jsonl)
-lists each clip's source, reference text and length, and [`fetch_audio.py`](fetch_audio.py) downloads them for a run.
+All clips are read speech from public datasets. No audio is stored here. The clip list, with each clip's source,
+reference text and length, is [`data/manifest.jsonl`](https://github.com/theflywheel/lenspack/blob/09d59f303e11798ae0be7aa07bc248cf23714763/evals/speech/data/manifest.jsonl) in the Lenspack repository, and
+[`fetch_audio.py`](https://github.com/theflywheel/lenspack/blob/09d59f303e11798ae0be7aa07bc248cf23714763/evals/speech/fetch_audio.py) there downloads the audio for a run.
 
 | Set | Language and accent | Source | Licence | Clips | Speakers | Minutes |
 |---|---|---|---|---|---|---|
@@ -42,7 +43,7 @@ What each source is:
   sends than FLEURS' studio WAV.
 
 **How clips were picked.** SLR57 and Common Voice clips are taken in turn across speakers (Common Voice speakers in a
-fixed order, by a hash of their id; [`pick_pt.py`](pick_pt.py)). The FLEURS clips are the first 25 in each test
+fixed order, by a hash of their id; [`pick_pt.py`](https://github.com/theflywheel/lenspack/blob/09d59f303e11798ae0be7aa07bc248cf23714763/evals/speech/pick_pt.py)). The FLEURS clips are the first 25 in each test
 archive.
 
 ## Example sentences
@@ -171,23 +172,15 @@ Bold here marks a large drop from the hinted result. Without a hint:
 
 ## Re-running
 
-From this folder, with an OpenRouter key taken from a secret store for the one command (never written to a file):
-
-```sh
-python3 -m venv .venv && .venv/bin/pip install -r requirements.txt && .venv/bin/python -I fetch_audio.py
-OPENROUTER_API_KEY=... .venv/bin/python -I stt_bench.py data/manifest.jsonl --systems or:mistralai/voxtral-mini-transcribe-3-0 [--nohint]
-.venv/bin/python -I score.py && .venv/bin/python -I fetch_audio.py --delete
-```
-
-`score_detect.py` adds the hint versus no-hint view, `per_clip.py` rebuilds the per-clip CSV, and `--sets` limits a
-run to some sets. To score your own voice notes, see [SPEECH.md](SPEECH.md#rerunning-it).
+The scripts, the clip list and the instructions live in the Lenspack repository:
+[theflywheel/lenspack `evals/speech`](https://github.com/theflywheel/lenspack/tree/09d59f303e11798ae0be7aa07bc248cf23714763/evals/speech), pinned here to commit `09d59f3`, the version that matches these results.
+Its README covers fetching the audio, running models with and without the hint, scoring, and scoring your own voice
+notes. A run there writes `results/<model>.jsonl` files in the same format as [`results/`](results/) here.
 
 ## Files
 
 | File | What |
 |---|---|
 | [SPEECH.md](SPEECH.md) | the full report: method, results, Portuguese, failures, the decision, the live-app incident, attribution |
-| [`data/manifest.jsonl`](data/manifest.jsonl) | the 315 clips: id, set, language, speaker, source path, reference text, seconds |
 | [`results/`](results/) | raw output per model and pass (22 files), and [`per_clip.csv`](results/per_clip.csv) with every transcript and its WER |
-| [`stt_bench.py`](stt_bench.py), [`score.py`](score.py), [`score_detect.py`](score_detect.py), [`per_clip.py`](per_clip.py) | run, score, check the output language, build the CSV |
-| [`fetch_audio.py`](fetch_audio.py), [`pick_pt.py`](pick_pt.py), [`folder_manifest.py`](folder_manifest.py) | fetch the clips, pick the Portuguese ones, turn your own folder of clips into a manifest |
+| [lenspack `evals/speech`](https://github.com/theflywheel/lenspack/tree/09d59f303e11798ae0be7aa07bc248cf23714763/evals/speech) | the scripts and the clip list (`data/manifest.jsonl`): fetch the audio, run, score, check the output language, build the CSV, pick the Portuguese clips, use your own recordings |
