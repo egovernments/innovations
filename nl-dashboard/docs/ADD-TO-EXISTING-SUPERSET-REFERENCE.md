@@ -261,7 +261,7 @@ everything.
 Without `hostPolicy: superset`, anyone signed in to Superset can ask about every dataset in Lenspack's config, with no
 row-level security. That is Lenspack's default for now and will change; set it yourself until then. What a dashboard
 shows on its own is unaffected: Superset applies its security there as usual. Details:
-[Lenspack's Superset README](https://github.com/theflywheel/lenspack/blob/main/packages/hosts/superset/README.md#what-each-user-sees).
+[Lenspack's access guide](https://github.com/theflywheel/lenspack/blob/main/docs/access/superset.md#what-each-user-sees).
 
 ## Lenspack's Superset account
 
