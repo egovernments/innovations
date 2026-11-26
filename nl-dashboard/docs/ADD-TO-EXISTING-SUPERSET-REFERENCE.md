@@ -44,7 +44,7 @@ and `5.0.0`. The Helm values were rendered with charts 0.15.5 (Superset 5.0) and
 | You need | Tested with | Notes |
 |---|---|---|
 | Superset 6.1 or 5.0 | `apache/superset:6.1.0` (Flask-AppBuilder 5.0.2) and `apache/superset:5.0.0` (4.5.5) | Superset 6.0 is untested. |
-| The Lenspack image | `ghcr.io/theflywheel/lenspack:65ed926` | Public. Built from Lenspack commit `65ed926` on `main`; it starts with `superset --config <file>` ([`packages/hosts/superset`](https://github.com/theflywheel/lenspack/tree/main/packages/hosts/superset)). |
+| The Lenspack image | `ghcr.io/theflywheel/lenspack:26b92c7` | Public. Built from Lenspack commit `26b92c7` on `main`; it starts with `superset --config <file>` ([`packages/hosts/superset`](https://github.com/theflywheel/lenspack/tree/main/packages/hosts/superset)). |
 | A Superset admin's password | | Used once, on Lenspack's first start, to create its own account. |
 | An LLM API key | Anthropic (Claude Sonnet, Opus and Haiku 5.5) | Or any OpenAI-compatible API through `LENSPACK_LLM_PROVIDERS`. |
 | Your data in Superset | ClickHouse, through `clickhouse-connect` | The stock image has no ClickHouse driver: [adding it](#the-clickhouse-driver). |
@@ -373,7 +373,7 @@ bootstrapScript: |
 
 **3. Lenspack.** Use [`../deploy/k8s/lenspack.yaml`](../deploy/k8s/lenspack.yaml) as the template: a Deployment with one replica and a
 Service on port 8795, with no Ingress. Change these:
-- the image, to `ghcr.io/theflywheel/lenspack:65ed926` (keep the template's `args`, which start its Superset mode);
+- the image, to `ghcr.io/theflywheel/lenspack:26b92c7` (keep the template's `args`, which start its Superset mode);
 - `LENSPACK_SUPERSET_URL`, to your Superset Service (e.g. `http://superset:8088`);
 - the Secret holding `SUPERSET_ADMIN_PASSWORD` and the LLM key.
 
