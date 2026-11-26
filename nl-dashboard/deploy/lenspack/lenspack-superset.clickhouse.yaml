@@ -11,6 +11,10 @@ port: 8795
 datasets: [default.ni_coverage, default.ni_status, default.ni_visits, default.ni_members, default.ni_missed,
   default.ni_team_stock, default.ni_facilities, analytics.ni_referrals]
 dashboards: []
+# Each person's answers follow their own Superset access: a dataset their roles can't read is left out of their chat,
+# and simple row-level security rules narrow every answer; a rule too complex to apply hides its dataset from them.
+# Give people dataset access through Superset roles first. Changes in Superset reach Lenspack within a minute.
+hostPolicy: superset
 state: /data/superset-boards.json
 budget: { usdPerDay: 15, usdPerUserPerDay: 10 }
 

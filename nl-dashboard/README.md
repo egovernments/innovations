@@ -212,8 +212,10 @@ Known limits of these pages:
 
 Most of these are covered in [issue #1](https://github.com/egovernments/innovations/issues/1#issuecomment-6999284286).
 - **Service account:** Lenspack reads and writes as one Superset account, `lenspack`, with the Admin role (it edits
-  dashboards it doesn't own). Who may edit through the chat is checked per person against Superset's rights, but chart
-  data runs as that account, so row-level security applies to it, not to the person asking.
+  dashboards it doesn't own). Who may edit through the chat is checked per person against Superset's rights. With
+  `hostPolicy: superset` (set in the sample configs), each person's dataset permissions and simple row-level security
+  rules apply to their answers, and a rule too complex to apply hides its dataset from them
+  ([details](docs/ADD-TO-EXISTING-SUPERSET-REFERENCE.md#what-each-person-sees)).
 - **Chart types:** only KPI, pie, line, area, bar, table, heatmap and point-map (`deck_scatter`) charts can be edited.
   Other chart types are kept as Superset's.
 - **Lenspack version:** compose and Kubernetes pin a commit of Lenspack's `main` (the image tag in

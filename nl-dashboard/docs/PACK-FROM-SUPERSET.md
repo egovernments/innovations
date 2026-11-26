@@ -53,6 +53,6 @@ overlay into the tags, `extra` fields and settings above, and then the file can 
 
 ## Not covered
 
-- Row-level security per person. Chart data still runs as Lenspack's account.
+- Row-level security rules beyond simple ones. With `hostPolicy: superset`, a rule Lenspack can't apply hides its dataset from that person.
 - Packs that span several Superset instances.
 - Letting non-admins edit the instructions.

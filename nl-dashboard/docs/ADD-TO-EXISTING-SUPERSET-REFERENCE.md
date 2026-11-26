@@ -27,6 +27,7 @@ and `5.0.0`. The Helm values were rendered with charts 0.15.5 (Superset 5.0) and
 - [French labels](#french-labels)
 - [Datasets and dashboards](#datasets-and-dashboards)
 - [Who may do what](#who-may-do-what)
+- [What each person sees](#what-each-person-sees)
 - [Lenspack's Superset account](#lenspacks-superset-account)
 - [The audit log](#the-audit-log)
 - [How many chats at once](#how-many-chats-at-once)
@@ -126,6 +127,7 @@ until step 6.
   - `LENSPACK_SUPERSET_PASSWORD`: an existing `lenspack` account's password, used as it is. Lenspack then makes or resets no
     account, and other tools that sign in as `lenspack` (an eval harness, for example) keep working ([Lenspack's Superset account](#lenspacks-superset-account));
   - `LENSPACK_EDIT_POLICY` ([Who may do what](#who-may-do-what));
+  - `LENSPACK_HOST_POLICY`, the same as `hostPolicy` in the config ([What each person sees](#what-each-person-sees));
   - `LENSPACK_AUDIT_RETENTION_DAYS` ([The audit log](#the-audit-log));
   - `OPENROUTER_API_KEY`, for the chat's microphone (speech to text);
   - `LENSPACK_LLM_PROVIDERS`, for models other than Claude. With only `ANTHROPIC_API_KEY`, the chat offers Claude
@@ -230,8 +232,33 @@ edit content; Gamma users have limited access, usually for viewing):
 When someone without edit rights asks for a change, every edit tool answers "You can view this dashboard but not edit
 it in Superset, so nothing was changed…". The model passes that on, and the refusal goes in the audit log.
 
-Superset's own rules still apply to the data. Chart data runs as Lenspack's account, but only for datasets in
-Lenspack's config. Row-level security on those datasets applies to that account, not to the person asking.
+Which data each person's answers may use is a separate setting: [What each person sees](#what-each-person-sees).
+
+## What each person sees
+
+Lenspack reads data through its own Superset account, and only the datasets in its config. With `hostPolicy: superset`
+in `lenspack-superset.yaml` (or `LENSPACK_HOST_POLICY=superset` on the container), each answer follows the access of
+the person asking:
+
+- **Dataset permissions.** A dataset their roles can't read (no `datasource_access`, `schema_access`, `database_access`
+  or `all_datasource_access`) is left out of their chat: its measures, its filter menus and any query on it.
+- **Row-level security.** Each rule that applies to them narrows every query on that dataset, in the chat and the filter
+  menus. Lenspack applies simple rules: `column = value`, `column IN (...)`, `AND`, brackets, and `OR` over one column.
+  The column must be one Lenspack knows from its datasets.
+- **Fails closed.** A rule Lenspack can't apply (`LIKE`, `!=`, functions, subqueries) hides the whole dataset from that
+  person, and Lenspack's log says which rule and why. If Superset can't be asked, every dataset is hidden from that
+  person until the next try.
+- **Within a minute.** Lenspack asks Superset (through `lenspack_superset.py`) and keeps each person's answer for 60
+  seconds, so a change to roles or rules reaches the chat within a minute, with no restart.
+
+Before you switch it on, give everyone who uses the chat dataset access through their Superset roles. Superset's
+built-in Gamma role has none, so a user with only Gamma gets a chat with no data. Superset's Admin role reads
+everything.
+
+Without `hostPolicy: superset`, anyone signed in to Superset can ask about every dataset in Lenspack's config, with no
+row-level security. That is Lenspack's default for now and will change; set it yourself until then. What a dashboard
+shows on its own is unaffected: Superset applies its security there as usual. Details:
+[Lenspack's Superset README](https://github.com/theflywheel/lenspack/blob/main/packages/hosts/superset/README.md#what-each-user-sees).
 
 ## Lenspack's Superset account
 
@@ -435,9 +462,10 @@ you upgrade, remove the `/lenspack/` proxy locations or Ingress, and any `LENSPA
 | `superset_config.py`, `lenspack_superset.py`, the driver | Superset (all its pods or containers) |
 | French translation files | Superset |
 | `SECRET_KEY` | Superset, then Lenspack (it fetches the derived key at start) |
-| `lenspack-superset.yaml`, the LLM key, `LENSPACK_EDIT_POLICY`, `LENSPACK_AUDIT_RETENTION_DAYS` | Lenspack |
+| `lenspack-superset.yaml`, the LLM key, `LENSPACK_EDIT_POLICY`, `LENSPACK_HOST_POLICY`, `LENSPACK_AUDIT_RETENTION_DAYS` | Lenspack |
 | Datasets or saved metrics that Lenspack reads | Lenspack: it reads them at start |
 | Who owns a dashboard, users' roles | Nothing; checked on every request |
+| Dataset permissions and row-level security rules (with `hostPolicy: superset`) | Nothing; reach the chat within a minute |
 | Chat model, effort and language, set on the AI assistant page | Nothing; applied to the next message |
 | New dashboards | Nothing |
 
@@ -480,4 +508,7 @@ Charts that Lenspack saved are ordinary Superset charts; they stay unless you de
 - **Someone can ask but every change is refused.** Under the default policy, that is Superset saying they can't edit
   that dashboard: make them an owner (with a role that has `can_write` on Dashboard), or set
   `LENSPACK_EDIT_POLICY=signed-in`. The audit log records each refusal.
+- **Someone's chat has no data, or misses a dataset.** With `hostPolicy: superset`, their Superset roles don't give
+  them access to it. Grant access through a role, or check Lenspack's log for a row-level security rule it couldn't
+  apply ("access:" lines name the rule and why).
 - **The AI assistant page can't save.** Only admins can change settings. If it says Lenspack is unreachable, see the 502 case above.

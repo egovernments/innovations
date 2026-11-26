@@ -94,7 +94,8 @@ changes, and the refusal is logged. The full table and examples are in
 Lenspack reads datasets, runs chart data and saves charts and layouts as its own Superset user, `lenspack`, with the
 Admin role, because it edits dashboards it doesn't own. It creates the account on its first start from an admin's
 password and keeps the account's password in `/data`, or uses an account you manage (`LENSPACK_SUPERSET_PASSWORD`).
-Row-level security on the configured datasets applies to this account, not to the person asking. Details:
+With `hostPolicy: superset`, each person's own dataset permissions and simple row-level security rules narrow what
+Lenspack answers them ([what each person sees](ADD-TO-EXISTING-SUPERSET-REFERENCE.md#what-each-person-sees)). Details:
 [Lenspack's Superset account](ADD-TO-EXISTING-SUPERSET-REFERENCE.md#lenspacks-superset-account).
 
 ### Settings

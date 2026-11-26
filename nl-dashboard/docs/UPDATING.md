@@ -119,8 +119,16 @@ charts and keep working.
   `Date` (or `Date32`). A `DateTime` column holding midnight of each day is refused for day-by-day questions such as
   daily averages. Make the dataset return `toDate(…)`, then restart Lenspack so it reads the new column type.
 - **Changing a dataset** (columns, saved metrics) needs a Lenspack restart: it reads datasets when it starts.
-- **Who sees what.** By default, anyone signed in to Superset can ask about every dataset Lenspack is given. To apply
-  Superset's own dataset permissions and row-level security, set `hostPolicy: superset` in `lenspack-superset.yaml`
-  ([details](https://github.com/theflywheel/lenspack/blob/main/packages/hosts/superset/README.md#what-each-user-sees)).
+- **Who sees what.** Set `hostPolicy: superset` in `lenspack-superset.yaml` for any real deployment (the sample configs
+  set it). Each person's answers then follow their own Superset access:
+  - a dataset their roles can't read is left out of their chat;
+  - simple row-level security rules (`=`, `IN`, `AND`, and `OR` over one column) narrow every answer;
+  - a rule too complex to apply hides its dataset from that person rather than risk showing too much, and if Superset
+    can't be asked, nothing is shown.
+
+  Before you switch it on, give everyone who uses the chat dataset access through their Superset roles, or their chat
+  loses those datasets. Changes to roles and rules reach Lenspack within a minute, with no restart. Without it, anyone
+  signed in to Superset can ask about every dataset Lenspack is given. Lenspack will make `superset` the default; until
+  then, set it yourself ([details](ADD-TO-EXISTING-SUPERSET-REFERENCE.md#what-each-person-sees)).
 
 The full [restart table](ADD-TO-EXISTING-SUPERSET-REFERENCE.md#what-needs-a-restart) lists what each kind of change needs.

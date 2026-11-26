@@ -79,14 +79,14 @@ The method, every run and each failure analysis are in [`evals/`](../evals/).
   ([how the data is built](ANALYTICS-PIPELINE.md)).
 - **Open source:** [Lenspack](https://github.com/theflywheel/lenspack) and this deployment
   ([`nl-dashboard/`](https://github.com/egovernments/innovations/tree/master/nl-dashboard) in this repository).
-- **Known limits:** row-level security doesn't yet follow the person asking (chart data runs as one service account);
-  eight chart types are editable (KPI, pie, line, area, bar, table, heatmap and point maps), and others can be moved but
+- **Known limits:** each person's Superset dataset permissions and simple row-level security rules apply to every
+  answer; a dataset whose rules are too complex to apply is hidden from that person rather than risk a leak. Eight chart types are editable (KPI, pie, line, area, bar, table, heatmap and point maps), and others can be moved but
   not changed.
 
 ## Next steps
 
 1. **Pilot with one campaign team** on real (masked) data, measuring time from question to answer.
-2. **Per-user row-level security**, so each person sees only their own geography.
+2. **Row-level security by geography** for the pilot team, so each person sees only their own area (Lenspack already applies Superset's rules; the rules need setting up).
 3. **Shaded-area maps** for wards and LGAs (point maps are done; shading needs boundary shapes in a dataset).
 4. **Build the vocabulary from Superset alone**, so a new deployment needs no hand-written configuration.
 

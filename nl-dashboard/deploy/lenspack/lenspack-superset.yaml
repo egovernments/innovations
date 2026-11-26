@@ -14,6 +14,10 @@ port: 8795
 datasets: [public.hcm_task, public.hcm_household, public.hcm_stock]
 # Dashboards bound at start. Any other dashboard binds the first time someone opens the chat on it.
 dashboards: []
+# Each person's answers follow their own Superset access: a dataset their roles can't read is left out of their chat,
+# and simple row-level security rules narrow every answer; a rule too complex to apply hides its dataset from them.
+# Give people dataset access through Superset roles first. Changes in Superset reach Lenspack within a minute.
+hostPolicy: superset
 state: /data/superset-boards.json
 budget: { usdPerDay: 15, usdPerUserPerDay: 10 }
 

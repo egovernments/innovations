@@ -96,6 +96,11 @@ service, because the account's password is kept in `lenspack-data`. If you alrea
 sign in as, set `LENSPACK_SUPERSET_PASSWORD` to its password instead. Lenspack then uses that account as it is
 ([optional](ADD-TO-EXISTING-SUPERSET-REFERENCE.md#lenspacks-superset-account)).
 
+**Who sees what.** The sample config sets `hostPolicy: superset`; keep it for any real deployment. Each person's answers
+then follow their own Superset dataset permissions and simple row-level security rules. Give everyone who will use the
+chat dataset access through their Superset roles first: a user with Superset's Gamma role alone gets a chat with no data
+([what each person sees](ADD-TO-EXISTING-SUPERSET-REFERENCE.md#what-each-person-sees)).
+
 Optional: [French labels](ADD-TO-EXISTING-SUPERSET-REFERENCE.md#french-labels), and [who may edit through the chat](ADD-TO-EXISTING-SUPERSET-REFERENCE.md#who-may-do-what).
 
 ## Helm (the official chart)
