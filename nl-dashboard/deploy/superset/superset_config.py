@@ -56,3 +56,8 @@ LANGUAGES = {
 
 # Lenspack: the AI assistant page, the overlay's settings and the Flask-AppBuilder list-filter fix.
 from lenspack_superset import *  # noqa: E402,F401,F403
+
+# The assistant's name in Superset's menu and on its settings page, when a deployment renames it (optional; Lenspack's
+# own brand settings name the button and the chat). Without it the menu says "AI assistant".
+if os.environ.get("LENSPACK_BRAND_NAME", "").strip():
+    LENSPACK_BRAND_NAME = os.environ["LENSPACK_BRAND_NAME"].strip()
