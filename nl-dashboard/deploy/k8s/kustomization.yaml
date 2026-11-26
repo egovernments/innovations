@@ -13,7 +13,7 @@ images:
   # This folder's Superset image (../superset), published as a non-main tag: superset6-<commit of this repo>.
   - name: nl-dashboard-superset
     newName: ghcr.io/theflywheel/lenspack
-    newTag: "superset6-e668248"
+    newTag: "superset6-b39c383"
   # Lenspack's own image, built from its main branch: the tag is a commit of github.com/theflywheel/lenspack.
   # Build the Superset image with the same one (--build-arg LENSPACK_IMAGE=...), so both sides match.
   - name: nl-dashboard-lenspack
