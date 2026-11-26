@@ -37,7 +37,7 @@ services:
     build:
       context: ./superset
       # lenspack_superset.py is copied from this Lenspack image, so Superset's side and the server always match.
-      args: { LENSPACK_IMAGE: "${LENSPACK_IMAGE:-ghcr.io/theflywheel/lenspack:e1989eb}" }
+      args: { LENSPACK_IMAGE: "${LENSPACK_IMAGE:-ghcr.io/theflywheel/lenspack:0f5974c}" }
     command: ["/app/nl-dashboard-init.sh"]
     environment:
       <<: *superset-env
@@ -64,7 +64,7 @@ services:
 
   lenspack:
     # Lenspack's published image, built from its main branch; the tag is a commit of github.com/theflywheel/lenspack.
-    image: ${LENSPACK_IMAGE:-ghcr.io/theflywheel/lenspack:e1989eb}
+    image: ${LENSPACK_IMAGE:-ghcr.io/theflywheel/lenspack:0f5974c}
     command: ["superset", "--config", "/config/lenspack-superset.yaml"]
     environment:
       LENSPACK_SUPERSET_URL: http://superset:8088
@@ -93,7 +93,7 @@ services:
   # One-off: the HCM database in Superset, three datasets with metrics, and a starter dashboard.
   #   docker compose run --rm setup
   setup:
-    image: ${LENSPACK_IMAGE:-ghcr.io/theflywheel/lenspack:e1989eb}
+    image: ${LENSPACK_IMAGE:-ghcr.io/theflywheel/lenspack:0f5974c}
     profiles: [setup]
     entrypoint: ["/app/node_modules/.bin/tsx", "--tsconfig", "/app/tsconfig.base.json", "/setup/setup.mts"]
     environment:
