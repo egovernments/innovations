@@ -14,7 +14,7 @@ A deployment has two Lenspack pieces. They must come from the **same Lenspack ve
 | The Lenspack server | its own container or pod | the image `ghcr.io/theflywheel/lenspack:<version>` |
 | `lenspack_superset.py` | inside Superset, loaded from `superset_config.py` | the same version of the [Lenspack repository](https://github.com/theflywheel/lenspack/tree/main/packages/hosts/superset/plugin), or copied out of the image |
 
-The version is a commit of Lenspack's `main` branch: for example `09cdd71`. Every merge to `main` builds and publishes an
+The version is a commit of Lenspack's `main` branch: for example `26c3747`. Every merge to `main` builds and publishes an
 image with that tag ([how the image is built](https://github.com/theflywheel/lenspack/blob/main/Dockerfile),
 [the workflow](https://github.com/theflywheel/lenspack/blob/main/.github/workflows/image.yml)). What changed between
 two versions is in [the commit list](https://github.com/theflywheel/lenspack/commits/main).

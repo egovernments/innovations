@@ -119,7 +119,7 @@ trusts the `X-Forwarded-*` headers it receives.
 | `LENSPACK_INTERNAL_URL` | Superset | no | `http://lenspack:8795` | How Superset's server reaches Lenspack (the `/lenspack/` route and the AI assistant page) |
 | `BIND_ADDRESS`, `PORT` | Superset | no | `127.0.0.1`, `8088` | Where Superset listens |
 | `LENSPACK_CONFIG` | compose | no | `lenspack-superset.yaml` | Which Lenspack config in `deploy/lenspack/`: the sample one or `lenspack-superset.clickhouse.yaml` |
-| `LENSPACK_IMAGE` | compose | no | `ghcr.io/theflywheel/lenspack:09cdd71` | The Lenspack image (a commit of Lenspack's `main`). Superset's image copies `lenspack_superset.py` from it, so rebuild with `docker compose up -d --build` after changing it |
+| `LENSPACK_IMAGE` | compose | no | `ghcr.io/theflywheel/lenspack:26c3747` | The Lenspack image (a commit of Lenspack's `main`). Superset's image copies `lenspack_superset.py` from it, so rebuild with `docker compose up -d --build` after changing it |
 | `CLICKHOUSE_USER`, `CLICKHOUSE_PASSWORD` | setup | for ClickHouse | | Read-only ClickHouse user. Pass the password with `-e` to the setup run; Superset stores it encrypted |
 | `CLICKHOUSE_HOST`, `CLICKHOUSE_PORT`, `CLICKHOUSE_DATABASE` | setup | no | `clickhouse-tunnel`, `8123`, `analytics` | Where Superset reaches ClickHouse |
 | `CLICKHOUSE_TENANT` | setup | no | `ng` | Tenant id for the targets and referrals tables. eGov's ready-made views cover a single field-test campaign and don't use it |
