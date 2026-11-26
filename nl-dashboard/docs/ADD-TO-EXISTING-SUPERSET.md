@@ -15,14 +15,14 @@ Compose was tested by following these steps literally on `apache/superset:5.0.0`
 
 - Superset 6.1 or 5.0 that already reads your data. For ClickHouse that means the `clickhouse-connect` driver, 0.13 or later ([adding it](ADD-TO-EXISTING-SUPERSET-REFERENCE.md#the-clickhouse-driver)).
 - The password of a Superset admin, used once on Lenspack's first start.
-- The image `ghcr.io/theflywheel/lenspack:26b92c7` (public; the tag is a commit of Lenspack's `main`).
+- The image `ghcr.io/theflywheel/lenspack:d9d4def` (public; the tag is a commit of Lenspack's `main`).
 - An Anthropic API key.
 
 ## Get the files
 
 ```sh
 # Superset's side comes from the Lenspack repository, at the same commit as the image.
-LENSPACK=https://raw.githubusercontent.com/theflywheel/lenspack/26b92c752f932d53fd22fc6dfa189765ae2f9029
+LENSPACK=https://raw.githubusercontent.com/theflywheel/lenspack/d9d4def3b8da869041cc34e14b2e16894a61868f
 BASE=https://raw.githubusercontent.com/egovernments/innovations/nl-dashboard/superset-lenspack/nl-dashboard
 mkdir -p lenspack
 curl -fsSL -o lenspack/lenspack_superset.py   $LENSPACK/packages/hosts/superset/plugin/lenspack_superset.py
@@ -63,7 +63,7 @@ docker compose exec superset python -c "import lenspack_superset; print('ok')"
 
 ```yaml
   lenspack:
-    image: ghcr.io/theflywheel/lenspack:26b92c7
+    image: ghcr.io/theflywheel/lenspack:d9d4def
     command: ["superset", "--config", "/config/lenspack-superset.yaml"]
     environment:
       LENSPACK_SUPERSET_URL: http://superset:8088           # Superset itself, from inside the Compose network

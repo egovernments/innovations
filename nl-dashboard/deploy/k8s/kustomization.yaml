@@ -18,4 +18,4 @@ images:
   # Build the Superset image with the same one (--build-arg LENSPACK_IMAGE=...), so both sides match.
   - name: nl-dashboard-lenspack
     newName: ghcr.io/theflywheel/lenspack
-    newTag: "26b92c7"
+    newTag: "d9d4def"
