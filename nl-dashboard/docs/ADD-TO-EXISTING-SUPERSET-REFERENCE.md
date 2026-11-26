@@ -44,7 +44,7 @@ and `5.0.0`. The Helm values were rendered with charts 0.15.5 (Superset 5.0) and
 | You need | Tested with | Notes |
 |---|---|---|
 | Superset 6.1 or 5.0 | `apache/superset:6.1.0` (Flask-AppBuilder 5.0.2) and `apache/superset:5.0.0` (4.5.5) | Superset 6.0 is untested. |
-| The Lenspack image | `ghcr.io/theflywheel/lenspack:0f5974c` | Public. Built from Lenspack commit `0f5974c` on `main`; it starts with `superset --config <file>` ([`packages/hosts/superset`](https://github.com/theflywheel/lenspack/tree/main/packages/hosts/superset)). |
+| The Lenspack image | `ghcr.io/theflywheel/lenspack:78909ae` | Public. Built from Lenspack commit `78909ae` on `main`; it starts with `superset --config <file>` ([`packages/hosts/superset`](https://github.com/theflywheel/lenspack/tree/main/packages/hosts/superset)). |
 | A Superset admin's password | | Used once, on Lenspack's first start, to create its own account. |
 | An LLM API key | Anthropic (Claude Sonnet, Opus and Haiku 5.5) | Or any OpenAI-compatible API through `LENSPACK_LLM_PROVIDERS`. |
 | Your data in Superset | ClickHouse, through `clickhouse-connect` | The stock image has no ClickHouse driver: [adding it](#the-clickhouse-driver). |
@@ -248,6 +248,9 @@ the person asking:
 - **Fails closed.** A rule Lenspack can't apply (`LIKE`, `!=`, functions, subqueries) hides the whole dataset from that
   person, and Lenspack's log says which rule and why. If Superset can't be asked, every dataset is hidden from that
   person until the next try.
+- **Dashboard roles.** With Superset's `DASHBOARD_RBAC` on, someone who opens a dashboard only through its dashboard
+  roles can ask about the data of that dashboard's charts on that dashboard, with their row-level security, and
+  nowhere else. This needs the `lenspack_superset.py` from the same Lenspack version, so rebuild Superset's image.
 - **Within a minute.** Lenspack asks Superset (through `lenspack_superset.py`) and keeps each person's answer for 60
   seconds, so a change to roles or rules reaches the chat within a minute, with no restart.
 
@@ -370,7 +373,7 @@ bootstrapScript: |
 
 **3. Lenspack.** Use [`../deploy/k8s/lenspack.yaml`](../deploy/k8s/lenspack.yaml) as the template: a Deployment with one replica and a
 Service on port 8795, with no Ingress. Change these:
-- the image, to `ghcr.io/theflywheel/lenspack:0f5974c` (keep the template's `args`, which start its Superset mode);
+- the image, to `ghcr.io/theflywheel/lenspack:78909ae` (keep the template's `args`, which start its Superset mode);
 - `LENSPACK_SUPERSET_URL`, to your Superset Service (e.g. `http://superset:8088`);
 - the Secret holding `SUPERSET_ADMIN_PASSWORD` and the LLM key.
 
