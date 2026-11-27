@@ -87,17 +87,19 @@ Every admin page (settings, usage, telemetry, review, models, off switches, cost
 inside Superset's own frame, at `/superset/ai-assistant/`. The assistant's separate admin panel address leads there
 too. We chose this because only one account has access at launch, and it already works in Superset.
 
-**Being fixed in Lenspack:** Superset's menu entry (Settings → Manage → AI assistant) showed only for Superset Admins,
-so the owner (not a Superset Admin) would have had to open the page by its address. The plugin will also show the
-entry to the people Lenspack names as admins. Seeing the entry grants nothing: Lenspack still decides access on every
-request.
+**The menu entry** (Settings → Manage → AI assistant) shows to the owner and the admins the owner adds, as well as to
+Superset Admins. The plugin refreshes that list from the assistant every 5 minutes, so a new admin can take a few
+minutes to see it. Seeing the entry grants nothing: Lenspack still decides access on every request, so a Superset
+Admin who isn't an admin of the assistant sees the entry but is refused on the page. The list only reaches the plugin
+when Superset's `LENSPACK_SERVICE_USER` and the assistant's Superset login are the same name (both `lenspack` in the
+deploy PRs).
 
 ## Lenspack version
 
 | | |
 |---|---|
-| **Needed** | Lenspack #105 (access modes, named owners, the Access page, first-use audit lines, the new-admin notice) and #111 (where the admin pages live, with the menu-entry fix), both merged |
-| **Then** | put the new image tag in `lenspack.image.tag` in the environment file (it pins both charts). Until then it reads `{{lenspack image tag}}` |
+| **Image** | `b91d2bb`, in `lenspack.image.tag` in the environment file (it pins both charts) |
+| **What it includes** | Lenspack #105 (access modes, named owners, the Access page, first-use audit lines, the new-admin notice) and #111 (where the admin pages live, and the menu entry for named admins) |
 
 ## The rest of the configuration
 
@@ -127,10 +129,8 @@ key. Neither applies to the pilot, since the assistant doesn't use coordinates.
 
 ## Before go-live
 
-1. eGov creates the internal account with the Gabon-only read role and sends us its user id, which goes in
-   `LENSPACK_ADMIN_USERS`.
-2. Lenspack #105 and #111 merged (with the menu-entry fix), and the new image tag put in both deploy PRs with
-   `LENSPACK_ADMIN_SURFACE=superset`.
+1. eGov creates the internal account with the Gabon-only read role and sends us its user id.
+2. The account's id put in `LENSPACK_ADMIN_USERS` in the deploy PR.
 3. The deploy PRs come out of draft for eGov's review. Secrets are added by eGov: the `lenspack` Superset login's
    password and the model key.
 4. `lenspack.enabled: true` in the environment file.
