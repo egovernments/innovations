@@ -121,7 +121,7 @@ What the deploy PRs set today, and why.
 | Saved answers | off (`features.cache: false`) | they keep the words of questions |
 | Question text in usage records | off (the default) | |
 | Audit log | kept 30 days | it holds questions, answers and result rows |
-| Voice (the mic) | off | until consent is per person |
+| Voice (the mic) | on (`features.voice: true`), speech to text through OpenRouter (`openrouter-api-key`) | the campaign works in English, French and Portuguese. Recordings aren't kept (the voice-audio telemetry field is off) |
 | "My dashboards" | off | logins are shared on this Superset |
 | Dashboard edits | `editScope: own` and edits follow Superset's dashboard rights. `editor` can edit in Superset, so the chat could change dashboards `editor` owns. Tab controls (chat edits only its own tabs) are being added before edits are turned on for anyone | official dashboards stay as they are |
 | Time zone | UTC | sync times are UTC hours; another zone would drop the hourly series |

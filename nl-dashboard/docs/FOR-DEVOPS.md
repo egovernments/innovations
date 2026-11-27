@@ -78,7 +78,7 @@ browser ─► ingress (gabon-hcm.digit.org/superset) ─► Superset :8088
 |---|---|---|---|---|
 | `LENSPACK_SUPERSET_PASSWORD` | the `lenspack` login's password | Secret `superset-secrets`, key `lenspack-password` | yes | The pod does not start (`CreateContainerConfigError`). |
 | `ANTHROPIC_API_KEY` | the model key | Secret `lenspack-secrets`, key `anthropic-api-key` | yes | The pod does not start; Superset is unaffected. cluster-configs writes `lenspack-secrets` only when this key is in the secrets file. |
-| `OPENROUTER_API_KEY` | speech-to-text key | Secret `lenspack-secrets`, key `openrouter-api-key` (marked optional) | no | No microphone. The mic also needs `features.voice: true`, and it is off for the pilot. |
+| `OPENROUTER_API_KEY` | speech-to-text key | Secret `lenspack-secrets`, key `openrouter-api-key` (marked optional) | yes, for the mic | No microphone; everything else works. The pilot turns the mic on (`features.voice: true`) |
 | `LENSPACK_ADMIN_API_KEYS` | `name:scrypt$…`, the hash of an admin API key | Secret `lenspack-secrets`, key `admin-api-keys` (marked optional) | no | No admin API key: admins work only through Superset's pages. An entry that doesn't read (no colon, a bad hash) stops the server at start. The log names the entry, never the key. |
 | `LENSPACK_STATE_DIR` | `/data` | set by the chart (also the image's default) | set | |
 | `LENSPACK_LLM_PROVIDERS` | `[{"name":"claude-haiku-5-5","kind":"anthropic","model":"claude-haiku-5-5"}]` | env file, `lenspack.extraEnv` | yes, for this setup | With only the key, the chat offers Claude Sonnet (the default), Opus and Haiku, which costs more. |
@@ -131,7 +131,7 @@ don't change.
 | `cluster-configs.secrets.superset.lenspack-password` | `{{lenspack login password}}` <-- needs updating (24+ characters, for example `openssl rand -base64 32`) | key `lenspack-password` in `superset-secrets`. Read by Superset's setup and by the Lenspack server. |
 | `cluster-configs.secrets.lenspack.anthropic-api-key` | `{{anthropic api key}}` <-- needs updating | Secret `lenspack-secrets` in namespace `superset` |
 | `cluster-configs.secrets.lenspack.admin-api-keys` | optional: one line `lab:scrypt$…` <-- needs updating (the hash we send you) | key `admin-api-keys` in `lenspack-secrets` |
-| `cluster-configs.secrets.lenspack.openrouter-api-key` | leave out for the pilot | the optional speech key |
+| `cluster-configs.secrets.lenspack.openrouter-api-key` | `{{openrouter api key}}` <-- needs updating | the speech key for the mic (English, French, Portuguese) |
 
 The admin API key entry is a hash, so neither the secrets file nor the cluster holds the key itself. We keep the key.
 
@@ -160,7 +160,7 @@ working.
 | `config.budget` | not set, so the defaults | `usdPerDay: 20` (the whole deployment), `usdPerUserPerDay: 4` (each person), in USD per UTC day |
 | `config.audit.retentionDays` | not set | `30` |
 | `config.hostPolicy`, `editPolicy`, `editScope` | not set | `superset`, `superset`, `own` |
-| `config.features.voice`, `personalDashboards` | not set | `false`, `false` |
+| `config.features.voice`, `personalDashboards` | `voice: true` in the env file | `true` (the mic), `false` |
 | `persistence`, `resources`, `networkPolicy.enabled` | not set | 5Gi `gp3`; see below; `false` |
 
 What an admin later changes while the server runs is kept on the volume and wins over the ConfigMap. That covers
