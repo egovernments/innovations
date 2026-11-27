@@ -23,7 +23,7 @@ Compose was tested by following these steps literally on `apache/superset:5.0.0`
 ```sh
 # Superset's side comes from the Lenspack repository, at the same commit as the image.
 LENSPACK=https://raw.githubusercontent.com/theflywheel/lenspack/3d6fa922b2bdc1f9a8af2b18e64478685c392dd9
-BASE=https://raw.githubusercontent.com/egovernments/innovations/nl-dashboard/superset-lenspack/nl-dashboard
+BASE=https://raw.githubusercontent.com/egovernments/innovations/master/nl-dashboard
 mkdir -p lenspack
 curl -fsSL -o lenspack/lenspack_superset.py   $LENSPACK/packages/hosts/superset/plugin/lenspack_superset.py
 curl -fsSL -o lenspack/lenspack-superset.yaml $BASE/deploy/lenspack/lenspack-superset.clickhouse.yaml

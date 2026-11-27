@@ -1,47 +1,40 @@
 # Gabon pilot: configuration notes
 
-These notes record how the assistant ("Ask HCM") is set up for its first live rollout: the Gabon bednet (ITN)
-distribution campaign, on the production Superset at `gabon-hcm.digit.org/superset`. They cover who can use it, who
-runs it, where its settings live, the rest of its configuration, and what still has to happen before go-live.
+These notes record how the assistant ("HCM Assistant", button "Ask HCM") is set up for its first live rollout: the
+Gabon bednet (ITN) distribution campaign, on the production Superset at `gabon-hcm.digit.org/superset`. They cover who
+can use it, who runs it, where its settings live, the rest of its configuration, and what still has to happen before
+go-live.
 
-The deployment itself is two draft pull requests in the Nigeria-DevOps repository: one adds the Lenspack server chart,
-the other adds Lenspack's plugin to the Superset chart. Both read one shared `lenspack:` block in the environment file.
+The deployment itself is two pull requests in the Nigeria-DevOps repository: one adds the Lenspack server chart,
+the other adds Lenspack's plugin to the Superset chart. Both read one shared `lenspack:` block in the environment file,
+which switches Lenspack on, so merging them is the deploy. How to run it: [FOR-DEVOPS.md](FOR-DEVOPS.md).
 
 Decided on 27 November 2026 unless marked otherwise.
 
 ## In short
 
-- **One internal account owns the assistant at launch.** eGov creates a Superset account for the pilot team only. The
-  deployment names it by its Superset user id as the assistant's owner. It is not a Superset Admin.
+- **The Superset user `editor` (id 2) owns the assistant at launch.** It is an existing login on this Superset,
+  named in the deployment by its id.
 - **The owner decides who else gets in, later.** On the assistant's Access page the owner adds admins and users by
   Superset user name or id. Nothing is redeployed.
 - **Superset roles grant no admin.** A Superset Admin can't make themselves an admin of the assistant.
 - **Nobody else sees the Ask button at launch.**
 - **The settings live inside Superset**, on its own "AI assistant" page, not on a separate admin panel.
-- **No admin passwords.** Everyone signs in through Superset.
+- **No admin passwords.** People sign in through Superset. The one way in without Superset is an optional admin API
+  key that the Lenspack team holds (the cluster keeps only its hash), so the assistant can be run without access to the
+  server.
 
-## Who runs it: one internal account
+## Who runs it: the `editor` login
 
-**The ask to eGov:** a Superset account for the pilot team, with:
+Decided on 27 November 2026: the owner is the existing Superset user `editor`, user id **2** (from
+`/superset/api/v1/me/` signed in as it). A viewer login is used to test what a non-admin sees.
 
 | | |
 |---|---|
-| **Who uses it** | the pilot team only; the password stays in the team's password store and is never put on a shared list |
-| **Roles** | a read-only role that opens the Gabon ITN dashboard and its datasets and nothing else |
-| **Not** | Superset's `Admin` role, or any role that opens other countries' or states' data on the same Superset |
-| **We need back** | the account's Superset user id |
-
-**Getting the id:** sign in as the account and open `https://gabon-hcm.digit.org/superset/api/v1/me/`. The reply's
-`result.id` is the id. A Superset Admin can also read it in Settings → List Users. An id stays with one account; a
-user name would pass admin to any new account later created with the same name.
-
-**Why a read role scoped to Gabon:** the assistant answers with whatever data the person asking may see in Superset
-(`hostPolicy: superset`). A Superset Admin account would put every dataset on this Superset within the assistant's
-reach. A Gabon-only role keeps the pilot to the Gabon data even if a question wanders. Superset's dashboard roles
-(`DASHBOARD_RBAC`) are on, so the role can open the dashboard by name.
-
-**Why not the shared logins:** the chart's setup script resets the roles of its fixed `admin`, `editor` and `viewer`
-logins on every start. And a login many people share can't tell the usage pages who asked.
+| **Why by id** | an id stays with one account; a user name would pass admin to any new account later created with the same name |
+| **Roles** | unchanged. Admin comes from the id, so the chart's setup script resetting this login's Superset roles on every start doesn't affect it |
+| **Shared login** | anyone who knows `editor`'s password is the assistant's owner, and the usage pages show every question from it as `editor`. Give people their own accounts and add them on the Access page as the pilot grows |
+| **What it can see** | whatever `editor` sees in Superset (`hostPolicy: superset`); the assistant itself is limited to the Gabon datasets and dashboard 25 |
 
 ## Who is an admin: named users
 
@@ -49,12 +42,12 @@ logins on every start. And a login many people share can't tell the usage pages 
 
 ```
 LENSPACK_ADMIN_ACCESS=superset-users
-LENSPACK_ADMIN_USERS=id:{{pilot account user id}}    <-- needs updating
+LENSPACK_ADMIN_USERS=id:2
 ```
 
 | | |
 |---|---|
-| **The owner** | the internal account. Owners come from the deployment and can't be removed on the page |
+| **The owner** | `editor` (id 2). Owners come from the deployment and can't be removed on the page |
 | **What an admin gets** | the assistant's settings, the usage pages (with user names), the audit log and the Access page |
 | **Add an admin later** | the owner adds a Superset user name or `id:<n>` under **Admins** on the Access page. It applies from that person's next request |
 | **Remove one** | the owner removes them on the same page |
@@ -98,8 +91,18 @@ deploy PRs).
 
 | | |
 |---|---|
-| **Image** | `b91d2bb`, in `lenspack.image.tag` in the environment file (it pins both charts) |
-| **What it includes** | Lenspack #105 (access modes, named owners, the Access page, first-use audit lines, the new-admin notice) and #111 (where the admin pages live, and the menu entry for named admins) |
+| **Image** | `3d0bc57`, in `lenspack.image.tag` (the server) and `lenspack.pluginTag` (Superset's copy of the plugin) in the environment file. Changing only `image.tag` restarts only the Lenspack pod; changing `pluginTag` restarts Superset |
+| **What it includes** | Lenspack #105 (access modes, named owners, the Access page, first-use audit lines, the new-admin notice), #111 (where the admin pages live, and the menu entry for named admins), #114 (the assistant on listed dashboards only), #115 (the admin API key) and #120/#121 (changing the vocabulary while it runs, and the Pack tab on the admin pages) |
+
+## Admin API key
+
+| | |
+|---|---|
+| **What it is for** | the Lenspack team has no access to the cluster or the server. With the key, sent as `Authorization: Bearer <key>` to `https://gabon-hcm.digit.org/superset/lenspack/_admin/<route>`, it can change settings and switches, grant access, and edit the vocabulary (labels, hints, measures, examples) while the assistant runs, and read the audit log and usage |
+| **What it can't do** | use the chat, or read dashboards or data. It is not a Superset user |
+| **Where it lives** | the secrets file holds one line, `lab:scrypt$…`: a hash, not the key. It reaches the server as `LENSPACK_ADMIN_API_KEYS` from `lenspack-secrets`, and is optional |
+| **How it shows** | as `api:lab` in the audit log and on the Access page. It counts as an owner, so treat it as a master key |
+| **Rotate or remove** | eGov replaces or removes the line and restarts the Lenspack pod |
 
 ## The rest of the configuration
 
@@ -107,19 +110,20 @@ What the deploy PRs set today, and why.
 
 | Setting | Value | Why |
 |---|---|---|
+| Dashboards | only the Gabon ITN dashboard (`LENSPACK_DASHBOARD_SCOPE=listed`, `LENSPACK_DASHBOARDS=25`): no Ask button and no chat on any other dashboard, for anyone, admins included | this Superset also hosts other states' dashboards |
 | Datasets | the seven Gabon ITN virtual datasets in schema `analytics` (`itn_gab_area`, `itn_gab_sync_hourly`, `itn_gab_bales`, `itn_gab_task_points`, `itn_gab_reg_points`, `itn_gab_complaints`, `itn_gab_refresh`) | the dashboard's own datasets. Not `itn_gab_codes` (one row per bednet code) |
 | Campaign | every answer is about the November 2026 campaign, set by the deployment (`scope`), whatever is picked on the dashboard | the datasets hold more than one campaign. `itn_gab_refresh` has no campaign column and stays unscoped |
 | Personal data | the assistant never uses household ids, exact coordinates, bednet codes or complaint ids (`overlay.exclude.columns`), though the datasets hold them | rows go to the model provider. Without coordinates there are no maps in the pilot |
 | Model | Claude Haiku only (`LENSPACK_LLM_PROVIDERS`) | the cheapest model that scored well on our evaluations |
-| Daily spend cap | 20 USD for the whole deployment (`budget.usdPerDay`) | a ceiling, not an estimate |
+| Daily spend caps | 20 USD for the whole deployment (`budget.usdPerDay`) and 4 USD per person (`budget.usdPerUserPerDay`) | ceilings, not estimates |
 | Language | French for the chat and the dashboard button | the campaign works in French |
-| Name | "Ask HCM" ("Demander à HCM"), no "Powered by Lenspack" line | |
+| Name | "HCM Assistant", with the button "Ask HCM" ("Demander à HCM" in French), and no "Powered by Lenspack" line | |
 | Saved answers | off (`features.cache: false`) | they keep the words of questions |
 | Question text in usage records | off (the default) | |
 | Audit log | kept 30 days | it holds questions, answers and result rows |
-| Voice (the mic) | off | until consent is per person |
+| Voice (the mic) | on (`features.voice: true`), speech to text through OpenRouter (`openrouter-api-key`) | the campaign works in English, French and Portuguese. Recordings aren't kept (the voice-audio telemetry field is off) |
 | "My dashboards" | off | logins are shared on this Superset |
-| Dashboard edits | `editScope: own` and edits follow Superset's dashboard rights. The internal account's read-only role can't edit, so in practice the pilot asks questions only | official dashboards stay as they are |
+| Dashboard edits | `editScope: own` and edits follow Superset's dashboard rights. `editor` can edit in Superset, so the chat could change dashboards `editor` owns. Tab controls (chat edits only its own tabs) are being added before edits are turned on for anyone | official dashboards stay as they are |
 | Time zone | UTC | sync times are UTC hours; another zone would drop the hourly series |
 | Storage | one replica; settings, usage records and the audit log on a 5 GiB volume at `/data` | |
 | Health checks | the pod is ready only once Superset has given it the key that signs who is asking (`/readyz`); until then it refuses every chat and keeps retrying | |
@@ -129,11 +133,12 @@ key. Neither applies to the pilot, since the assistant doesn't use coordinates.
 
 ## Before go-live
 
-1. eGov creates the internal account with the Gabon-only read role and sends us its user id.
-2. The account's id put in `LENSPACK_ADMIN_USERS` in the deploy PR.
-3. The deploy PRs come out of draft for eGov's review. Secrets are added by eGov: the `lenspack` Superset login's
-   password and the model key.
-4. `lenspack.enabled: true` in the environment file.
+1. The owner's id (`id:2`) is in `LENSPACK_ADMIN_USERS` in the deploy PR (done).
+2. **Secrets first.** eGov adds the `lenspack` Superset login's password and the model key (and, optionally, the admin
+   API key's hash) to the secrets file and syncs `cluster-configs`. Superset creates the `lenspack` login only when it
+   starts, so the password must be there before the merge.
+3. **Then the merge.** eGov merges the Superset plugin PR, then the server PR, which has `lenspack.enabled: true`.
+   Superset restarts once and the server starts.
 
 ## Checks after deploy
 
@@ -141,11 +146,11 @@ key. Neither applies to the pilot, since the assistant doesn't use coordinates.
 - **The server's start-up log** says who is an admin and who may use it:
   `admins: named Superset users (1 owner from LENSPACK_ADMIN_USERS, …` and a `users:` line naming
   `superset-role,granted`.
-- **Signed in as the internal account:** the Ask button shows, a question about the campaign gets an answer, the
+- **Signed in as `editor`:** the Ask button shows, a question about the campaign gets an answer, the
   AI assistant entry is in Superset's Settings menu, and its page opens with every section. The Access page lists the
-  account as owner.
-- **Signed in as anyone else:** no Ask button.
-- **The usage pages** show the internal account's question, with its user name.
+  login as owner.
+- **Signed in as the viewer login (or anyone else):** no Ask button until the owner adds them; after that, answers but no admin pages.
+- **The usage pages** show `editor`'s question, with its user name.
 
 ## Rolling out to more people
 

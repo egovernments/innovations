@@ -2,11 +2,19 @@
 
 Documentation for the Superset + Lenspack natural-language dashboard (use case 3.1). Start with
 [the folder's README](../README.md) to run the stack.
+What is ours and what is Lenspack's, with links to the pinned Lenspack version's code and docs:
+[where things live](../README.md#where-things-live).
 
 ## For decision makers
 
 - [ONE-PAGER.md](ONE-PAGER.md): the problem, what the assistant does, how it fits eGov's stack, the evidence and
   next steps, in one page.
+
+## For eGov DevOps (start here)
+
+- [FOR-DEVOPS.md](FOR-DEVOPS.md): the first page for whoever deploys and runs Superset and Lenspack on eGov's clusters
+  with the Nigeria-DevOps Helm charts: what runs, every environment variable and secret, switching on and off,
+  upgrades, log lines, who administers what, what data leaves the cluster and the spend cap.
 
 ## For operators
 
