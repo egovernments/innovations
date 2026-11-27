@@ -67,7 +67,7 @@ browser ─► ingress (gabon-hcm.digit.org/superset) ─► Superset :8088
 | `LENSPACK_STATE_DIR` | `/data` | set by the chart (also the image's default) | set | |
 | `LENSPACK_LLM_PROVIDERS` | `[{"name":"claude-haiku-5-5","kind":"anthropic","model":"claude-haiku-5-5"}]` | env file, `lenspack.extraEnv` | yes, for this setup | With only the key, the chat offers Claude Sonnet (the default), Opus and Haiku, which costs more. |
 | `LENSPACK_ADMIN_ACCESS` | `superset-users` | env file, `lenspack.extraEnv` | yes, for this setup | Default `superset-role`: holders of the `Lenspack admin` Superset role become admins. |
-| `LENSPACK_ADMIN_USERS` | `id:{{pilot account user id}}` <-- needs updating | env file, `lenspack.extraEnv` | yes, for this setup | Empty: nobody is an admin (a warning in the log). Left as the placeholder: the server stops at start with `"id:{{…}}" is not a user id`. |
+| `LENSPACK_ADMIN_USERS` | `id:2` (the Superset user `editor`) | env file, `lenspack.extraEnv` | yes, for this setup | Empty: nobody is an admin (a warning in the log). A value that isn't a user name or `id:<n>` stops the server at start. |
 | `LENSPACK_USER_ACCESS` | `superset-role,granted` | env file, `lenspack.extraEnv` | no | Default `superset-role`: holders of `Lenspack user`, and admins. |
 | `LENSPACK_ADMIN_SURFACE` | `superset` | env file, `lenspack.extraEnv` | no | Default `split`: part of the settings move to Lenspack's own admin panel (still reached through Superset). |
 | `LENSPACK_DASHBOARD_SCOPE` | `listed` | env file, `lenspack.extraEnv` | yes, for this setup | Default `any`: the Ask button on every dashboard a person may open in Superset. `listed` with no dashboards listed stops the server at start. |
@@ -149,10 +149,8 @@ Superset thread while it streams (30–60 s), so about 30 chats can run at once 
 
 1. **Check the image exists:** `docker manifest inspect ghcr.io/theflywheel/lenspack:70f1003`. Superset's init container
    pulls it on every start, so a wrong tag keeps Superset in `Init`.
-2. **Before:** the pilot account exists in Superset with its read-only Gabon role, and its user id replaces
-   `{{pilot account user id}}` in `LENSPACK_ADMIN_USERS` (signed in as that account, `GET /superset/api/v1/me/` returns
-   it as `result.id`). With the placeholder left in, the server refuses to start and says why. The seven datasets and
-   dashboard 25 exist in Superset.
+2. **Before:** the seven datasets and dashboard 25 exist in Superset. The owner is already set: `id:2`, the
+   Superset user `editor` (no role changes needed).
 3. **Secrets:** add the two keys above and sync `cluster-configs`. Check that `lenspack-secrets` exists in `superset`
    and that `superset-secrets` has `lenspack-password`. Without them the Lenspack pod stays in
    `CreateContainerConfigError`.
@@ -161,7 +159,7 @@ Superset thread while it streams (30–60 s), so about 30 chats can run at once 
    a volume, the variables, the setup steps) and four Lenspack objects (ConfigMap, Deployment, PVC, Service).
 5. **Set `lenspack.enabled: true`** on `ng-central-prd`. Argo CD syncs `egov-superset` (Superset restarts once; with
    `Recreate` that is a short outage) and `egov-lenspack` (the server starts).
-6. **Check** the log lines below, then sign in as the pilot account: "Demander à HCM" shows on the Gabon dashboard and
+6. **Check** the log lines below, then sign in as `editor`: "Demander à HCM" shows on the Gabon dashboard and
    on no other dashboard, a question gets an answer, and Settings → Manage → AI assistant opens. Any other login sees no
    button. Signed out, `/superset/lenspack/overlay.js` answers 401.
 
@@ -237,7 +235,7 @@ More: [Privacy](https://github.com/theflywheel/lenspack/blob/main/docs/operating
 |---|---|---|
 | `lenspack` pod in `CreateContainerConfigError` | a missing Secret or key | add the secret, sync `cluster-configs` |
 | Superset pod stuck in `Init` | the Lenspack image tag can't be pulled | fix `lenspack.image.tag`, or switch off |
-| Lenspack exits: `is not a user id` | the `{{pilot account user id}}` placeholder | put the real id in `LENSPACK_ADMIN_USERS` |
+| Lenspack exits: `is not a user id` | `LENSPACK_ADMIN_USERS` changed to something that isn't a user name or `id:<n>` | put back `id:2` |
 | Lenspack exits: `… is "listed" but … lists none` | `LENSPACK_DASHBOARDS` empty or missing | list the dashboard ids |
 | no Ask button on some dashboard | expected: only dashboard 25 is listed | add its id to `LENSPACK_DASHBOARDS` if it should have one |
 | Lenspack exits: `Superset dataset "…": not found` | a dataset in `datasets` doesn't exist in Superset | create it, or fix the name (`schema.table`) |
