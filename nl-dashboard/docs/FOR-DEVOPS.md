@@ -157,7 +157,7 @@ working.
 | `config.brand` | name `HCM Assistant`, button `Ask HCM`, French button `Demander à HCM`, no "Powered by" line | |
 | `config.scope`, `language`, `overlay` | the campaign scope, French, and the vocabulary for the Gabon datasets | |
 | `config.features.cache` | `false` (saved answers keep the words of questions) | on |
-| `config.budget` | not set, so the defaults | `usdPerDay: 20` (the whole deployment), `usdPerUserPerDay: 2` (each person), in USD per UTC day |
+| `config.budget` | not set, so the defaults | `usdPerDay: 20` (the whole deployment), `usdPerUserPerDay: 4` (each person), in USD per UTC day |
 | `config.audit.retentionDays` | not set | `30` |
 | `config.hostPolicy`, `editPolicy`, `editScope` | not set | `superset`, `superset`, `own` |
 | `config.features.voice`, `personalDashboards` | not set | `false`, `false` |
@@ -347,7 +347,7 @@ Saved answers are off.
 **Spend caps:**
 
 - 20 USD per UTC day for the whole deployment;
-- 2 USD per UTC day for each person.
+- 4 USD per UTC day for each person.
 
 When a cap is reached, the chat answers "today's budget is used up" (HTTP 429) until 00:00 UTC. The caps survive
 restarts. Change them with `config.budget` in the env file.

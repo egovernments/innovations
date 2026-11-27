@@ -115,7 +115,7 @@ What the deploy PRs set today, and why.
 | Campaign | every answer is about the November 2026 campaign, set by the deployment (`scope`), whatever is picked on the dashboard | the datasets hold more than one campaign. `itn_gab_refresh` has no campaign column and stays unscoped |
 | Personal data | the assistant never uses household ids, exact coordinates, bednet codes or complaint ids (`overlay.exclude.columns`), though the datasets hold them | rows go to the model provider. Without coordinates there are no maps in the pilot |
 | Model | Claude Haiku only (`LENSPACK_LLM_PROVIDERS`) | the cheapest model that scored well on our evaluations |
-| Daily spend caps | 20 USD for the whole deployment (`budget.usdPerDay`) and 2 USD per person (`budget.usdPerUserPerDay`) | ceilings, not estimates |
+| Daily spend caps | 20 USD for the whole deployment (`budget.usdPerDay`) and 4 USD per person (`budget.usdPerUserPerDay`) | ceilings, not estimates |
 | Language | French for the chat and the dashboard button | the campaign works in French |
 | Name | "HCM Assistant", with the button "Ask HCM" ("Demander à HCM" in French), and no "Powered by Lenspack" line | |
 | Saved answers | off (`features.cache: false`) | they keep the words of questions |
