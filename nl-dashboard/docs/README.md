@@ -16,6 +16,8 @@ Documentation for the Superset + Lenspack natural-language dashboard (use case 3
 - [ADD-TO-EXISTING-SUPERSET-REFERENCE.md](ADD-TO-EXISTING-SUPERSET-REFERENCE.md): the detail behind each quickstart
   step, options, permissions, the audit log, capacity, the full Helm setup and troubleshooting.
 - [Kubernetes](../deploy/k8s/README.md): this folder's stack on Kubernetes.
+- [gabon-pilot-config-notes.md](gabon-pilot-config-notes.md): how the assistant is set up for the Gabon bednet pilot:
+  who can use and run it, where its settings live, the rest of its configuration and the steps before go-live.
 
 ## For engineers
 
