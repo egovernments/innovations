@@ -8,6 +8,12 @@ Documentation for the Superset + Lenspack natural-language dashboard (use case 3
 - [ONE-PAGER.md](ONE-PAGER.md): the problem, what the assistant does, how it fits eGov's stack, the evidence and
   next steps, in one page.
 
+## For eGov DevOps (start here)
+
+- [FOR-DEVOPS.md](FOR-DEVOPS.md): the first page for whoever deploys and runs Superset and Lenspack on eGov's clusters
+  with the Nigeria-DevOps Helm charts: what runs, every environment variable and secret, switching on and off,
+  upgrades, log lines, who administers what, what data leaves the cluster and the spend cap.
+
 ## For operators
 
 - [ADD-TO-EXISTING-SUPERSET.md](ADD-TO-EXISTING-SUPERSET.md): quickstart for adding Lenspack to a running Superset 6.1 (5.0 also works; 6.0 untested)
