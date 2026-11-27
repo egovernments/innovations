@@ -19,6 +19,8 @@ and get it as ordinary Superset charts on an ordinary Superset dashboard. Goal, 
   data comes from:** [ANALYTICS-PIPELINE.md](docs/ANALYTICS-PIPELINE.md) (HCM records to ClickHouse tables to Superset
   datasets, step by step). **In one page, for decision makers:** [ONE-PAGER.md](docs/ONE-PAGER.md).
 - **All the docs,** grouped by reader: [docs/README.md](docs/README.md).
+- **What's ours and what's Lenspack's:** [where things live](#where-things-live). Lenspack's code is not copied
+  here; it runs from its published image at a pinned version.
 
 ## How it fits together
 
@@ -38,21 +40,58 @@ browser ──► Superset 6.1 (:8088) ─────────────�
 
 The design in full: [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-## What's here
+## Where things live
 
-| Path | What it is |
-|---|---|
-| [`docs/`](docs/) | How it works, how to add Lenspack to a Superset you already run, and a one-page summary |
-| [`evals/`](evals/) | How often the chat gives the right answer, and the speech-to-text comparison |
-| [`deploy/`](deploy/) | Everything needed to run it: Docker Compose, the Superset image, the Lenspack config, Kubernetes |
-| [`deploy/docker-compose.yml`](deploy/docker-compose.yml) | Postgres, Superset (with an init step), Lenspack, a one-off `setup`, and `clickhouse-tunnel` (profile `clickhouse`) |
-| [`deploy/.env.example`](deploy/.env.example) | Every variable, explained; copy it to `deploy/.env` |
-| [`deploy/superset/`](deploy/superset/) | The Superset image: `apache/superset:6.1.0` + `psycopg2-binary` + `clickhouse-connect` + French labels, our settings ([`superset_config.py`](deploy/superset/superset_config.py), all from environment variables) and the one-off [`init.sh`](deploy/superset/init.sh) (schema, `admin` user, roles). The image also carries Lenspack's Superset side, [`lenspack_superset.py`](https://github.com/theflywheel/lenspack/blob/main/packages/hosts/superset/plugin/lenspack_superset.py), copied from the Lenspack image of the same version. |
-| [`deploy/lenspack/`](deploy/lenspack/) | Lenspack's config: [`lenspack-superset.yaml`](deploy/lenspack/lenspack-superset.yaml) for the sample data, [`lenspack-superset.clickhouse.yaml`](deploy/lenspack/lenspack-superset.clickhouse.yaml) for ClickHouse (pick one with `LENSPACK_CONFIG`): datasets, names, the place hierarchy, guidance and examples for the model. Lenspack itself runs its published image, `ghcr.io/theflywheel/lenspack:<commit>`. |
-| [`deploy/k8s/`](deploy/k8s/) | The same stack on Kubernetes, with [its own README](deploy/k8s/README.md) |
-| [`deploy/test/`](deploy/test/) | A resilience test that restarts and breaks parts of a running stack and checks it recovers |
-| [`demo-data/setup/setup.mts`](demo-data/setup/setup.mts) | One-off: data sources in Superset (sample Postgres and/or ClickHouse), datasets with metrics and descriptions, and a starter dashboard for each |
-| [`demo-data/sample-data/`](demo-data/sample-data/) | Loads three HCM indices (tasks, households, stock) from Elasticsearch into Postgres, with no IDs or coordinates |
+This folder has two sides, and they are kept apart:
+
+- **Lenspack** (open source, [theflywheel/lenspack](https://github.com/theflywheel/lenspack)) is the chat: the
+  server, the agent and its Superset plugin. We don't copy its code. Both containers use its published image at one
+  pinned version, **`b91d2bb`**, and this folder only configures it.
+- **The Superset deployment and the HCM material** are owned here: the Superset image and settings, the Lenspack
+  configs for HCM data, the dataset setup, the deploy files, and the evaluation results.
+
+**Owned here**
+
+| Part | Where | What it is |
+|---|---|---|
+| Superset image and settings | [`deploy/superset/`](deploy/superset/) | `apache/superset:6.1.0` + `psycopg2-binary` + `clickhouse-connect` + French labels, our settings ([`superset_config.py`](deploy/superset/superset_config.py), all from environment variables) and the one-off [`init.sh`](deploy/superset/init.sh) (schema, `admin` user, roles) |
+| Running the stack | [`deploy/docker-compose.yml`](deploy/docker-compose.yml), [`deploy/.env.example`](deploy/.env.example), [`deploy/k8s/`](deploy/k8s/) | Docker Compose (Postgres, Superset with an init step, Lenspack, a one-off `setup`, and `clickhouse-tunnel` in profile `clickhouse`) and the same stack on Kubernetes ([its README](deploy/k8s/README.md)). These files pin the Lenspack version |
+| Resilience test | [`deploy/test/`](deploy/test/) | Restarts and breaks parts of a running stack and checks it recovers |
+| HCM configs for Lenspack | [`deploy/lenspack/`](deploy/lenspack/) | Which Superset datasets the chat reads, their names, the place hierarchy, and guidance and examples for the model: [`lenspack-superset.yaml`](deploy/lenspack/lenspack-superset.yaml) for the sample data, [`lenspack-superset.clickhouse.yaml`](deploy/lenspack/lenspack-superset.clickhouse.yaml) for ClickHouse (pick one with `LENSPACK_CONFIG`) |
+| HCM datasets in Superset | [`demo-data/setup/setup.mts`](demo-data/setup/setup.mts) | One-off: data sources (sample Postgres and/or ClickHouse), datasets with metrics and descriptions, and a starter dashboard for each |
+| HCM sample data | [`demo-data/sample-data/`](demo-data/sample-data/) | Loads three HCM indices (tasks, households, stock) from Elasticsearch into Postgres, with no IDs or coordinates |
+| How the HCM data is built | [`docs/ANALYTICS-PIPELINE.md`](docs/ANALYTICS-PIPELINE.md) | From HCM records to ClickHouse tables to Superset datasets |
+| Docs for this deployment | [`docs/`](docs/README.md) | How it works, adding it to a Superset you already run, updating, a one-page summary |
+| Evaluation results | [`evals/`](evals/README.md) | How often the chat gives the right answer on HCM data, and the speech-to-text comparison |
+
+**From Lenspack, at the pinned version `b91d2bb`** (the links open that exact commit)
+
+| Part | How this folder uses it | Code | Docs |
+|---|---|---|---|
+| The Lenspack server: chat, agent, Superset connector | the `lenspack` container runs `ghcr.io/theflywheel/lenspack:b91d2bb` | [`packages/hosts/superset`](https://github.com/theflywheel/lenspack/tree/b91d2bb54ccb20c27891c77186b06a1069671290/packages/hosts/superset) | [Superset host](https://github.com/theflywheel/lenspack/blob/b91d2bb54ccb20c27891c77186b06a1069671290/docs/hosts/superset/README.md) |
+| Superset plugin, `lenspack_superset.py` | copied into our Superset image from the same Lenspack image when it is built ([`Dockerfile`](deploy/superset/Dockerfile)), and imported at the end of `superset_config.py` | [`plugin/lenspack_superset.py`](https://github.com/theflywheel/lenspack/blob/b91d2bb54ccb20c27891c77186b06a1069671290/packages/hosts/superset/plugin/lenspack_superset.py) | [install](https://github.com/theflywheel/lenspack/blob/b91d2bb54ccb20c27891c77186b06a1069671290/docs/hosts/superset/install.md), [identity](https://github.com/theflywheel/lenspack/blob/b91d2bb54ccb20c27891c77186b06a1069671290/docs/hosts/superset/identity.md) |
+| The config file format of `deploy/lenspack/*.yaml` | | | [config reference](https://github.com/theflywheel/lenspack/blob/b91d2bb54ccb20c27891c77186b06a1069671290/docs/reference/config.md), [datasets and dashboards](https://github.com/theflywheel/lenspack/blob/b91d2bb54ccb20c27891c77186b06a1069671290/docs/hosts/superset/datasets-and-dashboards.md) |
+| Superset API client in `setup.mts` | `setup` runs inside the Lenspack image and imports it | [`src/client.ts`](https://github.com/theflywheel/lenspack/blob/b91d2bb54ccb20c27891c77186b06a1069671290/packages/hosts/superset/src/client.ts) | |
+| Who sees what | | | [access](https://github.com/theflywheel/lenspack/blob/b91d2bb54ccb20c27891c77186b06a1069671290/docs/access/superset.md) |
+| Upgrading | steps for this stack: [`docs/UPDATING.md`](docs/UPDATING.md) | | [upgrading](https://github.com/theflywheel/lenspack/blob/b91d2bb54ccb20c27891c77186b06a1069671290/docs/hosts/superset/upgrading.md), [Superset versions](https://github.com/theflywheel/lenspack/blob/b91d2bb54ccb20c27891c77186b06a1069671290/docs/hosts/superset/versions.md) |
+| The eval runner and the HCM question sets | run from a Lenspack checkout; our results are in [`evals/`](evals/README.md) | [`evals/`](https://github.com/theflywheel/lenspack/tree/b91d2bb54ccb20c27891c77186b06a1069671290/evals), question sets at the version our results used: [`evals/suites/hcm` @ `ce9cd0f`](https://github.com/theflywheel/lenspack/tree/ce9cd0fe932f811d2542be607716bd8a4ef5c602/evals/suites/hcm) | [evals](https://github.com/theflywheel/lenspack/blob/b91d2bb54ccb20c27891c77186b06a1069671290/evals/README.md) |
+| Speech-to-text scripts | our results are in [`evals/speech/`](evals/speech/README.md) | [`evals/speech` @ `09d59f3`](https://github.com/theflywheel/lenspack/tree/09d59f303e11798ae0be7aa07bc248cf23714763/evals/speech), the version our results used | |
+
+All of Lenspack's docs at this version: [docs/README.md](https://github.com/theflywheel/lenspack/blob/b91d2bb54ccb20c27891c77186b06a1069671290/docs/README.md).
+
+**Production deploys** are not in this repository. The Helm charts for HCM's production Superset (first: the Gabon
+pilot) are draft pull requests in
+[HCM-BAUCHI/Nigeria-DevOps](https://github.com/HCM-BAUCHI/Nigeria-DevOps): the Lenspack server chart
+([#100](https://github.com/HCM-BAUCHI/Nigeria-DevOps/pull/100)) and the plugin in the Superset chart
+([#99](https://github.com/HCM-BAUCHI/Nigeria-DevOps/pull/99)). How the pilot is set up:
+[gabon-pilot-config-notes.md](docs/gabon-pilot-config-notes.md).
+
+**Changing the Lenspack version.** The tag is pinned in [`deploy/docker-compose.yml`](deploy/docker-compose.yml)
+(three places), [`deploy/.env.example`](deploy/.env.example), [`deploy/superset/Dockerfile`](deploy/superset/Dockerfile),
+[`deploy/k8s/kustomization.yaml`](deploy/k8s/kustomization.yaml) (the Lenspack tag, and the Superset image built
+with it) and [`deploy/k8s/setup-job.yaml`](deploy/k8s/setup-job.yaml). Change them together, with the links to that
+version in this README and the docs (`grep -rn b91d2bb nl-dashboard` finds every place).
+[`docs/UPDATING.md`](docs/UPDATING.md) has the steps for a running deployment.
 
 **Lenspack's Superset side** is one file, `lenspack_superset.py`, imported at the end of `superset_config.py`. It
 adds the `/lenspack/` route with the signed identity, the "Ask Lenspack" script tag (Superset's overridable
@@ -218,9 +257,8 @@ Most of these are covered in [issue #1](https://github.com/egovernments/innovati
   ([details](docs/ADD-TO-EXISTING-SUPERSET-REFERENCE.md#what-each-person-sees)).
 - **Chart types:** only KPI, pie, line, area, bar, table, heatmap and point-map (`deck_scatter`) charts can be edited.
   Other chart types are kept as Superset's.
-- **Lenspack version:** compose and Kubernetes pin a commit of Lenspack's `main` (the image tag in
-  [`deploy/docker-compose.yml`](deploy/docker-compose.yml) and [`deploy/k8s/kustomization.yaml`](deploy/k8s/kustomization.yaml)); the Superset connector is
-  [`packages/hosts/superset`](https://github.com/theflywheel/lenspack/tree/main/packages/hosts/superset).
+- **Lenspack version:** compose and Kubernetes pin a commit of Lenspack's `main` (now `b91d2bb`). Where it is pinned,
+  and links to that version's code and docs: [where things live](#where-things-live).
 
 ## History
 

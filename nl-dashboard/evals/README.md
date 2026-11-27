@@ -158,7 +158,10 @@ pnpm eval:suite --suite $H/views-definitions.yaml --truth $H/views-definitions.t
   --models claude-haiku-5-5 --judge claude-sonnet-5-5 --repeats 3 --max-usd 1
 ```
 
-**Speech to text** (from `speech/`, OpenRouter key from a secret store):
+**Speech to text** (from the Lenspack repository's
+[`evals/speech`](https://github.com/theflywheel/lenspack/tree/09d59f303e11798ae0be7aa07bc248cf23714763/evals/speech),
+where the scripts and the clip list live; pinned here to `09d59f3`, the version that matches these results; OpenRouter
+key from a secret store):
 
 ```sh
 python3 -m venv .venv && .venv/bin/pip install -r requirements.txt && .venv/bin/python -I fetch_audio.py
@@ -174,5 +177,8 @@ evals/
   agent/             the chat agent eval: README, QUESTIONS, DESIGN, DEFINITIONS, RESULTS, FAILURES
     runs/  summarize.py    (question sets, answers, configs: Lenspack repo, evals/suites/hcm)
   speech/            the speech-to-text eval: README (summary), SPEECH.md (full report)
-    data/  results/  and the scripts
+    data/  results/        (scripts and clip list: Lenspack repo, evals/speech)
 ```
+
+The runner, the scripts and the question sets are Lenspack's and are not copied here; this folder keeps the results
+and the write-ups. Links to each at the version used: [where things live](../README.md#where-things-live).

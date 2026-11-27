@@ -2,6 +2,8 @@
 
 Documentation for the Superset + Lenspack natural-language dashboard (use case 3.1). Start with
 [the folder's README](../README.md) to run the stack.
+What is ours and what is Lenspack's, with links to the pinned Lenspack version's code and docs:
+[where things live](../README.md#where-things-live).
 
 ## For decision makers
 
