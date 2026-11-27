@@ -1,0 +1,64 @@
+# Superset: a one-off Job for the schema and the admin (../superset/init.sh), then the web server, which also
+# serves /lenspack/ (lenspack_superset.py forwards it to the Lenspack Service for signed-in users).
+apiVersion: batch/v1
+kind: Job
+metadata: { name: nl-dashboard-superset-init }
+spec:
+  backoffLimit: 6
+  ttlSecondsAfterFinished: 86400
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: init
+          image: nl-dashboard-superset
+          command: [/app/nl-dashboard-init.sh]
+          env:
+            - { name: SUPERSET_SECRET_KEY, valueFrom: { secretKeyRef: { name: nl-dashboard, key: SUPERSET_SECRET_KEY } } }
+            - { name: DB_HOST, value: nl-dashboard-db }
+            - { name: DB_PASSWORD, valueFrom: { secretKeyRef: { name: nl-dashboard, key: PG_PASSWORD } } }
+            - { name: SUPERSET_ADMIN_PASSWORD, valueFrom: { secretKeyRef: { name: nl-dashboard, key: SUPERSET_ADMIN_PASSWORD } } }
+            - { name: TALISMAN_ENABLED, value: "true" }
+          resources:
+            requests: { cpu: 250m, memory: 1Gi }
+            limits: { cpu: "2", memory: 2Gi }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: nl-dashboard-superset }
+spec:
+  selector: { app: nl-dashboard-superset }
+  ports: [{ port: 8088, targetPort: 8088 }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: nl-dashboard-superset }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: nl-dashboard-superset } }
+  template:
+    metadata: { labels: { app: nl-dashboard-superset } }
+    spec:
+      containers:
+        - name: superset
+          image: nl-dashboard-superset
+          env:
+            - { name: SUPERSET_SECRET_KEY, valueFrom: { secretKeyRef: { name: nl-dashboard, key: SUPERSET_SECRET_KEY } } }
+            - { name: DB_HOST, value: nl-dashboard-db }
+            - { name: DB_PASSWORD, valueFrom: { secretKeyRef: { name: nl-dashboard, key: PG_PASSWORD } } }
+            - { name: TALISMAN_ENABLED, value: "true" }
+            # Behind the ingress: trust its X-Forwarded-* (https, the public host).
+            - { name: ENABLE_PROXY_FIX, value: "true" }
+            # Each streaming chat turn holds a gunicorn thread for 30-60 s; 4 x 20 threads leaves plenty.
+            - { name: SERVER_WORKER_AMOUNT, value: "4" }
+            # Keep idle connections open longer than the ingress does: with gunicorn's 2 s default,
+            # ingress-nginx reuses connections Superset already closed and chart tiles fail with 502.
+            - { name: GUNICORN_KEEPALIVE, value: "75" }
+            # Where Superset's server reaches Lenspack (the /lenspack/ route and the AI assistant page).
+            - { name: LENSPACK_INTERNAL_URL, value: "http://nl-dashboard-lenspack:8795" }
+          ports: [{ containerPort: 8088 }]
+          readinessProbe: { httpGet: { path: /health, port: 8088 }, periodSeconds: 10, failureThreshold: 30 }
+          livenessProbe: { httpGet: { path: /health, port: 8088 }, initialDelaySeconds: 120, periodSeconds: 30 }
+          resources:
+            requests: { cpu: 500m, memory: 1536Mi }
+            limits: { cpu: "2", memory: 4Gi }

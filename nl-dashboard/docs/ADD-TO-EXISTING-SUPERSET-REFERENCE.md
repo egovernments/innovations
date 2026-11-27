@@ -1,4 +1,4 @@
-# Add Lenspack to an existing Superset 5: reference
+# Add Lenspack to an existing Superset: reference
 
 This is the detail behind the [quickstart](ADD-TO-EXISTING-SUPERSET.md): what each step does and why, the options the
 quickstart leaves out, the full Helm and Kubernetes setup, and troubleshooting. Steps are numbered as in the quickstart.
@@ -14,8 +14,8 @@ Superset. You don't need this repository's Superset image, a fork, a proxy rule 
 it, take those out and restart ([Roll back](#roll-back)).
 
 The Docker Compose steps were tested by following them literally on a stock `apache/superset:5.0.0`, with its own
-Postgres and Redis, reading HCM analytics from ClickHouse. The Helm values were rendered with chart 0.15.5 but not
-installed.
+Postgres and Redis, reading HCM analytics from ClickHouse. Lenspack's Superset side is tested on `apache/superset:6.1.0`
+and `5.0.0`. The Helm values were rendered with charts 0.15.5 (Superset 5.0) and 0.22.8 (Superset 6.1) but not installed.
 
 ## Contents
 
@@ -27,6 +27,7 @@ installed.
 - [French labels](#french-labels)
 - [Datasets and dashboards](#datasets-and-dashboards)
 - [Who may do what](#who-may-do-what)
+- [What each person sees](#what-each-person-sees)
 - [Lenspack's Superset account](#lenspacks-superset-account)
 - [The audit log](#the-audit-log)
 - [How many chats at once](#how-many-chats-at-once)
@@ -42,8 +43,8 @@ installed.
 
 | You need | Tested with | Notes |
 |---|---|---|
-| Superset 5.0 | `apache/superset:5.0.0` (Flask-AppBuilder 4.5.5) | Superset 6 is untested. |
-| The Lenspack image | `ghcr.io/theflywheel/lenspack:superset-a109f45` | Public. This tag is built from Lenspack's `superset` branch until the Superset support reaches `main`; after that, use a `main` tag. |
+| Superset 6.1 or 5.0 | `apache/superset:6.1.0` (Flask-AppBuilder 5.0.2) and `apache/superset:5.0.0` (4.5.5) | Superset 6.0 is untested. |
+| The Lenspack image | `ghcr.io/theflywheel/lenspack:b91d2bb` | Public. Built from Lenspack commit `b91d2bb` on `main`; it starts with `superset --config <file>` ([`packages/hosts/superset`](https://github.com/theflywheel/lenspack/tree/main/packages/hosts/superset)). |
 | A Superset admin's password | | Used once, on Lenspack's first start, to create its own account. |
 | An LLM API key | Anthropic (Claude Sonnet, Opus and Haiku 5.5) | Or any OpenAI-compatible API through `LENSPACK_LLM_PROVIDERS`. |
 | Your data in Superset | ClickHouse, through `clickhouse-connect` | The stock image has no ClickHouse driver: [adding it](#the-clickhouse-driver). |
@@ -58,27 +59,25 @@ browser ──► Superset ──/lenspack/…──► Lenspack ──API (its 
              signs who is asking        reads datasets, runs chart data, saves dashboards
 ```
 
-- **One address.** Browsers only ever talk to Superset. `lenspack_superset.py` adds a route, `/lenspack/…`, which
-  Superset's own server forwards to the Lenspack container. Anyone not signed in gets 401. The overlay script,
-  its API calls and Superset's session are all same-origin, so CORS isn't needed and Superset's CSP stays on: the
-  overlay's script tag carries the page's nonce.
-- **Who is asking.** For each forwarded request Superset adds a header, `x-lenspack-identity`, which carries:
-  - the username;
-  - whether they are an admin;
-  - if the request is about a dashboard, whether Superset lets them view and edit it.
+- **One address.** Browsers only ever talk to Superset, which forwards `/lenspack/…` to the Lenspack container for
+  signed-in users (anyone else gets 401). Everything is same-origin, so CORS isn't needed and Superset's CSP stays on.
+- **Who is asking.** Superset signs a header, `x-lenspack-identity`, on each forwarded request: the user, whether they
+  are an admin, and whether they may view and edit the dashboard in question. Lenspack accepts nothing else, so its
+  port never needs to be published.
+- **No second secret.** The signing key is derived from Superset's `SECRET_KEY`. Rotating `SECRET_KEY` rotates it;
+  restart Lenspack afterwards.
 
-  The header is signed (HMAC-SHA256) and valid for five minutes. Lenspack accepts nothing else, so its port never
-  needs to be published.
-- **The key.** The signing key is derived from Superset's `SECRET_KEY`. Lenspack fetches it at start
-  (`GET /api/v1/lenspack/identity-key`, allowed for admins and Lenspack's own account), so there is no second
-  secret to configure or keep in sync. Rotating `SECRET_KEY` rotates it; restart Lenspack afterwards.
-- **Streaming.** Chat replies stream through Superset unbuffered. The route sends `X-Accel-Buffering: no` and skips
-  compression.
+How the route, the signed header, the key and streaming work:
+[ARCHITECTURE.md](ARCHITECTURE.md#the-proxy-through-superset).
 
 ## Get the files
 
-Run the quickstart's download block in the folder that holds your Compose file, or anywhere for Helm. `REF` is a
-branch or commit of this repository.
+Run the quickstart's download block in the folder that holds your Compose file, or anywhere for Helm.
+`lenspack_superset.py` comes from the Lenspack repository
+([`packages/hosts/superset/plugin/`](https://github.com/theflywheel/lenspack/tree/main/packages/hosts/superset/plugin)) at the
+same commit as the Lenspack image, so Superset's side and the server match. To move to a newer image, change both
+the image tag and the commit in the download URL. The config and `setup.mts` come from this repository: `BASE`
+names a branch or commit of it.
 
 `lenspack/lenspack-superset.yaml` is Lenspack's config for the HCM ClickHouse datasets that `setup.mts` creates. For your
 own datasets, edit its `datasets`, `overlay.entities`, `hierarchies` and `instructions`.
@@ -111,7 +110,9 @@ until step 6.
 
 ### 4. The Lenspack service
 
-- `SUPERSET_URL` is Superset as Lenspack's container reaches it, not the public address. Lenspack learns the public
+- `command: ["superset", "--config", ...]` starts the image's Superset mode (the image's default command is
+  Lenspack's own web app, which isn't used here).
+- `LENSPACK_SUPERSET_URL` is Superset as Lenspack's container reaches it, not the public address. Lenspack learns the public
   address from each request.
 - `SUPERSET_ADMIN_PASSWORD` is needed only until Lenspack has made its account ([Lenspack's Superset account](#lenspacks-superset-account)).
   If your admin isn't called `admin`, add `SUPERSET_ADMIN_USERNAME`.
@@ -126,12 +127,15 @@ until step 6.
   - `LENSPACK_SUPERSET_PASSWORD`: an existing `lenspack` account's password, used as it is. Lenspack then makes or resets no
     account, and other tools that sign in as `lenspack` (an eval harness, for example) keep working ([Lenspack's Superset account](#lenspacks-superset-account));
   - `LENSPACK_EDIT_POLICY` ([Who may do what](#who-may-do-what));
+  - `LENSPACK_HOST_POLICY`, the same as `hostPolicy` in the config ([What each person sees](#what-each-person-sees));
   - `LENSPACK_AUDIT_RETENTION_DAYS` ([The audit log](#the-audit-log));
-  - `OPENROUTER_API_KEY`, for the chat's microphone (speech to text).
+  - `OPENROUTER_API_KEY`, for the chat's microphone (speech to text);
+  - `LENSPACK_LLM_PROVIDERS`, for models other than Claude. With only `ANTHROPIC_API_KEY`, the chat offers Claude
+    Sonnet (the default), Opus and Haiku 5.5.
 
 ### 5. Datasets and dashboards
 
-See [Datasets and dashboards](#datasets-and-dashboards). The run uses the Lenspack service's `SUPERSET_URL` and
+See [Datasets and dashboards](#datasets-and-dashboards). The run uses the Lenspack service's `LENSPACK_SUPERSET_URL` and
 `SUPERSET_ADMIN_PASSWORD`.
 
 ### 6. Start Lenspack
@@ -151,12 +155,12 @@ and lets you change the chat model.
 The stock image has no ClickHouse driver. If your Superset already reads ClickHouse, skip this. Otherwise, choose one:
 
 - **The way you already add Python packages:** a derived image, or Superset's `docker-bootstrap.sh` with
-  `requirements-local.txt`. Add `clickhouse-connect>=0.8,<1.0`.
+  `requirements-local.txt`. Add `clickhouse-connect>=0.13,<1.0`.
 - **At container start**, with Superset running as root (Superset's Compose files and the Helm chart, `runAsUser: 0`, already do):
   ```yaml
     superset:
       user: root
-      command: ["sh", "-c", "uv pip install --no-cache --python /app/.venv/bin/python 'clickhouse-connect>=0.8,<1.0' && exec /usr/bin/run-server.sh"]
+      command: ["sh", "-c", "uv pip install --no-cache --python /app/.venv/bin/python 'clickhouse-connect>=0.13,<1.0' && exec /usr/bin/run-server.sh"]
   ```
   If you have your own start command, keep it and put the `uv pip install … &&` in front of it. The install needs PyPI and adds
   a few seconds to every start. On Helm, put the same `uv pip install` line in `bootstrapScript`.
@@ -164,12 +168,18 @@ The stock image has no ClickHouse driver. If your Superset already reads ClickHo
 `lenspack_superset.py` imports the driver once while the config loads. Without that, Superset imports it lazily from
 several request threads at once after a restart, and a worker can fail with "partially initialized module" until it is restarted.
 
+Superset 6.1 stopped adding a short suffix to column names in ClickHouse queries. A saved metric named like the column it
+adds up (`SUM(x)` saved as `x`) then breaks every other metric in the same chart that uses `x` (ClickHouse error 184).
+`lenspack_superset.py` puts the suffix back when Superset starts; results keep their names, so nothing else changes. It
+does nothing on Superset 5.0. To turn it off, set `LENSPACK_CLICKHOUSE_LABEL_SUFFIX=off` on Superset and rename such
+metrics or columns instead.
+
 ## French labels
 
-Optional. Superset 5's image ships the French catalogue but no compiled files, so switching to French changes nothing.
+Optional. The stock images have no compiled French labels (6.1 ships the catalogue, 5.0 not even that), so switching to French changes nothing.
 Build them once into a volume:
 
-1. Download the build script: `curl -fsSL -o lenspack/build_translations.py $BASE/superset/build_translations.py`.
+1. Download the build script: `curl -fsSL -o lenspack/build_translations.py $BASE/deploy/superset/build_translations.py`.
 2. Add `LANGUAGES` to your `superset_config.py`:
    ```python
    LANGUAGES = {"en": {"flag": "us", "name": "English"}, "fr": {"flag": "fr", "name": "French"}}
@@ -179,7 +189,7 @@ Build them once into a volume:
        volumes:
          - superset-fr:/app/superset/translations/fr
    ```
-4. Build the files once. This needs GitHub; the volume keeps them across restarts.
+4. Build the files once. On 5.0 this needs GitHub (6.1 has the catalogue in the image); the volume keeps them across restarts.
    ```sh
    docker compose run --rm --no-deps --user root -v "$PWD/lenspack/build_translations.py:/tmp/bt.py:ro" \
      --entrypoint python superset /tmp/bt.py fr
@@ -191,7 +201,7 @@ Then restart Superset. The chat follows the language each user picks in Superset
 
 Either create them with `setup.mts`, or import them from another Superset.
 
-**With `setup.mts`** (the quickstart's step 8). This creates the ClickHouse connection in Superset, the `ni_*` datasets
+**With `setup.mts`** (the quickstart's step 5). This creates the ClickHouse connection in Superset, the `ni_*` datasets
 with their metrics and descriptions, and two starter dashboards. It's safe to run again: the connection and datasets
 are updated, and dashboards that already exist are left as they are. It runs on the Lenspack image.
 
@@ -214,15 +224,44 @@ datasets (`<schema>.<table name>`).
 | Change Lenspack's settings, read the audit log | Superset admins | Superset |
 
 The policy is set on the Lenspack container (`LENSPACK_EDIT_POLICY`, or `editPolicy` in its config), and the AI
-assistant page shows which one is on. Under the default:
+assistant page shows which one is on. Under the default, with Superset's built-in roles (Alpha users can create and
+edit content; Gamma users have limited access, usually for viewing):
 - an Alpha who owns a dashboard can edit it through the chat;
 - an Alpha who doesn't own it, and a Gamma viewer, can ask but not edit.
 
 When someone without edit rights asks for a change, every edit tool answers "You can view this dashboard but not edit
 it in Superset, so nothing was changed…". The model passes that on, and the refusal goes in the audit log.
 
-Superset's own rules still apply to the data. Chart data runs as Lenspack's account, but only for datasets in
-Lenspack's config. Row-level security on those datasets applies to that account, not to the person asking.
+Which data each person's answers may use is a separate setting: [What each person sees](#what-each-person-sees).
+
+## What each person sees
+
+Lenspack reads data through its own Superset account, and only the datasets in its config. With `hostPolicy: superset`
+in `lenspack-superset.yaml` (or `LENSPACK_HOST_POLICY=superset` on the container), each answer follows the access of
+the person asking:
+
+- **Dataset permissions.** A dataset their roles can't read (no `datasource_access`, `schema_access`, `database_access`
+  or `all_datasource_access`) is left out of their chat: its measures, its filter menus and any query on it.
+- **Row-level security.** Each rule that applies to them narrows every query on that dataset, in the chat and the filter
+  menus. Lenspack applies simple rules: `column = value`, `column IN (...)`, `AND`, brackets, and `OR` over one column.
+  The column must be one Lenspack knows from its datasets.
+- **Fails closed.** A rule Lenspack can't apply (`LIKE`, `!=`, functions, subqueries) hides the whole dataset from that
+  person, and Lenspack's log says which rule and why. If Superset can't be asked, every dataset is hidden from that
+  person until the next try.
+- **Dashboard roles.** With Superset's `DASHBOARD_RBAC` on, someone who opens a dashboard only through its dashboard
+  roles can ask about the data of that dashboard's charts on that dashboard, with their row-level security, and
+  nowhere else. This needs the `lenspack_superset.py` from the same Lenspack version, so rebuild Superset's image.
+- **Within a minute.** Lenspack asks Superset (through `lenspack_superset.py`) and keeps each person's answer for 60
+  seconds, so a change to roles or rules reaches the chat within a minute, with no restart.
+
+Before you switch it on, give everyone who uses the chat dataset access through their Superset roles. Superset's
+built-in Gamma role has none, so a user with only Gamma gets a chat with no data. Superset's Admin role reads
+everything.
+
+Without `hostPolicy: superset`, anyone signed in to Superset can ask about every dataset in Lenspack's config, with no
+row-level security. That is Lenspack's default for now and will change; set it yourself until then. What a dashboard
+shows on its own is unaffected: Superset applies its security there as usual. Details:
+[Lenspack's access guide](https://github.com/theflywheel/lenspack/blob/main/docs/access/superset.md#what-each-user-sees).
 
 ## Lenspack's Superset account
 
@@ -284,7 +323,7 @@ costs about 300–500 MB).
 ## Helm (the official chart)
 
 This uses the `apache/superset` chart's `configOverrides`, `extraEnv`, `extraVolumes` and `bootstrapScript`. Chart
-0.15.x ships Superset 5.0.0. Namespace `superset` and release `superset` are examples.
+0.22.x ships Superset 6.1.0 and 0.15.x ships 5.0.0; the values below render with both (0.22.8 and 0.15.5). Namespace `superset` and release `superset` are examples.
 
 **1. A ConfigMap with the file** (add `build_translations.py` for French):
 
@@ -318,8 +357,8 @@ extraVolumeMounts:
 bootstrapScript: |
   #!/bin/bash
   # ...your existing lines (e.g. psycopg2-binary for the metadata database)...
-  uv pip install --no-cache --python /app/.venv/bin/python "clickhouse-connect>=0.8,<1.0"
-  # Optional, French labels: rebuilt at each pod start, needs GitHub; the page stays English if it fails.
+  uv pip install --no-cache --python /app/.venv/bin/python "clickhouse-connect>=0.13,<1.0"
+  # Optional, French labels: rebuilt at each pod start (on 5.0 this needs GitHub); the page stays English if it fails.
   python /app/lenspack/build_translations.py fr || echo "French labels skipped"
 ```
 
@@ -332,10 +371,10 @@ bootstrapScript: |
 
 `helm upgrade` with these values restarts the Superset pods.
 
-**3. Lenspack.** Use [`../k8s/lenspack.yaml`](../k8s/lenspack.yaml) as the template: a Deployment with one replica and a
+**3. Lenspack.** Use [`../deploy/k8s/lenspack.yaml`](../deploy/k8s/lenspack.yaml) as the template: a Deployment with one replica and a
 Service on port 8795, with no Ingress. Change these:
-- the image, to `ghcr.io/theflywheel/lenspack:superset-a109f45`;
-- `SUPERSET_URL`, to your Superset Service (e.g. `http://superset:8088`);
+- the image, to `ghcr.io/theflywheel/lenspack:b91d2bb` (keep the template's `args`, which start its Superset mode);
+- `LENSPACK_SUPERSET_URL`, to your Superset Service (e.g. `http://superset:8088`);
 - the Secret holding `SUPERSET_ADMIN_PASSWORD` and the LLM key.
 
 Name the Service `lenspack`, or change `LENSPACK_INTERNAL_URL`. Put the config in a ConfigMap with the key
@@ -347,7 +386,7 @@ kubectl -n superset create configmap lenspack --from-file=lenspack-superset.yaml
 
 Mount a small PVC at `/data`, not the template's `emptyDir`, to keep the account, the settings and the audit log across restarts.
 
-**4. Datasets and dashboards.** Run `setup.mts` as a one-off Job on the Lenspack image ([`../k8s/setup-job.yaml`](../k8s/setup-job.yaml)
+**4. Datasets and dashboards.** Run `setup.mts` as a one-off Job on the Lenspack image ([`../deploy/k8s/setup-job.yaml`](../deploy/k8s/setup-job.yaml)
 shows how), or import them as in [Datasets and dashboards](#datasets-and-dashboards). Then restart Lenspack:
 `kubectl -n superset rollout restart deploy/lenspack`.
 
@@ -414,9 +453,10 @@ Lenspack needs nothing from your proxy. A few existing settings affect it:
 - **CSP.** If you've tightened `TALISMAN_CONFIG`, keep `'self'` in `script-src` and `connect-src`.
 - **Cookies and paths.** The chat route is part of Superset, so if Superset works, the session reaches it.
 
-Earlier versions served Lenspack through a proxy rule with an `auth_request` sign-in check, and had a "beside" page
-on a port of its own. Both are gone: remove the `/lenspack/` proxy locations or Ingress, and any
-`LENSPACK_BESIDE_*`, `LENSPACK_URL` or `LENSPACK_SETTINGS_TOKEN` variables, when you upgrade.
+**Upgrading from an older setup.** Earlier versions served Lenspack through a proxy rule with an `auth_request`
+sign-in check, and had a separate page with the chat beside the dashboard, on a port of its own. Both are gone: when
+you upgrade, remove the `/lenspack/` proxy locations or Ingress, and any `LENSPACK_BESIDE_*`, `LENSPACK_URL` or
+`LENSPACK_SETTINGS_TOKEN` variables.
 
 ## What needs a restart
 
@@ -425,9 +465,10 @@ on a port of its own. Both are gone: remove the `/lenspack/` proxy locations or 
 | `superset_config.py`, `lenspack_superset.py`, the driver | Superset (all its pods or containers) |
 | French translation files | Superset |
 | `SECRET_KEY` | Superset, then Lenspack (it fetches the derived key at start) |
-| `lenspack-superset.yaml`, the LLM key, `LENSPACK_EDIT_POLICY`, `LENSPACK_AUDIT_RETENTION_DAYS` | Lenspack |
+| `lenspack-superset.yaml`, the LLM key, `LENSPACK_EDIT_POLICY`, `LENSPACK_HOST_POLICY`, `LENSPACK_AUDIT_RETENTION_DAYS` | Lenspack |
 | Datasets or saved metrics that Lenspack reads | Lenspack: it reads them at start |
 | Who owns a dashboard, users' roles | Nothing; checked on every request |
+| Dataset permissions and row-level security rules (with `hostPolicy: superset`) | Nothing; reach the chat within a minute |
 | Chat model, effort and language, set on the AI assistant page | Nothing; applied to the next message |
 | New dashboards | Nothing |
 
@@ -444,7 +485,7 @@ Charts that Lenspack saved are ordinary Superset charts; they stay unless you de
 
 ## Plain Kubernetes manifests
 
-[`../k8s/`](../k8s/) deploys this folder's own Superset image, which has the driver, the French labels and
+[`../deploy/k8s/`](../deploy/k8s/) deploys this folder's own Superset image, which has the driver, the French labels and
 `lenspack_superset.py` built in. The stock image works there too, the same way as with Helm:
 - the ConfigMap volume at `/app/lenspack`, plus `PYTHONPATH`, on the Superset Deployment and its init Job;
 - the import line in the config;
@@ -470,4 +511,7 @@ Charts that Lenspack saved are ordinary Superset charts; they stay unless you de
 - **Someone can ask but every change is refused.** Under the default policy, that is Superset saying they can't edit
   that dashboard: make them an owner (with a role that has `can_write` on Dashboard), or set
   `LENSPACK_EDIT_POLICY=signed-in`. The audit log records each refusal.
+- **Someone's chat has no data, or misses a dataset.** With `hostPolicy: superset`, their Superset roles don't give
+  them access to it. Grant access through a role, or check Lenspack's log for a row-level security rule it couldn't
+  apply ("access:" lines name the rule and why).
 - **The AI assistant page can't save.** Only admins can change settings. If it says Lenspack is unreachable, see the 502 case above.

@@ -1,6 +1,6 @@
-# Add Lenspack to an existing Superset 5
+# Add Lenspack to an existing Superset
 
-This adds the Lenspack chat to a running Superset 5 on the stock `apache/superset` image: an **Ask Lenspack** button on
+This adds the Lenspack chat to a running Superset 6.1 (5.0 also works; 6.0 untested) on the stock `apache/superset` image: an **Ask Lenspack** button on
 dashboards and an **AI assistant** admin page. You add two things:
 - one Python file, imported from `superset_config.py`;
 - a Lenspack container next to Superset.
@@ -9,25 +9,28 @@ Superset serves the chat itself at `/lenspack/`, to signed-in users only, so you
 Lenspack creates its own Superset account the first time it starts.
 Detail, options and troubleshooting are in the [reference](ADD-TO-EXISTING-SUPERSET-REFERENCE.md).
 
-Compose was tested by following these steps literally on `apache/superset:5.0.0`. The Helm values were rendered with chart 0.15.5 but not installed.
+Compose was tested by following these steps literally on `apache/superset:5.0.0`; Lenspack's Superset side is tested on `apache/superset:6.1.0` and `5.0.0`. The Helm values were rendered with charts 0.15.5 (Superset 5.0) and 0.22.8 (Superset 6.1) but not installed.
 
 ## Prerequisites
 
-- Superset 5.0 that already reads your data. For ClickHouse that means the `clickhouse-connect` driver ([adding it](ADD-TO-EXISTING-SUPERSET-REFERENCE.md#the-clickhouse-driver)).
+- Superset 6.1 or 5.0 that already reads your data. For ClickHouse that means the `clickhouse-connect` driver, 0.13 or later ([adding it](ADD-TO-EXISTING-SUPERSET-REFERENCE.md#the-clickhouse-driver)).
 - The password of a Superset admin, used once on Lenspack's first start.
-- The image `ghcr.io/theflywheel/lenspack:superset-a109f45` (public).
+- The image `ghcr.io/theflywheel/lenspack:b91d2bb` (public; the tag is a commit of Lenspack's `main`).
 - An Anthropic API key.
 
 ## Get the files
 
 ```sh
-REF=nl-dashboard/superset-lenspack
-BASE=https://raw.githubusercontent.com/egovernments/innovations/$REF/nl-dashboard
+# Superset's side comes from the Lenspack repository, at the same commit as the image.
+LENSPACK=https://raw.githubusercontent.com/theflywheel/lenspack/b91d2bb54ccb20c27891c77186b06a1069671290
+BASE=https://raw.githubusercontent.com/egovernments/innovations/nl-dashboard/superset-lenspack/nl-dashboard
 mkdir -p lenspack
-curl -fsSL -o lenspack/lenspack_superset.py   $BASE/superset/lenspack_superset.py
-curl -fsSL -o lenspack/lenspack-superset.yaml $BASE/lenspack/lenspack-superset.clickhouse.yaml
-curl -fsSL -o lenspack/setup.mts              $BASE/setup/setup.mts
+curl -fsSL -o lenspack/lenspack_superset.py   $LENSPACK/packages/hosts/superset/plugin/lenspack_superset.py
+curl -fsSL -o lenspack/lenspack-superset.yaml $BASE/deploy/lenspack/lenspack-superset.clickhouse.yaml
+curl -fsSL -o lenspack/setup.mts              $BASE/demo-data/setup/setup.mts
 ```
+
+When you move to a newer Lenspack image, download `lenspack_superset.py` again at that commit.
 
 For your own datasets, edit `lenspack/lenspack-superset.yaml` ([how](ADD-TO-EXISTING-SUPERSET-REFERENCE.md#get-the-files)).
 
@@ -60,9 +63,10 @@ docker compose exec superset python -c "import lenspack_superset; print('ok')"
 
 ```yaml
   lenspack:
-    image: ghcr.io/theflywheel/lenspack:superset-a109f45
+    image: ghcr.io/theflywheel/lenspack:b91d2bb
+    command: ["superset", "--config", "/config/lenspack-superset.yaml"]
     environment:
-      SUPERSET_URL: http://superset:8088                    # Superset itself, from inside the Compose network
+      LENSPACK_SUPERSET_URL: http://superset:8088           # Superset itself, from inside the Compose network
       SUPERSET_ADMIN_PASSWORD: ${SUPERSET_ADMIN_PASSWORD}    # first start only (user "admin"; else set SUPERSET_ADMIN_USERNAME)
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
     volumes:
@@ -91,6 +95,11 @@ The log shows that Lenspack created its account. After that, `SUPERSET_ADMIN_PAS
 service, because the account's password is kept in `lenspack-data`. If you already have a `lenspack` user that other tools
 sign in as, set `LENSPACK_SUPERSET_PASSWORD` to its password instead. Lenspack then uses that account as it is
 ([optional](ADD-TO-EXISTING-SUPERSET-REFERENCE.md#lenspacks-superset-account)).
+
+**Who sees what.** The sample config sets `hostPolicy: superset`; keep it for any real deployment. Each person's answers
+then follow their own Superset dataset permissions and simple row-level security rules. Give everyone who will use the
+chat dataset access through their Superset roles first: a user with Superset's Gamma role alone gets a chat with no data
+([what each person sees](ADD-TO-EXISTING-SUPERSET-REFERENCE.md#what-each-person-sees)).
 
 Optional: [French labels](ADD-TO-EXISTING-SUPERSET-REFERENCE.md#french-labels), and [who may edit through the chat](ADD-TO-EXISTING-SUPERSET-REFERENCE.md#who-may-do-what).
 

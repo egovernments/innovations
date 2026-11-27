@@ -9,8 +9,8 @@ most vials. Each new view waits for an analyst to write SQL and build a chart, w
 
 ## What it does
 
-An **Ask Lenspack** button sits on every Superset dashboard. People type or speak a request in English, French or
-Hindi:
+An **Ask Lenspack** button sits on every Superset dashboard. People type or speak a request in English, French,
+Hindi or Portuguese:
 - *"Show zero-dose share by LGA"*;
 - *"Put the coverage trend under the KPIs"*;
 - *"Which settlements are below 80 %?"*
@@ -24,7 +24,7 @@ The answer comes back in seconds, as a sentence and, when asked, as an ordinary 
 
 ## How it fits eGov's stack
 
-- **Superset isn't forked.** The stock Apache Superset 5 image plus one Python file and one small container.
+- **Superset isn't forked.** The stock Apache Superset 6.1 image plus one Python file and one small container.
 - **Access is Superset's.** Anyone who can view a dashboard can ask about it. Only people Superset lets edit it can
   change it. Settings are for admins.
 - **Every change and refusal is logged** with the Superset user, and kept for 90 days.
@@ -33,35 +33,61 @@ The answer comes back in seconds, as a sentence and, when asked, as an ordinary 
 ## Evidence
 
 We ran 68 questions, from totals and breakdowns to multi-step arithmetic, dashboard edits and requests it should
-decline, three times each on synthetic campaign data in eGov's unified-dev ClickHouse.
+decline, three times each on synthetic campaign data in eGov's development ClickHouse (unified-dev).
 
 | Model | Pass rate | Cost per right answer | Typical reply time |
 |---|---|---|---|
-| Claude Haiku 5.5, tuned config | **95 %** | **$0.0015** | under 5 s |
+| Claude Haiku 5.5, config with definitions | **95 %** | **$0.0015** | under 5 s |
 | Claude Sonnet 5.5 | 91 % | $0.020 | about 5 s |
 | Claude Opus 5.5 | 91 % | $0.038 | about 7 s |
 
-Sonnet and Opus ran on the config before tuning, on which Haiku scored 89 %.
+Sonnet and Opus ran on the config without the definitions, on which Haiku scored 89 %.
 
 - **No confidently wrong answers** in the full runs after hand checking; misses were partial answers or wrong refusals.
 - **The gains came from configuration,** not code: naming each ambiguous measure's definition.
 - **A thousand questions on Haiku cost under $2.**
 
+## Running cost
+
+What one question costs, measured on a masked copy of real campaign data with the app set up as in production (the second
+check that reviews each dashboard change switched on), at Claude list prices. Full results: [evals/agent/REAL-DATA.md](../evals/agent/REAL-DATA.md).
+A spoken question adds the speech-to-text cost: Voxtral Mini Transcribe, measured on our 315 test recordings (about 6
+seconds each), averages $0.0003 a question.
+
+| | Claude Haiku 5.5 | Claude Sonnet 5.5 | Claude Opus 5.5 |
+|---|---|---|---|
+| Questions answered correctly | 97 % | 98 % | 100 % |
+| Cost per question, typed | $0.0014 | $0.025 | $0.043 |
+| Cost per question, spoken | $0.0017 | $0.025 | $0.043 |
+| **A campaign of 80,000 questions, typed** | **$112** | **$1,990** | **$3,440** |
+| **The same, all spoken** | **$136** | **$2,020** | **$3,460** |
+
+80,000 questions is a first estimate for one campaign, to be checked: about 7,000 field workers managed by 500 to 700
+supervisors, each asking around 10 questions a day (more at each level above), so about 8,000 questions a day for 10 days.
+If field workers asked questions too, the count would be several times higher.
+
+Haiku is the default: it is within one or two points of Sonnet and Opus at about an eighteenth and a thirtieth of their cost. The cost of each answer, speech
+included, is shown under the reply and kept in the audit log, so real usage can replace these estimates once a campaign
+runs.
+
 The method, every run and each failure analysis are in [`evals/`](../evals/).
 
 ## Where it stands
 
-- **Running now** on eGov's HCM lab VM over HTTPS, against unified-dev data, with voice input.
+- **Running now** on eGov's HCM lab server over HTTPS, with voice input. Since the development ClickHouse ran out of
+  disk, it answers on a masked copy of a real campaign's data, run through eGov's own analytics pipeline
+  ([how the data is built](ANALYTICS-PIPELINE.md)).
 - **Open source:** [Lenspack](https://github.com/theflywheel/lenspack) and this deployment
-  ([innovations#3](https://github.com/egovernments/innovations/pull/3)).
-- **Known limits:** row-level security doesn't yet follow the person asking (chart data runs as one service account);
-  seven chart types are editable (KPI, pie, line, area, bar, table, heatmap), and maps and others can be moved but not changed.
+  ([`nl-dashboard/`](https://github.com/egovernments/innovations/tree/master/nl-dashboard) in this repository).
+- **Known limits:** each person's Superset dataset permissions and simple row-level security rules apply to every
+  answer; a dataset whose rules are too complex to apply is hidden from that person rather than risk a leak. Eight chart types are editable (KPI, pie, line, area, bar, table, heatmap and point maps), and others can be moved but
+  not changed.
 
 ## Next steps
 
 1. **Pilot with one campaign team** on real (masked) data, measuring time from question to answer.
-2. **Per-user row-level security**, so each person sees only their own geography.
-3. **A map widget** for facility-level views.
+2. **Row-level security by geography** for the pilot team, so each person sees only their own area (Lenspack already applies Superset's rules; the rules need setting up).
+3. **Shaded-area maps** for wards and LGAs (point maps are done; shading needs boundary shapes in a dataset).
 4. **Build the vocabulary from Superset alone**, so a new deployment needs no hand-written configuration.
 
 Technical detail: [ARCHITECTURE.md](ARCHITECTURE.md).
