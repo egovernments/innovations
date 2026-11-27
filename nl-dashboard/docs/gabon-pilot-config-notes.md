@@ -98,8 +98,8 @@ deploy PRs).
 
 | | |
 |---|---|
-| **Image** | `b91d2bb`, in `lenspack.image.tag` in the environment file (it pins both charts) |
-| **What it includes** | Lenspack #105 (access modes, named owners, the Access page, first-use audit lines, the new-admin notice) and #111 (where the admin pages live, and the menu entry for named admins) |
+| **Image** | `70f1003`, in `lenspack.image.tag` in the environment file (it pins both charts) |
+| **What it includes** | Lenspack #105 (access modes, named owners, the Access page, first-use audit lines, the new-admin notice) and #111 (where the admin pages live, and the menu entry for named admins), and #114 (the assistant on listed dashboards only) |
 
 ## The rest of the configuration
 
@@ -107,6 +107,7 @@ What the deploy PRs set today, and why.
 
 | Setting | Value | Why |
 |---|---|---|
+| Dashboards | only the Gabon ITN dashboard (`LENSPACK_DASHBOARD_SCOPE=listed`, `LENSPACK_DASHBOARDS=25`): no Ask button and no chat on any other dashboard, for anyone, admins included | this Superset also hosts other states' dashboards |
 | Datasets | the seven Gabon ITN virtual datasets in schema `analytics` (`itn_gab_area`, `itn_gab_sync_hourly`, `itn_gab_bales`, `itn_gab_task_points`, `itn_gab_reg_points`, `itn_gab_complaints`, `itn_gab_refresh`) | the dashboard's own datasets. Not `itn_gab_codes` (one row per bednet code) |
 | Campaign | every answer is about the November 2026 campaign, set by the deployment (`scope`), whatever is picked on the dashboard | the datasets hold more than one campaign. `itn_gab_refresh` has no campaign column and stays unscoped |
 | Personal data | the assistant never uses household ids, exact coordinates, bednet codes or complaint ids (`overlay.exclude.columns`), though the datasets hold them | rows go to the model provider. Without coordinates there are no maps in the pilot |
