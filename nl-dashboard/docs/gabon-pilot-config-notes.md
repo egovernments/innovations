@@ -1,11 +1,13 @@
 # Gabon pilot: configuration notes
 
-These notes record how the assistant ("Ask HCM") is set up for its first live rollout: the Gabon bednet (ITN)
-distribution campaign, on the production Superset at `gabon-hcm.digit.org/superset`. They cover who can use it, who
-runs it, where its settings live, the rest of its configuration, and what still has to happen before go-live.
+These notes record how the assistant ("HCM Assistant", button "Ask HCM") is set up for its first live rollout: the
+Gabon bednet (ITN) distribution campaign, on the production Superset at `gabon-hcm.digit.org/superset`. They cover who
+can use it, who runs it, where its settings live, the rest of its configuration, and what still has to happen before
+go-live.
 
-The deployment itself is two draft pull requests in the Nigeria-DevOps repository: one adds the Lenspack server chart,
-the other adds Lenspack's plugin to the Superset chart. Both read one shared `lenspack:` block in the environment file.
+The deployment itself is two pull requests in the Nigeria-DevOps repository: one adds the Lenspack server chart,
+the other adds Lenspack's plugin to the Superset chart. Both read one shared `lenspack:` block in the environment file,
+which switches Lenspack on, so merging them is the deploy. How to run it: [FOR-DEVOPS.md](FOR-DEVOPS.md).
 
 Decided on 27 November 2026 unless marked otherwise.
 
@@ -18,7 +20,9 @@ Decided on 27 November 2026 unless marked otherwise.
 - **Superset roles grant no admin.** A Superset Admin can't make themselves an admin of the assistant.
 - **Nobody else sees the Ask button at launch.**
 - **The settings live inside Superset**, on its own "AI assistant" page, not on a separate admin panel.
-- **No admin passwords.** Everyone signs in through Superset.
+- **No admin passwords.** People sign in through Superset. The one way in without Superset is an optional admin API
+  key that the Lenspack team holds (the cluster keeps only its hash), so the assistant can be run without access to the
+  server.
 
 ## Who runs it: the `editor` login
 
@@ -87,8 +91,18 @@ deploy PRs).
 
 | | |
 |---|---|
-| **Image** | `70f1003`, in `lenspack.image.tag` in the environment file (it pins both charts) |
-| **What it includes** | Lenspack #105 (access modes, named owners, the Access page, first-use audit lines, the new-admin notice) and #111 (where the admin pages live, and the menu entry for named admins), and #114 (the assistant on listed dashboards only) |
+| **Image** | `3d0bc57`, in `lenspack.image.tag` (the server) and `lenspack.pluginTag` (Superset's copy of the plugin) in the environment file. Changing only `image.tag` restarts only the Lenspack pod; changing `pluginTag` restarts Superset |
+| **What it includes** | Lenspack #105 (access modes, named owners, the Access page, first-use audit lines, the new-admin notice), #111 (where the admin pages live, and the menu entry for named admins), #114 (the assistant on listed dashboards only), #115 (the admin API key) and #120/#121 (changing the vocabulary while it runs, and the Pack tab on the admin pages) |
+
+## Admin API key
+
+| | |
+|---|---|
+| **What it is for** | the Lenspack team has no access to the cluster or the server. With the key, sent as `Authorization: Bearer <key>` to `https://gabon-hcm.digit.org/superset/lenspack/_admin/<route>`, it can change settings and switches, grant access, and edit the vocabulary (labels, hints, measures, examples) while the assistant runs, and read the audit log and usage |
+| **What it can't do** | use the chat, or read dashboards or data. It is not a Superset user |
+| **Where it lives** | the secrets file holds one line, `lab:scrypt$…`: a hash, not the key. It reaches the server as `LENSPACK_ADMIN_API_KEYS` from `lenspack-secrets`, and is optional |
+| **How it shows** | as `api:lab` in the audit log and on the Access page. It counts as an owner, so treat it as a master key |
+| **Rotate or remove** | eGov replaces or removes the line and restarts the Lenspack pod |
 
 ## The rest of the configuration
 
@@ -101,9 +115,9 @@ What the deploy PRs set today, and why.
 | Campaign | every answer is about the November 2026 campaign, set by the deployment (`scope`), whatever is picked on the dashboard | the datasets hold more than one campaign. `itn_gab_refresh` has no campaign column and stays unscoped |
 | Personal data | the assistant never uses household ids, exact coordinates, bednet codes or complaint ids (`overlay.exclude.columns`), though the datasets hold them | rows go to the model provider. Without coordinates there are no maps in the pilot |
 | Model | Claude Haiku only (`LENSPACK_LLM_PROVIDERS`) | the cheapest model that scored well on our evaluations |
-| Daily spend cap | 20 USD for the whole deployment (`budget.usdPerDay`) | a ceiling, not an estimate |
+| Daily spend caps | 20 USD for the whole deployment (`budget.usdPerDay`) and 2 USD per person (`budget.usdPerUserPerDay`) | ceilings, not estimates |
 | Language | French for the chat and the dashboard button | the campaign works in French |
-| Name | "Ask HCM" ("Demander à HCM"), no "Powered by Lenspack" line | |
+| Name | "HCM Assistant", with the button "Ask HCM" ("Demander à HCM" in French), and no "Powered by Lenspack" line | |
 | Saved answers | off (`features.cache: false`) | they keep the words of questions |
 | Question text in usage records | off (the default) | |
 | Audit log | kept 30 days | it holds questions, answers and result rows |
@@ -120,9 +134,11 @@ key. Neither applies to the pilot, since the assistant doesn't use coordinates.
 ## Before go-live
 
 1. The owner's id (`id:2`) is in `LENSPACK_ADMIN_USERS` in the deploy PR (done).
-2. The deploy PRs are out of draft for eGov's review. Secrets are added by eGov: the `lenspack` Superset login's
-   password and the model key.
-3. `lenspack.enabled: true` in the environment file.
+2. **Secrets first.** eGov adds the `lenspack` Superset login's password and the model key (and, optionally, the admin
+   API key's hash) to the secrets file and syncs `cluster-configs`. Superset creates the `lenspack` login only when it
+   starts, so the password must be there before the merge.
+3. **Then the merge.** eGov merges the Superset plugin PR, then the server PR, which has `lenspack.enabled: true`.
+   Superset restarts once and the server starts.
 
 ## Checks after deploy
 
