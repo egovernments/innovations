@@ -12,14 +12,14 @@ The deployment is two draft pull requests in `HCM-BAUCHI/Nigeria-DevOps`:
   `backbone-services/lenspack`, its Secret and its Argo CD entry.
 
 Both are **off by default** and read one shared `lenspack:` block in `environments/bauchi-central-prd.yaml`. Everything
-below was checked against the chart templates in those PRs (#99 at `af62c39`, #100 at `42847b4`, rendered together with
+below was checked against the chart templates in those PRs (#99 at `3664857`, #100 at `41221a6`, rendered together with
 `helm template`). Values written `{{…}}` are not known yet and are marked "<-- needs updating".
 
 ## What runs
 
 | Piece | Kind and name (namespace `superset`) | Image | Notes |
 |---|---|---|---|
-| Lenspack server | Deployment `lenspack`, 1 replica, strategy `Recreate` | `ghcr.io/theflywheel/lenspack:b91d2bb` (public, no pull secret) | Starts with `superset --config /config/superset.yaml`. Runs as user 1000, read-only root filesystem, no service account token. Keep one replica: it keeps per-process state. |
+| Lenspack server | Deployment `lenspack`, 1 replica, strategy `Recreate` | `ghcr.io/theflywheel/lenspack:70f1003` (public, no pull secret) | Starts with `superset --config /config/superset.yaml`. Runs as user 1000, read-only root filesystem, no service account token. Keep one replica: it keeps per-process state. |
 | Its config | ConfigMap `lenspack-config` (`superset.yaml`) | | Built by the chart from the env file's `lenspack:` block. A change restarts the pod (checksum annotation). |
 | Its state | PVC `lenspack-data`, 5 GiB, `gp3`, ReadWriteOnce, mounted at `/data` | | Settings changed on the settings page, the audit log, usage records. Argo CD never prunes it (`Prune=false`). |
 | Its address | Service `lenspack`, ClusterIP, port 8795 | | **No Ingress.** Only Superset talks to it. |
@@ -27,6 +27,9 @@ below was checked against the chart templates in those PRs (#99 at `af62c39`, #1
 | Superset's side | Existing Deployment `superset`: one more init container, `copy-lenspack-plugin` | the same Lenspack image and tag | Copies one file, `lenspack_superset.py`, into an `emptyDir` at `/app/lenspack`. `superset_config.py` imports it. Superset stays on the stock `apache/superset:6.1.0` image. |
 | Superset setup | Existing `setup` init container | | Also creates two Superset roles, `Lenspack user` and `Lenspack admin` (no permissions), and the `lenspack` login (Superset `Admin` role, password from the Secret). |
 | Argo CD | `lenspack` in the egov backbone ApplicationSet: app `egov-lenspack` | | Same wiring as `superset`: auto-sync with self-heal, **prune off**. |
+
+**One dashboard.** The assistant is switched on for the Gabon ITN dashboard only (id 25). Its Ask button shows nowhere
+else, and the server refuses chat requests about any other dashboard, for everyone, admins included.
 
 **One switch, one version.** `lenspack.enabled` and `lenspack.image.tag` in the env file drive both charts, so the
 plugin inside Superset and the server always come from the same Lenspack version.
@@ -67,6 +70,8 @@ browser ─► ingress (gabon-hcm.digit.org/superset) ─► Superset :8088
 | `LENSPACK_ADMIN_USERS` | `id:{{pilot account user id}}` <-- needs updating | env file, `lenspack.extraEnv` | yes, for this setup | Empty: nobody is an admin (a warning in the log). Left as the placeholder: the server stops at start with `"id:{{…}}" is not a user id`. |
 | `LENSPACK_USER_ACCESS` | `superset-role,granted` | env file, `lenspack.extraEnv` | no | Default `superset-role`: holders of `Lenspack user`, and admins. |
 | `LENSPACK_ADMIN_SURFACE` | `superset` | env file, `lenspack.extraEnv` | no | Default `split`: part of the settings move to Lenspack's own admin panel (still reached through Superset). |
+| `LENSPACK_DASHBOARD_SCOPE` | `listed` | env file, `lenspack.extraEnv` | yes, for this setup | Default `any`: the Ask button on every dashboard a person may open in Superset. `listed` with no dashboards listed stops the server at start. |
+| `LENSPACK_DASHBOARDS` | `"25"` (the Gabon ITN dashboard; ids separated by commas) | env file, `lenspack.extraEnv` | yes, with `listed` | Missing under `listed`: the server stops at start. A wrong id puts the assistant on the wrong dashboard, or on none. |
 | `LENSPACK_HOST`, `NODE_ENV`, `LENSPACK_UI` | `0.0.0.0`, `production`, a folder | the image | | `LENSPACK_UI` is unused in this mode. |
 
 Not set, and not needed here: `SUPERSET_ADMIN_USERNAME` / `SUPERSET_ADMIN_PASSWORD` (Superset's setup makes the
@@ -91,7 +96,8 @@ Only while `lenspack.enabled` is true. Superset's own variables (`SUPERSET_SECRE
 No environment variables. Command: `cp /app/packages/hosts/superset/plugin/lenspack_superset.py /app/lenspack/`.
 Resources 10m / 16Mi requested, 100m / 64Mi limit. **It runs on Superset's start path:** if the Lenspack image can't be
 pulled (a mistyped tag, ghcr.io unreachable), the new Superset pod stays in `Init` and, because Superset uses
-`Recreate`, Superset is down until it is fixed. Check that the tag exists before merging a tag change.
+`Recreate`, Superset is down until it is fixed. Check that the tag exists before merging a tag change:
+`docker manifest inspect ghcr.io/theflywheel/lenspack:<tag>`.
 
 ### The secrets file (`bauchi-central-prd-secrets.yaml`)
 
@@ -109,9 +115,9 @@ login to the new value), then restart Lenspack.
 | Key | Pilot value | Chart default |
 |---|---|---|
 | `enabled` | `false` now, `true` to switch on | `false` |
-| `image.tag` | `b91d2bb` | `b91d2bb` |
+| `image.tag` | `70f1003` | `70f1003` |
 | `datasets` | the seven Gabon ITN datasets in schema `analytics` | none: the chart refuses to render without them |
-| `extraEnv` | the five variables above | none |
+| `extraEnv` | the seven variables above | none |
 | `config.auth.users` | `["Lenspack user"]` (held by nobody at launch) | the same |
 | `config.scope`, `language`, `brand`, `overlay` | campaign scope, French, "Ask HCM", the vocabulary for the Gabon datasets | |
 | `config.features.cache` | `false` (saved answers keep the words of questions) | on |
@@ -141,19 +147,23 @@ Superset thread while it streams (30–60 s), so about 30 chats can run at once 
 
 ## Switch on
 
-1. **Before:** the pilot account exists in Superset with its read-only Gabon role, and its user id is in
-   `LENSPACK_ADMIN_USERS` (signed in as that account, `GET /superset/api/v1/me/` returns it as `result.id`). The seven
-   datasets exist in Superset.
-2. **Secrets:** add the two keys above and sync `cluster-configs`. Check that `lenspack-secrets` exists in `superset`
-   and that `superset-secrets` has `lenspack-password`.
-3. **Render and diff** with the deployer (`go run main.go deploy -e bauchi-central-prd superset -p`, and the same for
-   `lenspack`), before and after the change. Switching on adds about 80 lines to Superset's render (the init container, a volume,
-   the variables, the setup steps) and four Lenspack objects (ConfigMap, Deployment, PVC, Service).
-4. **Set `lenspack.enabled: true`** on `ng-central-prd`. Argo CD syncs `egov-superset` (Superset restarts once; with
+1. **Check the image exists:** `docker manifest inspect ghcr.io/theflywheel/lenspack:70f1003`. Superset's init container
+   pulls it on every start, so a wrong tag keeps Superset in `Init`.
+2. **Before:** the pilot account exists in Superset with its read-only Gabon role, and its user id replaces
+   `{{pilot account user id}}` in `LENSPACK_ADMIN_USERS` (signed in as that account, `GET /superset/api/v1/me/` returns
+   it as `result.id`). With the placeholder left in, the server refuses to start and says why. The seven datasets and
+   dashboard 25 exist in Superset.
+3. **Secrets:** add the two keys above and sync `cluster-configs`. Check that `lenspack-secrets` exists in `superset`
+   and that `superset-secrets` has `lenspack-password`. Without them the Lenspack pod stays in
+   `CreateContainerConfigError`.
+4. **Render and diff** with the deployer (`go run main.go deploy -e bauchi-central-prd superset -p`, and the same for
+   `lenspack`), before and after the change. Switching on adds about 80 lines to Superset's render (the init container,
+   a volume, the variables, the setup steps) and four Lenspack objects (ConfigMap, Deployment, PVC, Service).
+5. **Set `lenspack.enabled: true`** on `ng-central-prd`. Argo CD syncs `egov-superset` (Superset restarts once; with
    `Recreate` that is a short outage) and `egov-lenspack` (the server starts).
-5. **Check** the log lines below, then sign in as the pilot account: "Demander à HCM" shows on the Gabon dashboard, a
-   question gets an answer, and Settings → Manage → AI assistant opens. Any other login sees no button. Signed out,
-   `/superset/lenspack/overlay.js` answers 401.
+6. **Check** the log lines below, then sign in as the pilot account: "Demander à HCM" shows on the Gabon dashboard and
+   on no other dashboard, a question gets an answer, and Settings → Manage → AI assistant opens. Any other login sees no
+   button. Signed out, `/superset/lenspack/overlay.js` answers 401.
 
 ## Log lines to check
 
@@ -161,7 +171,7 @@ Superset thread while it streams (30–60 s), so about 30 chats can run at once 
 |---|---|---|---|
 | Superset setup | `kubectl -n superset logs deploy/superset -c setup` | `created role Lenspack user`, `created user lenspack` (later starts: nothing, or `reset password of lenspack`) | `WARNING: superset-secrets has no lenspack-password of at least 24 characters` |
 | Superset web | `kubectl -n superset logs deploy/superset -c superset` | no Lenspack errors | `Lenspack plugin not loaded; Superset runs without it` |
-| Lenspack | `kubectl -n superset logs deploy/lenspack` | `lenspack-superset: pack itn_gabon: 7 datasets, …`; `identity: signed by Superset; edit policy superset; host policy superset; audit … (30 days); Superset account lenspack (env)`; `admins: named Superset users (1 owner from LENSPACK_ADMIN_USERS, …`; `users: … (access superset-role,granted, from LENSPACK_USER_ACCESS)`; `admin pages: superset …`; a line starting `http://0.0.0.0:8795/` that says `chat on` | `identity: NO KEY (still trying)` is fine for a while: wait for `identity key fetched from Superset after N tries`. Any `warning:` line deserves a read. |
+| Lenspack | `kubectl -n superset logs deploy/lenspack` | `lenspack-superset: pack itn_gabon: 7 datasets, …`; `identity: signed by Superset; edit policy superset; host policy superset; audit … (30 days); Superset account lenspack (env)`; `admins: named Superset users (1 owner from LENSPACK_ADMIN_USERS, …`; `users: … (access superset-role,granted, from LENSPACK_USER_ACCESS)`; `admin pages: superset …`; `dashboards: listed (25 …)`; a line starting `http://0.0.0.0:8795/` that says `chat on` | `identity: NO KEY (still trying)` is fine for a while: wait for `identity key fetched from Superset after N tries`. Any `warning:` line deserves a read. |
 
 ## Switch off, roll back, upgrade
 
@@ -177,7 +187,8 @@ dashboard edits (the "Dashboard edits" switch) on the settings page.
 1. Read [Lenspack's changes](https://github.com/theflywheel/lenspack/commits/main) between the two versions and
    [the upgrade notes](https://github.com/theflywheel/lenspack/blob/main/docs/hosts/superset/upgrading.md).
 2. Snapshot the volume behind `lenspack-data`.
-3. Check the new tag exists (`ghcr.io/theflywheel/lenspack:<tag>`; tags are commits of Lenspack's `main`).
+3. Check the new tag exists: `docker manifest inspect ghcr.io/theflywheel/lenspack:<tag>` (tags are commits of
+   Lenspack's `main`).
 4. Change `lenspack.image.tag` in the env file. That one value moves both charts. A tag given on the deployer's command
    line does not override it.
 5. Render and diff: only the image lines and the config checksum should change. Merge. Superset restarts once (new
@@ -227,6 +238,8 @@ More: [Privacy](https://github.com/theflywheel/lenspack/blob/main/docs/operating
 | `lenspack` pod in `CreateContainerConfigError` | a missing Secret or key | add the secret, sync `cluster-configs` |
 | Superset pod stuck in `Init` | the Lenspack image tag can't be pulled | fix `lenspack.image.tag`, or switch off |
 | Lenspack exits: `is not a user id` | the `{{pilot account user id}}` placeholder | put the real id in `LENSPACK_ADMIN_USERS` |
+| Lenspack exits: `… is "listed" but … lists none` | `LENSPACK_DASHBOARDS` empty or missing | list the dashboard ids |
+| no Ask button on some dashboard | expected: only dashboard 25 is listed | add its id to `LENSPACK_DASHBOARDS` if it should have one |
 | Lenspack exits: `Superset dataset "…": not found` | a dataset in `datasets` doesn't exist in Superset | create it, or fix the name (`schema.table`) |
 | `Superset sign-in failed (401)` | the `lenspack` login wasn't created (see the setup `WARNING`) or Superset wasn't restarted after a password change | fix the secret, restart Superset, then Lenspack |
 | pod 0/1 ready for a long time, `NO KEY` | the plugin isn't loaded, or Superset is down | look for `Lenspack plugin not loaded` in Superset's log |
