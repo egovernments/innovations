@@ -11,11 +11,12 @@ Decided on 27 November 2026 unless marked otherwise.
 
 ## In short
 
-- **One internal account runs the assistant at launch.** eGov creates a Superset account for the pilot team only. It
-  holds the `Lenspack admin` role and sees the assistant's settings and usage pages. It is not a Superset Admin.
-- **Nobody else sees the Ask button at launch.** The `Lenspack user` role exists but nobody holds it yet. Opening the
-  assistant to more people later means giving them that role in Superset. Nothing is redeployed.
-- **More admins later** get the `Lenspack admin` role the same way.
+- **One internal account owns the assistant at launch.** eGov creates a Superset account for the pilot team only. The
+  deployment names it by its Superset user id as the assistant's owner. It is not a Superset Admin.
+- **The owner decides who else gets in, later.** On the assistant's Access page the owner adds admins and users by
+  Superset user name or id. Nothing is redeployed.
+- **Superset roles grant no admin.** A Superset Admin can't make themselves an admin of the assistant.
+- **Nobody else sees the Ask button at launch.**
 - **The settings live inside Superset**, on its own "AI assistant" page, not on a separate admin panel.
 - **No admin passwords.** Everyone signs in through Superset.
 
@@ -26,8 +27,13 @@ Decided on 27 November 2026 unless marked otherwise.
 | | |
 |---|---|
 | **Who uses it** | the pilot team only; the password stays in the team's password store and is never put on a shared list |
-| **Roles** | `Lenspack admin`, plus a read-only role that opens the Gabon ITN dashboard and its datasets and nothing else |
+| **Roles** | a read-only role that opens the Gabon ITN dashboard and its datasets and nothing else |
 | **Not** | Superset's `Admin` role, or any role that opens other countries' or states' data on the same Superset |
+| **We need back** | the account's Superset user id |
+
+**Getting the id:** sign in as the account and open `https://gabon-hcm.digit.org/superset/api/v1/me/`. The reply's
+`result.id` is the id. A Superset Admin can also read it in Settings → List Users. An id stays with one account; a
+user name would pass admin to any new account later created with the same name.
 
 **Why a read role scoped to Gabon:** the assistant answers with whatever data the person asking may see in Superset
 (`hostPolicy: superset`). A Superset Admin account would put every dataset on this Superset within the assistant's
@@ -35,66 +41,63 @@ reach. A Gabon-only role keeps the pilot to the Gabon data even if a question wa
 (`DASHBOARD_RBAC`) are on, so the role can open the dashboard by name.
 
 **Why not the shared logins:** the chart's setup script resets the roles of its fixed `admin`, `editor` and `viewer`
-logins on every start, so a role given to them would vanish. And a login many people share can't tell the usage pages
-who asked.
+logins on every start. And a login many people share can't tell the usage pages who asked.
 
-## Who is an admin
+## Who is an admin: named users
 
-**Setting:** `auth.admins: ["Lenspack admin"]`. This is already in the Lenspack chart. The access mode is
-`superset-role`, the default, so nothing else needs setting.
+**Settings** (in the Lenspack block's `extraEnv`):
+
+```
+LENSPACK_ADMIN_ACCESS=superset-users
+LENSPACK_ADMIN_USERS=id:{{pilot account user id}}    <-- needs updating
+```
 
 | | |
 |---|---|
-| **What an admin gets** | the assistant's settings, the usage pages (including user names in telemetry), the audit log and the Access list |
-| **At launch** | only the internal account |
-| **Add an admin later** | in Superset, Settings → List Users, give the person `Lenspack admin`. It applies from their next page load |
-| **Remove one** | take the role away the same way |
-| **Who sees user names on the usage pages** | the admin roles (`auth.usage` follows `auth.admins` unless set) |
+| **The owner** | the internal account. Owners come from the deployment and can't be removed on the page |
+| **What an admin gets** | the assistant's settings, the usage pages (with user names), the audit log and the Access page |
+| **Add an admin later** | the owner adds a Superset user name or `id:<n>` under **Admins** on the Access page. It applies from that person's next request |
+| **Remove one** | the owner removes them on the same page |
+| **Who can add admins** | owners only. An admin the owner added can't add others |
+| **Superset roles** | grant no admin in this mode, not even Superset's `Admin` |
 
-**What this mode can't stop.** Anyone who can edit roles in Superset (every Superset Admin on this instance) could give
-themselves `Lenspack admin`. We accept that for the pilot. With the access release (Lenspack #105, below) it is visible:
-the admin pages list everyone who has used admin rights, the audit log gets a line the first time each person does, and
-every admin sees "New admin since your last visit" when someone new appears.
+The Access page lists everyone who has used admin rights. The audit log gets a line the first time each person does,
+and every admin sees "New admin since your last visit" when someone new appears.
 
-If that turns out not to be enough, the stricter mode is `superset-users`: name the internal account by its Superset
-user id (`LENSPACK_ADMIN_ACCESS=superset-users`, `LENSPACK_ADMIN_USERS=id:<n>`), and holding a role grants nothing.
-Admins are then added on the assistant's Access page, not in Superset.
+The Superset chart still creates a `Lenspack admin` role. It is unused in this mode.
 
 ## Who may use it
 
-**Setting:** `auth.users: ["Lenspack user"]`. This is already in the Lenspack chart. The access mode is
-`superset-role`, the default.
+**Settings:** `LENSPACK_USER_ACCESS=superset-role,granted`, with `auth.users: ["Lenspack user"]`.
 
 | | |
 |---|---|
-| **At launch** | nobody holds `Lenspack user`, so only admins (the internal account) see the Ask button |
-| **Open it to people later** | give them `Lenspack user` in Superset. It applies from their next page load |
-| **What they see** | still only what Superset lets them see; the role only switches the assistant on |
+| **At launch** | nobody added and nobody holds `Lenspack user`, so only the owner sees the Ask button |
+| **Open it to people later** | an admin adds them under **Users** on the Access page, or a Superset Admin gives them `Lenspack user`. Either lets them in, from their next page load |
+| **What they see** | still only what Superset lets them see; being let in only switches the assistant on |
 | **Everyone else** | no Ask button; every chat route answers "The assistant isn't turned on for your account" |
 
-Both roles are made by the Superset chart's setup script (`lenspack.roles.user` and `lenspack.roles.admin`), with no
-Superset permissions of their own. They grant nothing in Superset itself.
+To make the Access page the only way in, set `LENSPACK_USER_ACCESS=granted`.
 
 ## Where the settings live: inside Superset
 
-**Setting:** `LENSPACK_ADMIN_SURFACE=superset`, in the Lenspack chart's `extraEnv`.
+**Setting:** `LENSPACK_ADMIN_SURFACE=superset`.
 
 Every admin page (settings, usage, telemetry, review, models, off switches, cost, the audit log and access) opens
 inside Superset's own frame, at `/superset/ai-assistant/`. The assistant's separate admin panel address leads there
 too. We chose this because only one account has access at launch, and it already works in Superset.
 
-**To fix before go-live:** Superset's menu entry (Settings → Manage → AI assistant) shows only for Superset Admins.
-The internal account isn't one, so it would have to open the page by its address. The fix is for the plugin to also
-show the entry to holders of the `Lenspack admin` role. That check stays inside Superset and needs no call to the
-assistant.
+**Being fixed in Lenspack:** Superset's menu entry (Settings → Manage → AI assistant) showed only for Superset Admins,
+so the owner (not a Superset Admin) would have had to open the page by its address. The plugin will also show the
+entry to the people Lenspack names as admins. Seeing the entry grants nothing: Lenspack still decides access on every
+request.
 
 ## Lenspack version
 
 | | |
 |---|---|
-| **In the deploy PRs today** | Lenspack `2b9eb83`. Roles for users and admins already work |
-| **Needed for the choices above** | Lenspack #105 (access modes, the admins list, first-use audit lines, the new-admin notice) and #111 (where the admin pages live), both merged, then a new image |
-| **Then** | bump `lenspack.image.tag` in the environment file (it pins both charts), add `LENSPACK_ADMIN_SURFACE`, and drop the admin-password key and comments from the Lenspack chart |
+| **Needed** | Lenspack #105 (access modes, named owners, the Access page, first-use audit lines, the new-admin notice) and #111 (where the admin pages live, with the menu-entry fix), both merged |
+| **Then** | put the new image tag in `lenspack.image.tag` in the environment file (it pins both charts). Until then it reads `{{lenspack image tag}}` |
 
 ## The rest of the configuration
 
@@ -124,7 +127,8 @@ key. Neither applies to the pilot, since the assistant doesn't use coordinates.
 
 ## Before go-live
 
-1. eGov creates the internal account and the Gabon-only read role, and gives it `Lenspack admin`.
+1. eGov creates the internal account with the Gabon-only read role and sends us its user id, which goes in
+   `LENSPACK_ADMIN_USERS`.
 2. Lenspack #105 and #111 merged (with the menu-entry fix), and the new image tag put in both deploy PRs with
    `LENSPACK_ADMIN_SURFACE=superset`.
 3. The deploy PRs come out of draft for eGov's review. Secrets are added by eGov: the `lenspack` Superset login's
@@ -135,23 +139,25 @@ key. Neither applies to the pilot, since the assistant doesn't use coordinates.
 
 - **The pod** shows 1/1 ready. 0/1 means it is still waiting for Superset's signing key and retrying.
 - **The server's start-up log** says who is an admin and who may use it:
-  `admins: Superset role Lenspack admin from auth.admins (access superset-role, …)` and
-  `users: Superset role Lenspack user and admins (access superset-role, …)`.
-- **Signed in as the internal account:** the Ask button shows, a question about the campaign gets an answer, and
-  Superset's AI assistant page opens with every section.
+  `admins: named Superset users (1 owner from LENSPACK_ADMIN_USERS, …` and a `users:` line naming
+  `superset-role,granted`.
+- **Signed in as the internal account:** the Ask button shows, a question about the campaign gets an answer, the
+  AI assistant entry is in Superset's Settings menu, and its page opens with every section. The Access page lists the
+  account as owner.
 - **Signed in as anyone else:** no Ask button.
 - **The usage pages** show the internal account's question, with its user name.
 
 ## Rolling out to more people
 
-1. In Superset, give `Lenspack user` to the people who should try it.
+1. The owner adds the people who should try it under **Users** on the Access page.
 2. Watch the usage and review pages for a few days: answers people mark wrong, refusals, spend against the cap.
-3. Give `Lenspack admin` to anyone else who should run it. The new-admin notice tells existing admins.
+3. The owner adds anyone else who should run it under **Admins**. The new-admin notice tells existing admins.
 
 ## Open
 
-- Whether eGov wants admins limited to named people (`superset-users`) rather than a role.
-- Whether to turn dashboard edits off entirely (`boardEdits: false`) before anyone with edit rights gets the
-  `Lenspack user` role.
+- Whether users should come only from the Access page (`LENSPACK_USER_ACCESS=granted`), so that a Superset Admin
+  can't let people in with the `Lenspack user` role.
+- Whether to turn dashboard edits off entirely (`boardEdits: false`) before anyone with edit rights in Superset is
+  let in.
 - Whether filters picked on the dashboard should narrow answers. Today they are ignored and only the campaign scope
   applies.
