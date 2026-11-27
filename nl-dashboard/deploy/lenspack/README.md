@@ -12,5 +12,5 @@ and how to talk about them (Lenspack calls this vocabulary a *pack*).
 
 Compose picks one with `LENSPACK_CONFIG` in `.env`; Kubernetes mounts it from a ConfigMap
 ([`../k8s/README.md`](../k8s/README.md)). Every key is explained in Lenspack's
-[config reference](https://github.com/theflywheel/lenspack/blob/b91d2bb54ccb20c27891c77186b06a1069671290/docs/reference/config.md),
+[config reference](https://github.com/theflywheel/lenspack/blob/3d6fa922b2bdc1f9a8af2b18e64478685c392dd9/docs/reference/config.md),
 at the pinned version. What is ours and what is Lenspack's: [where things live](../../README.md#where-things-live).

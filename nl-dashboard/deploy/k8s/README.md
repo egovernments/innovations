@@ -20,7 +20,7 @@ The pods request about 1 CPU and 2.3 Gi in total, with limits of 5 CPU and 8 Gi.
 - **ingress-nginx and cert-manager.** On the lab server the ClusterIssuer is `letsencrypt-prod`, and
   `*.hcm-lab.digit.org` already resolves to it. Elsewhere, change the host and issuer in `ingress.yaml`.
 - **Images.** `kustomization.yaml` uses public images from `ghcr.io/theflywheel/lenspack`. Lenspack runs its
-  own image, built from its `main` branch and tagged with the commit (for example `b91d2bb`). Superset runs this
+  own image, built from its `main` branch and tagged with the commit (for example `3d6fa92`). Superset runs this
   folder's image, `superset6-<sha>`, built at commit `<sha>` of this repository; it copies Lenspack's Superset
   side (`lenspack_superset.py`) out of the Lenspack image, so build it with the same Lenspack tag. To build your own
   from `nl-dashboard/deploy/`:

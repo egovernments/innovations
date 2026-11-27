@@ -46,7 +46,7 @@ This folder has two sides, and they are kept apart:
 
 - **Lenspack** (open source, [theflywheel/lenspack](https://github.com/theflywheel/lenspack)) is the chat: the
   server, the agent and its Superset plugin. We don't copy its code. Both containers use its published image at one
-  pinned version, **`b91d2bb`**, and this folder only configures it.
+  pinned version, **`3d6fa92`**, and this folder only configures it.
 - **The Superset deployment and the HCM material** are owned here: the Superset image and settings, the Lenspack
   configs for HCM data, the dataset setup, the deploy files, and the evaluation results.
 
@@ -64,20 +64,20 @@ This folder has two sides, and they are kept apart:
 | Docs for this deployment | [`docs/`](docs/README.md) | How it works, adding it to a Superset you already run, updating, a one-page summary |
 | Evaluation results | [`evals/`](evals/README.md) | How often the chat gives the right answer on HCM data, and the speech-to-text comparison |
 
-**From Lenspack, at the pinned version `b91d2bb`** (the links open that exact commit)
+**From Lenspack, at the pinned version `3d6fa92`** (the links open that exact commit)
 
 | Part | How this folder uses it | Code | Docs |
 |---|---|---|---|
-| The Lenspack server: chat, agent, Superset connector | the `lenspack` container runs `ghcr.io/theflywheel/lenspack:b91d2bb` | [`packages/hosts/superset`](https://github.com/theflywheel/lenspack/tree/b91d2bb54ccb20c27891c77186b06a1069671290/packages/hosts/superset) | [Superset host](https://github.com/theflywheel/lenspack/blob/b91d2bb54ccb20c27891c77186b06a1069671290/docs/hosts/superset/README.md) |
-| Superset plugin, `lenspack_superset.py` | copied into our Superset image from the same Lenspack image when it is built ([`Dockerfile`](deploy/superset/Dockerfile)), and imported at the end of `superset_config.py` | [`plugin/lenspack_superset.py`](https://github.com/theflywheel/lenspack/blob/b91d2bb54ccb20c27891c77186b06a1069671290/packages/hosts/superset/plugin/lenspack_superset.py) | [install](https://github.com/theflywheel/lenspack/blob/b91d2bb54ccb20c27891c77186b06a1069671290/docs/hosts/superset/install.md), [identity](https://github.com/theflywheel/lenspack/blob/b91d2bb54ccb20c27891c77186b06a1069671290/docs/hosts/superset/identity.md) |
-| The config file format of `deploy/lenspack/*.yaml` | | | [config reference](https://github.com/theflywheel/lenspack/blob/b91d2bb54ccb20c27891c77186b06a1069671290/docs/reference/config.md), [datasets and dashboards](https://github.com/theflywheel/lenspack/blob/b91d2bb54ccb20c27891c77186b06a1069671290/docs/hosts/superset/datasets-and-dashboards.md) |
-| Superset API client in `setup.mts` | `setup` runs inside the Lenspack image and imports it | [`src/client.ts`](https://github.com/theflywheel/lenspack/blob/b91d2bb54ccb20c27891c77186b06a1069671290/packages/hosts/superset/src/client.ts) | |
-| Who sees what | | | [access](https://github.com/theflywheel/lenspack/blob/b91d2bb54ccb20c27891c77186b06a1069671290/docs/access/superset.md) |
-| Upgrading | steps for this stack: [`docs/UPDATING.md`](docs/UPDATING.md) | | [upgrading](https://github.com/theflywheel/lenspack/blob/b91d2bb54ccb20c27891c77186b06a1069671290/docs/hosts/superset/upgrading.md), [Superset versions](https://github.com/theflywheel/lenspack/blob/b91d2bb54ccb20c27891c77186b06a1069671290/docs/hosts/superset/versions.md) |
-| The eval runner and the HCM question sets | run from a Lenspack checkout; our results are in [`evals/`](evals/README.md) | [`evals/`](https://github.com/theflywheel/lenspack/tree/b91d2bb54ccb20c27891c77186b06a1069671290/evals), question sets at the version our results used: [`evals/suites/hcm` @ `ce9cd0f`](https://github.com/theflywheel/lenspack/tree/ce9cd0fe932f811d2542be607716bd8a4ef5c602/evals/suites/hcm) | [evals](https://github.com/theflywheel/lenspack/blob/b91d2bb54ccb20c27891c77186b06a1069671290/evals/README.md) |
+| The Lenspack server: chat, agent, Superset connector | the `lenspack` container runs `ghcr.io/theflywheel/lenspack:3d6fa92` | [`packages/hosts/superset`](https://github.com/theflywheel/lenspack/tree/3d6fa922b2bdc1f9a8af2b18e64478685c392dd9/packages/hosts/superset) | [Superset host](https://github.com/theflywheel/lenspack/blob/3d6fa922b2bdc1f9a8af2b18e64478685c392dd9/docs/hosts/superset/README.md) |
+| Superset plugin, `lenspack_superset.py` | copied into our Superset image from the same Lenspack image when it is built ([`Dockerfile`](deploy/superset/Dockerfile)), and imported at the end of `superset_config.py` | [`plugin/lenspack_superset.py`](https://github.com/theflywheel/lenspack/blob/3d6fa922b2bdc1f9a8af2b18e64478685c392dd9/packages/hosts/superset/plugin/lenspack_superset.py) | [install](https://github.com/theflywheel/lenspack/blob/3d6fa922b2bdc1f9a8af2b18e64478685c392dd9/docs/hosts/superset/install.md), [identity](https://github.com/theflywheel/lenspack/blob/3d6fa922b2bdc1f9a8af2b18e64478685c392dd9/docs/hosts/superset/identity.md) |
+| The config file format of `deploy/lenspack/*.yaml` | | | [config reference](https://github.com/theflywheel/lenspack/blob/3d6fa922b2bdc1f9a8af2b18e64478685c392dd9/docs/reference/config.md), [datasets and dashboards](https://github.com/theflywheel/lenspack/blob/3d6fa922b2bdc1f9a8af2b18e64478685c392dd9/docs/hosts/superset/datasets-and-dashboards.md) |
+| Superset API client in `setup.mts` | `setup` runs inside the Lenspack image and imports it | [`src/client.ts`](https://github.com/theflywheel/lenspack/blob/3d6fa922b2bdc1f9a8af2b18e64478685c392dd9/packages/hosts/superset/src/client.ts) | |
+| Who sees what | | | [access](https://github.com/theflywheel/lenspack/blob/3d6fa922b2bdc1f9a8af2b18e64478685c392dd9/docs/access/superset.md) |
+| Upgrading | steps for this stack: [`docs/UPDATING.md`](docs/UPDATING.md) | | [upgrading](https://github.com/theflywheel/lenspack/blob/3d6fa922b2bdc1f9a8af2b18e64478685c392dd9/docs/hosts/superset/upgrading.md), [Superset versions](https://github.com/theflywheel/lenspack/blob/3d6fa922b2bdc1f9a8af2b18e64478685c392dd9/docs/hosts/superset/versions.md) |
+| The eval runner and the HCM question sets | run from a Lenspack checkout; our results are in [`evals/`](evals/README.md) | [`evals/`](https://github.com/theflywheel/lenspack/tree/3d6fa922b2bdc1f9a8af2b18e64478685c392dd9/evals), question sets at the version our results used: [`evals/suites/hcm` @ `ce9cd0f`](https://github.com/theflywheel/lenspack/tree/ce9cd0fe932f811d2542be607716bd8a4ef5c602/evals/suites/hcm) | [evals](https://github.com/theflywheel/lenspack/blob/3d6fa922b2bdc1f9a8af2b18e64478685c392dd9/evals/README.md) |
 | Speech-to-text scripts | our results are in [`evals/speech/`](evals/speech/README.md) | [`evals/speech` @ `09d59f3`](https://github.com/theflywheel/lenspack/tree/09d59f303e11798ae0be7aa07bc248cf23714763/evals/speech), the version our results used | |
 
-All of Lenspack's docs at this version: [docs/README.md](https://github.com/theflywheel/lenspack/blob/b91d2bb54ccb20c27891c77186b06a1069671290/docs/README.md).
+All of Lenspack's docs at this version: [docs/README.md](https://github.com/theflywheel/lenspack/blob/3d6fa922b2bdc1f9a8af2b18e64478685c392dd9/docs/README.md).
 
 **Production deploys** are not in this repository. The Helm charts for HCM's production Superset (first: the Gabon
 pilot) are draft pull requests in
@@ -90,7 +90,7 @@ pilot) are draft pull requests in
 (three places), [`deploy/.env.example`](deploy/.env.example), [`deploy/superset/Dockerfile`](deploy/superset/Dockerfile),
 [`deploy/k8s/kustomization.yaml`](deploy/k8s/kustomization.yaml) (the Lenspack tag, and the Superset image built
 with it) and [`deploy/k8s/setup-job.yaml`](deploy/k8s/setup-job.yaml). Change them together, with the links to that
-version in this README and the docs (`grep -rn b91d2bb nl-dashboard` finds every place).
+version in this README and the docs (`grep -rn 3d6fa92 nl-dashboard` finds every place).
 [`docs/UPDATING.md`](docs/UPDATING.md) has the steps for a running deployment.
 
 **Lenspack's Superset side** is one file, `lenspack_superset.py`, imported at the end of `superset_config.py`. It
@@ -158,7 +158,7 @@ trusts the `X-Forwarded-*` headers it receives.
 | `LENSPACK_INTERNAL_URL` | Superset | no | `http://lenspack:8795` | How Superset's server reaches Lenspack (the `/lenspack/` route and the AI assistant page) |
 | `BIND_ADDRESS`, `PORT` | Superset | no | `127.0.0.1`, `8088` | Where Superset listens |
 | `LENSPACK_CONFIG` | compose | no | `lenspack-superset.yaml` | Which Lenspack config in `deploy/lenspack/`: the sample one or `lenspack-superset.clickhouse.yaml` |
-| `LENSPACK_IMAGE` | compose | no | `ghcr.io/theflywheel/lenspack:b91d2bb` | The Lenspack image (a commit of Lenspack's `main`). Superset's image copies `lenspack_superset.py` from it, so rebuild with `docker compose up -d --build` after changing it |
+| `LENSPACK_IMAGE` | compose | no | `ghcr.io/theflywheel/lenspack:3d6fa92` | The Lenspack image (a commit of Lenspack's `main`). Superset's image copies `lenspack_superset.py` from it, so rebuild with `docker compose up -d --build` after changing it |
 | `CLICKHOUSE_USER`, `CLICKHOUSE_PASSWORD` | setup | for ClickHouse | | Read-only ClickHouse user. Pass the password with `-e` to the setup run; Superset stores it encrypted |
 | `CLICKHOUSE_HOST`, `CLICKHOUSE_PORT`, `CLICKHOUSE_DATABASE` | setup | no | `clickhouse-tunnel`, `8123`, `analytics` | Where Superset reaches ClickHouse |
 | `CLICKHOUSE_TENANT` | setup | no | `ng` | Tenant id for the targets and referrals tables. eGov's ready-made views cover a single field-test campaign and don't use it |
@@ -257,7 +257,7 @@ Most of these are covered in [issue #1](https://github.com/egovernments/innovati
   ([details](docs/ADD-TO-EXISTING-SUPERSET-REFERENCE.md#what-each-person-sees)).
 - **Chart types:** only KPI, pie, line, area, bar, table, heatmap and point-map (`deck_scatter`) charts can be edited.
   Other chart types are kept as Superset's.
-- **Lenspack version:** compose and Kubernetes pin a commit of Lenspack's `main` (now `b91d2bb`). Where it is pinned,
+- **Lenspack version:** compose and Kubernetes pin a commit of Lenspack's `main` (now `3d6fa92`). Where it is pinned,
   and links to that version's code and docs: [where things live](#where-things-live).
 
 ## History
